@@ -7,20 +7,22 @@ macro allow_methods{										;создаем макросы, которые п�
 															;переопределять методы
 	struc method val\{
 		\local matched
-		match name, struct@lastname\\{						;в этой константе хранится имя последней обьявленной структуры
-			name\\#@MStack equ . 							;загружаем на вершину константы-стека новый метод
-			match _val:type, val\\\{						;для виртуальных методов(и возможно дальнейшего расширения)
-				.Value equ _val								;сразу закрепляем за ним значение(обработчик)
-				.Type equ type								;и тип - пока что только виртуальные
-				define matched
-			\\\}
-			match =matched, matched\\\{						;если тип не указан явно
-				.Value equ val								;значит статический
-				.Type equ static
-			\\\}
-			match =this, .Value\\\{							;если значение обработчика - this, то это значит
-				.Value equ name\\\#\\\.\\\#.				;что надо подставить имя метода в формате StructName.MethodName
-			\\\}											;это работает, так как процедура это метка и доступна везде
+		match name, struct@lastname\\{							;в этой константе хранится имя последней обьявленной структуры
+			if used name\\#\\.Table.\\#.
+				name\\#@MStack equ . 							;загружаем на вершину константы-стека новый метод
+				match _val:type, val\\\{						;для виртуальных методов(и возможно дальнейшего расширения)
+					.Value equ _val								;сразу закрепляем за ним значение(обработчик)
+					.Type equ type								;и тип - пока что только виртуальные
+					define matched
+				\\\}
+				match =matched, matched\\\{						;если тип не указан явно
+					.Value equ val								;значит статический
+					.Type equ static
+				\\\}
+				match =this, .Value\\\{							;если значение обработчика - this, то это значит
+					.Value equ name\\\#\\\.\\\#.				;что надо подставить имя метода в формате StructName.MethodName
+				\\\}											;это работает, так как процедура это метка и доступна везде
+			end if
 		\\}	
 	\}
 
@@ -41,32 +43,64 @@ macro allow_methods{										;создаем макросы, которые п�
 		\\}
 	\}
 
+	macro const args\{
+		match atrname atrtype atrval name, args struct@lastname\\{
+			name\\#@ConStack equ atrname
+			name\\#.\\#atrname\\#@Type equ atrtype
+			name\\#.\\#atrname\\#@Value equ atrval
+			name\\#.\\#atrname atrtype atrval
+		\\}
+	\}
+
+	struc event procaddr\{
+		match name, struct@lastname\\{	
+			name\\#@EventStack equ .
+			. dq procaddr
+		\\}	
+	\} 
+
+}
+
+macro make@Const arg1, arg2, arg3{
+	arg1 arg2 arg3
 }
 
 macro struct NameParent{
 	local matched@endt, matched@params						;тут происходит определение разных локалок для двух отдельных
 															;матчевых if...else
+	allow_methods
 	match name parent, NameParent\{
 		define matched@params
-		oldstruct@action equ name parent					;так как я активно использую старый struct, для него я сохраняю
-															;значения, которые ему передам для генерации основной структуры
+		; oldstruct@action equ name parent					;так как я активно использую старый struct, для него я сохраняю
+		; 													;значения, которые ему передам для генерации основной структуры
 		struct@lastname equ name							;в этой переменной между struct и ends сохраняется 
 															;имя последней использованной структуры
 		name\#@SParent equ parent							;к имени так же привязывается родитель
-		irpv ParentMethod, parent\#@MStack\\{				;загружаем потомку методы родителя
-			name\#@MStack equ ParentMethod
-		\\}
-		irpv ParentConst, parent\#@ConStack\\{
-			name\#@ConStack equ ParentConst
+		name\#@New equ TRUE
+		match =TRUE, parent\#@New\\{
+			irpv ParentMethod, parent\#@MStack\\\{				;загружаем потомку методы родителя
+				name\#@MStack equ ParentMethod
+			\\\}
+			irpv ParentConst, parent\#@ConStack\\\{
+				; atrname\\#@Type equ atrtype
+				; atrname\\#@Value equ atrval
+				const ParentConst parent\#.\\\#ParentConst\\\#@Type parent\#.\\\#ParentConst\\\#@Value
+			\\\}
+			irpv ParentControl, parent\#@ConstrolStack\\\{
+				name\#@ConstrolStack equ ParentControl
+			\\\}
+			irpv ParentEvent, parent\#@EventStack\\\{
+				name\#@EventStack equ ParentEvent
+			\\\}
 		\\}
 	\}
 	match =matched@params, matched@params\{
-		oldstruct@action equ NameParent						;если родителя нет, параметры устанавливаются таким образом
+		NameParent\#@New equ TRUE
+		; oldstruct@action equ NameParent						;если родителя нет, параметры устанавливаются таким образом
 		struct@lastname equ NameParent
 	\} 														;с таким же именем используется старое определение
 															;это разработчиком компилятора сделано намеренно, дабы избежать рекурсии
 	struct NameParent
-	allow_methods
 }
 
 macro MStruct@GenMethods name, StackName{					;макрос для генерации методов
@@ -74,7 +108,9 @@ macro MStruct@GenMethods name, StackName{					;макрос для генера�
 	irpv MethName, StackName\{								;перебираем стек методов
 	local matched
 		match =static, MethName\#.Type\\{					;если метод статический - устаналвиаем числовую переменную
-			.\\#MethName = MethName\\#.Value				;в значение адреса обработчика
+			if used .\\#MethName
+				.\\#MethName = MethName\\#.Value				;в значение адреса обработчика
+			end if
 			define matched
 		\\}
 		match =matched, matched\\{
@@ -90,17 +126,18 @@ macro make@atr name, atrname, atrtype, atrval{
 	name#.#atrname atrtype atrval
 }
 
-macro ends{
+macro ends@handler{
 	match name, struct@lastname\{
 		local matched
 		ends
 		restruc method  								;уаляем определения макросов для методов
-		restruc override	
+		restruc override
+		restruc const
 		match name, struct@lastname\\{
-			name\\\#@Virtual equ "FALSE"				;по умолчанию считаем, что таблица виртуальных методов не нужна
+			name\\#@Virtual equ "FALSE"				;по умолчанию считаем, что таблица виртуальных методов не нужна
 			MStruct@GenMethods name, name\\\#@MStack	;при генерации определим так ли это
 		\\}
-		restore oldstruct@action		
+		; restore oldstruct@action		
 		;здесь происходит переопределение стандартных
 		;создаваемых struct макросов
 		match ="TRUE", name\#@Virtual\\{					;если нужно создать указатель на таблице виртуальных методов
@@ -110,13 +147,14 @@ macro ends{
 				.VTable: 
 				dq name\#.Table								;создаем на 8 байт раньше стандартного определения
 				. name args
-				irpv CName, name\#@ConStack\\\\{
-					match CType CValue, CName\\\\#@Type CName\\\\#@Value\\\\\{
-						make@atr ., CName, CType, CValue
-					\\\\\} 
-				\\\\}
+				; irpv CName, name\#@ConStack\\\\{
+				; 	match CType CValue, CName\\\\#@Type CName\\\\#@Value\\\\\{
+				; 		make@atr ., CName, CType, CValue
+				; 	\\\\\} 
+				; \\\\}
 				.Table equ name\#.Table						;так же прикрепляем таблицу к обьекту статически
-				.Type equ \`name
+				.Type equ \name
+				.TypeName equ \`name
 			\\\}
 			macro name [args]\\\{							;если имени у обьекта нет, то просто создаем таблицу со значением
 				\\\common
@@ -130,11 +168,13 @@ macro ends{
 				restore .Table
 				.Table equ name\\#.Table					;то просто прикрепляем таблицу статически
 				. name args
-				irpv CName, name\#@ConStack\\\\{
-					match CType CValue, CName\\\\#.Type\\\\\{
-						make@atr ., CName, CType, CValue	;создание констант. Намеренно завернуто в макрос
-					\\\\\} 
-				\\\\}
+				; irpv CName, name\#@ConStack\\\\{
+				; 	match CType CValue, CName\\\\#.Type\\\\\{
+				; 		make@atr ., CName, CType, CValue	;создание констант. Намеренно завернуто в макрос
+				; 	\\\\\} 
+				; \\\\}
+				.Type equ \name
+				.TypeName equ \`name
 			\\\}
 			macro name [args]\\\{							;если имени у обьекта нет, то стандартный обработчик
 				\\\common
@@ -143,6 +183,12 @@ macro ends{
 		\\}
 		restore struct@lastname
 	\}
+}
+
+; define ends@handler ends@default
+
+macro ends{
+	ends@handler
 }
 
 macro @call ObjMethArgs&{
@@ -260,11 +306,11 @@ macro virtObj args&{
 	\}
 }
 
-macro const args{
-	match atrname atrtype atrval name, args struct@lastname\{
-		name\#@ConStack equ atrname
-		atrname\#@Type equ atrtype
-		atrname\#@Value equ atrval
-		name\#.\#atrname atrtype atrval
+macro union{
+	union
+	macro ends@handler\{
+		ends
+		purge ends@handler
+		display "lol"
 	\}
 }
