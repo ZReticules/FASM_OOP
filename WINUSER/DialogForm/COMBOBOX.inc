@@ -12,7 +12,7 @@ struct COMBOBOX CONTROL
 	findItem 		dm this
 	getItemTextLen	dm this
 	getItemText		dm this
-	setItemText		dm this
+	; setItemText		dm this
 	initSubControl	dm this
 	const CType equ "ComboBox"
 ends

@@ -12,13 +12,10 @@ struct DIALOGFORM
 	hWnd 					dq ?
 	idCount 				dw ?
 	bgColorBrush 			dq 0
-	bkColor 				dd 0x0
-	txColor					dd 0xFFFFFF
 	hDialogTemplate 		dq ?
 	lpDialogFunc 			dq ?
-	hWndParent 				dq ?
+	hWndParent 				dq 0
 	WM_CLOSE 				event DIALOGFORM_WM_CLOSE
-	; WM_CTLCOLORBTN  		event DIALOGFORM_WM_CTLCOLOR
 	WM_CTLCOLOREDIT  		event DIALOGFORM_WM_CTLCOLOR
 	WM_CTLCOLORDLG  		event DIALOGFORM_WM_CTLCOLOR
 	WM_CTLCOLORLISTBOX  	event DIALOGFORM_WM_CTLCOLOR
@@ -34,9 +31,9 @@ struct DIALOGFORM
 	setTextColor			dm this
 	setBorderColor			dm this
 	setCornerType			dm this
-	setTheme				dm this
 	dispatchMessages		dm this
 	startNM					dm this
+	setIcon 				dm this
 ends
 
 struct params
@@ -53,7 +50,7 @@ macro form formInfo&{
 		formInfo NONE, formType\#.cdit, NONE, NONE, NONE, formType\#_DlgTemplate, formType\#_DialogProc, _initvals
 	\}
 	match =matched formName formType, matched formInfo\{
-		formInfo NONE, formType\#.cdit, NONE, NONE, NONE, formType\#_DlgTemplate, formType\#_DialogProc
+		formInfo NONE, formType\#.cdit, NONE, formType\#_DlgTemplate, formType\#_DialogProc
 	\}
 }
 

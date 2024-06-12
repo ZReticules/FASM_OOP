@@ -72,6 +72,7 @@ struct WND
 	msgBox 					dm this
 	setTimer				dm this
 	killTimer				dm this
+	getStockIcon			dm this
 	const darkThemeColor 	= 0x2E2E2E
 	const darkThemeCFD		= DarkThemeCFD
 	const darkThemeExplorer	= DarkThemeExplorer
@@ -115,6 +116,8 @@ DWMWCP enum\
 	ROUND,\
 	ROUNDSMALL
 
+define MAX_PATH 260
+
 if used WND.msgBox
 	WND.msgBox:
 		jmp [MessageBoxA]
@@ -138,4 +141,18 @@ end if
 ; ends
 
 include_once "TOOLS\WINUSER\MsgBox.inc"
+include_once "TOOLS\WINUSER\StockIcons.inc"
+
+	proc WND.getStockIcon, ICONID
+		locals
+			stockInfo SHSTOCKICONINFO
+		endl
+		@call [SHGetStockIconInfo](rcx, SHGSI_ICON, addr stockInfo)
+		test eax, eax
+		jnz .error
+			mov rax, [stockInfo.hIcon]
+		.error:
+		ret
+	endp
+
 include_once "TOOLS\WINUSER\DialogForm\DialogForm.inc"

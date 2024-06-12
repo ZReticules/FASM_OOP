@@ -8,7 +8,7 @@ proc CONTROL.hideCur, this
 endp
 
 proc CONTROL.setTheme, this, wstrLp
-	virtObj .this:arg DIALOGFORM
+	virtObj .this:arg CONTROL
 	@call [SetWindowTheme]([.this.hWnd], rdx, 0)
 	ret
 endp

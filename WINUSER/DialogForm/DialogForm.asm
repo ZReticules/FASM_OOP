@@ -11,7 +11,9 @@ importlib user32,\
 	DestroyWindow,\
 	PostQuitMessage,\
 	GetMessageA,\
-	IsDialogMessageA
+	IsDialogMessageA,\
+	SetWindowLongPtrA,\
+	GetWindowLongPtrA
 
 importlib kernel32,\
 	GetModuleHandleA
@@ -28,13 +30,19 @@ importlib dwmapi,\
 importlib uxtheme,\
 	SetWindowTheme
 
-proc DIALOGFORM.start uses rbx r12, this, parent
-	virtObj .this:arg DIALOGFORM at rbx
-	.parentHWnd equ r12
-	mov rbx, rcx
-	mov .parentHWnd, rdx
+proc DIALOGFORM.start, this, parent
+	virtObj .this:arg DIALOGFORM
+	push rcx
+	push rdx
 	@call [GetModuleHandleA](0)
-	@call [DialogBoxIndirectParamA](rax, [.this.hDialogTemplate], r12, [.this.lpDialogFunc], rbx)
+	pop r8
+	mov rcx, [rsp]						;выравнивание стека
+	push rcx
+	mov r9, [.this.lpDialogFunc]
+	mov rdx, [.this.hDialogTemplate]
+	mov rcx, rax
+	@call [DialogBoxIndirectParamA]()
+	pop rcx								;выравнивание обратно
 	ret
 endp
 
@@ -50,15 +58,18 @@ proc DIALOGFORM.startNM uses rbx r12, this, parent
 		mov [.this.WM_CLOSE], DIALOGFORM_WM_CLOSE_nomodal
 		@call [CreateDialogIndirectParamA](rax, [.this.hDialogTemplate], r12, [.this.lpDialogFunc], rbx)
 		mov [.this.hWnd], rax
+		mov [.this.hWndParent], r12
 	.alreadyExists:
 	ret
 endp
 
-proc DIALOGFORM_WM_CLOSE, formLp, lpParam
-	virtObj .form:arg DIALOGFORM
-	@call [EndDialog]([.form.hWnd], 0)
-	ret
-endp
+if used DIALOGFORM_WM_CLOSE
+	DIALOGFORM_WM_CLOSE:
+		virtObj .this:arg DIALOGFORM
+		mov rcx, [.this.hWnd]
+		xor rdx, rdx
+		jmp [EndDialog]
+end if
 
 proc DIALOGFORM_WM_CLOSE_nomodal, formLp, lpParam
 	virtObj .form:arg DIALOGFORM
@@ -66,8 +77,9 @@ proc DIALOGFORM_WM_CLOSE_nomodal, formLp, lpParam
 	@call [DestroyWindow]([.form.hWnd])
 	pop rcx
 	mov [.form.hWnd], 0
-	@call [PostQuitMessage](0)
-	ret
+	leave
+	xor rcx, rcx
+	jmp [PostQuitMessage]
 endp
 
 proc DIALOGFORM_WM_CTLCOLOR uses rbx r12, formLp, paramsLp
@@ -114,15 +126,19 @@ proc DIALOGFORM.setText, this, lpString
 	ret
 endp
 
-proc DIALOGFORM.close
-	virtObj .this:arg DIALOGFORM
-	@call [.this.WM_CLOSE](addr .this)
-	ret
-endp
+if used DIALOGFORM.close
+	DIALOGFORM.close:
+		virtObj .this:arg DIALOGFORM
+		xor r9, r9
+		mov r8, r9
+		mov rdx, WM_CLOSE
+		mov rcx, [.this.hWnd]
+		jmp [SendMessageA]
+end if
 
-proc DIALOGFORM.setBgColor uses rbx, this, colorref
-	virtObj .this:arg DIALOGFORM at rbx
-	mov rbx, rcx
+proc DIALOGFORM.setBgColor, this, colorref
+	virtObj .this:arg DIALOGFORM
+	push rcx
 	cmp [.this.bgColorBrush], NULL
 	je .emptyColor
 		push rdx
@@ -130,6 +146,7 @@ proc DIALOGFORM.setBgColor uses rbx, this, colorref
 		pop rdx
 	.emptyColor:
 	@call [CreateSolidBrush](rdx)
+	pop rcx
 	mov [.this.bgColorBrush], rax
 	ret
 endp
@@ -184,6 +201,13 @@ proc DIALOGFORM.dispatchMessages uses rbx, mainHandle
 	@call [IsDialogMessageA]([msg.hwnd], addr msg)
 	mov eax, 1
 	.return:ret
+endp
+
+proc DIALOGFORM.setIcon, this, hIcon
+	virtObj .this:arg DIALOGFORM
+	mov r9, rdx
+	@call [SendMessageA]([.this.hWnd], WM_SETICON, ICON_BIG, r9)
+	ret
 endp
 
 macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogForm", _style=WS_VISIBLE+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+WS_MAXIMIZEBOX+DS_CENTER, _styleEx = NULL{
