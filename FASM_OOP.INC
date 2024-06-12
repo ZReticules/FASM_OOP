@@ -8,21 +8,21 @@ macro allow_methods{										;создаем макросы, которые п�
 	struc method val\{
 		\local matched
 		match name, struct@lastname\\{							;в этой константе хранится имя последней обьявленной структуры
-			if used name\\#\\.Table.\\#.
+			; if used name\\#\\.Table.\\#.
 				name\\#@MStack equ . 							;загружаем на вершину константы-стека новый метод
 				match _val:type, val\\\{						;для виртуальных методов(и возможно дальнейшего расширения)
-					.Value equ _val								;сразу закрепляем за ним значение(обработчик)
-					.Type equ type								;и тип - пока что только виртуальные
+					.Value\\#name equ _val								;сразу закрепляем за ним значение(обработчик)
+					.Type\\#name equ type								;и тип - пока что только виртуальные
 					define matched
 				\\\}
 				match =matched, matched\\\{						;если тип не указан явно
-					.Value equ val								;значит статический
-					.Type equ static
+					.Value\\#name equ val								;значит статический
+					.Type\\#name equ static
 				\\\}
-				match =this, .Value\\\{							;если значение обработчика - this, то это значит
-					.Value equ name\\\#\\\.\\\#.				;что надо подставить имя метода в формате StructName.MethodName
+				match =this, .Value\\#name\\\{							;если значение обработчика - this, то это значит
+					.Value\\#name equ name\\\#\\\.\\\#.				;что надо подставить имя метода в формате StructName.MethodName
 				\\\}											;это работает, так как процедура это метка и доступна везде
-			end if
+			; end if
 		\\}	
 	\}
 
@@ -67,7 +67,9 @@ macro make@Const arg1, arg2, arg3{
 
 macro struct NameParent{
 	local matched@endt, matched@params						;тут происходит определение разных локалок для двух отдельных
-															;матчевых if...else
+															;матчевых if...else 														;с таким же именем используется старое определение
+															;это разработчиком компилятора сделано намеренно, дабы избежать рекурсии
+	struct NameParent
 	allow_methods
 	match name parent, NameParent\{
 		define matched@params
@@ -79,7 +81,8 @@ macro struct NameParent{
 		name\#@New equ TRUE
 		match =TRUE, parent\#@New\\{
 			irpv ParentMethod, parent\#@MStack\\\{				;загружаем потомку методы родителя
-				name\#@MStack equ ParentMethod
+				ParentMethod method ParentMethod\\\#.Value\\#parent:ParentMethod\\\#.Type\\#parent
+				; display \\\`ParentMethod\\\#.Value\\#name
 			\\\}
 			irpv ParentConst, parent\#@ConStack\\\{
 				; atrname\\#@Type equ atrtype
@@ -88,6 +91,15 @@ macro struct NameParent{
 			\\\}
 			irpv ParentControl, parent\#@ConstrolStack\\\{
 				name\#@ConstrolStack equ ParentControl
+				name\#.\\\#ParentControl\\\#._x = parent\\#.\\\#ParentControl\\\#._x
+				name\#.\\\#ParentControl\\\#._y = parent\\#.\\\#ParentControl\\\#._y
+				name\#.\\\#ParentControl\\\#._cx = parent\\#.\\\#ParentControl\\\#._cx
+				name\#.\\\#ParentControl\\\#._cy = parent\\#.\\\#ParentControl\\\#._cy
+				name\#.\\\#ParentControl\\\#._rx = parent\\#.\\\#ParentControl\\\#._rx
+				name\#.\\\#ParentControl\\\#._ry = parent\\#.\\\#ParentControl\\\#._ry
+				name\#.\\\#ParentControl\\\#._style = parent\\#.\\\#ParentControl\\\#._style
+				name\#.\\\#ParentControl\\\#._styleEx = parent\\#.\\\#ParentControl\\\#._styleEx
+				name\#.\\\#ParentControl\\\#._Text equ parent\\#.\\\#ParentControl\\\#._Text
 			\\\}
 			irpv ParentEvent, parent\#@EventStack\\\{
 				name\#@EventStack equ ParentEvent
@@ -98,23 +110,21 @@ macro struct NameParent{
 		NameParent\#@New equ TRUE
 		; oldstruct@action equ NameParent						;если родителя нет, параметры устанавливаются таким образом
 		struct@lastname equ NameParent
-	\} 														;с таким же именем используется старое определение
-															;это разработчиком компилятора сделано намеренно, дабы избежать рекурсии
-	struct NameParent
+	\}
 }
 
 macro MStruct@GenMethods name, StackName{					;макрос для генерации методов
 	name#.Table:
 	irpv MethName, StackName\{								;перебираем стек методов
 	local matched
-		match =static, MethName\#.Type\\{					;если метод статический - устаналвиаем числовую переменную
+		match =static, MethName\#.Type#name\\{					;если метод статический - устаналвиаем числовую переменную
 			if used .\\#MethName
-				.\\#MethName = MethName\\#.Value				;в значение адреса обработчика
+				.\\#MethName = MethName\\#.Value#name				;в значение адреса обработчика
 			end if
 			define matched
 		\\}
 		match =matched, matched\\{
-			name#.Table.\\#MethName dq MethName\\#.Value	;если метод не статический, значит виртуальный
+			name#.Table.\\#MethName dq MethName\\#.Value#name	;если метод не статический, значит виртуальный
 			restore name#@Virtual							;заодно здесь мы проверяем, нужно ли создавать для обьектов
 			name#@Virtual equ "TRUE"						;поле с указателем на таблицу виртуальных методов
 		\\}
@@ -225,7 +235,8 @@ macro @call ObjMethArgs&{
 			define matched
 			ccall Struct\\#.Table\\#.\\#Meth, args
 		\\}
-		match =matched, matched\\{							;иначе просто вызываем обычную процедуру
+		match =matched, matched\\{	
+			define matched						;иначе просто вызываем обычную процедуру
 			ccall ObjMeth, args
 		\\}
 	\}
@@ -253,8 +264,13 @@ macro @call ObjMethArgs&{
 			ccall Struct\\#.Table\\#.\\#Meth
 		\\}
 		match =matched, matched\\{
+			define matched
 			ccall ObjMeth
 		\\}
+	\}
+	match =matched, matched\{
+		display "Error while trying to call", 13
+		err
 	\}
 }
 
@@ -311,6 +327,5 @@ macro union{
 	macro ends@handler\{
 		ends
 		purge ends@handler
-		display "lol"
 	\}
 }
