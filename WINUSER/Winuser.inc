@@ -1,10 +1,19 @@
 importlib user32,\
 	MessageBoxA,\
 	SetTimer,\
-	KillTimer
+	KillTimer,\
+	GetFocus,\
+	ChangeWindowMessageFilterEx
+
+importlib msvcrt,\
+	free
 
 define NULL 0
 NONE fix
+	define BS_SPLITBUTTON          0x0000000C
+	define BS_DEFSPLITBUTTON       0x0000000D
+	define BS_COMMANDLINK          0x0000000E
+	define BS_DEFCOMMANDLINK       0x0000000F
 
 ; uType
 	define MB_OK	 				0x00000000

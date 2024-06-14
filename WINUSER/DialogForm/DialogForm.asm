@@ -13,7 +13,10 @@ importlib user32,\
 	GetMessageA,\
 	IsDialogMessageA,\
 	SetWindowLongPtrA,\
-	GetWindowLongPtrA
+	GetWindowLongPtrA,\
+	IsWindow,\
+	TranslateMessage,\
+	DispatchMessageA
 
 importlib kernel32,\
 	GetModuleHandleA
@@ -63,7 +66,7 @@ proc DIALOGFORM.startNM uses rbx r12, this, parent
 	ret
 endp
 
-if used DIALOGFORM_WM_CLOSE
+if used DIALOGFORM_WM_CLOSE;this, paramsLp
 	DIALOGFORM_WM_CLOSE:
 		virtObj .this:arg DIALOGFORM
 		mov rcx, [.this.hWnd]
@@ -97,7 +100,7 @@ proc DIALOGFORM_WM_CTLCOLOR uses rbx r12, formLp, paramsLp
 	ret
 endp
 
-proc DIALOGFORM_WM_CTLCOLORDLG uses rbx r12, formLp, paramsLp
+proc DIALOGFORM_WM_CTLCOLORDLG, formLp, paramsLp
 	virtObj .params:arg params
 	@call [GetWindowLongPtrA]([.params.lparam], GWL_USERDATA)
 	test rax, rax
@@ -126,6 +129,13 @@ proc DIALOGFORM.setText, this, lpString
 	ret
 endp
 
+proc DIALOGFORM.setIcon, this, hIcon
+	virtObj .this:arg DIALOGFORM
+	mov r9, rdx
+	@call [SendMessageA]([.this.hWnd], WM_SETICON, ICON_BIG, r9)
+	ret
+endp
+
 if used DIALOGFORM.close
 	DIALOGFORM.close:
 		virtObj .this:arg DIALOGFORM
@@ -142,10 +152,14 @@ proc DIALOGFORM.setBgColor, this, colorref
 	cmp [.this.bgColorBrush], NULL
 	je .emptyColor
 		push rdx
+		sub rsp, 20h
 		@call [DeleteObject]([.this.bgColorBrush])
+		add rsp, 20h
 		pop rdx
 	.emptyColor:
+	sub rsp, 20h
 	@call [CreateSolidBrush](rdx)
+	add rsp, 20h
 	pop rcx
 	mov [.this.bgColorBrush], rax
 	ret
@@ -198,16 +212,17 @@ proc DIALOGFORM.dispatchMessages uses rbx, mainHandle
 		cmovne rax, rcx
 		jmp .return
 	.noEnd:
-	@call [IsDialogMessageA]([msg.hwnd], addr msg)
-	mov eax, 1
+	; @call [IsWindow]([msg.hwnd])
+	; test rax, rax
+	; 	jz .stdDispatch
+	; @call [IsDialogMessageA]([msg.hwnd], addr msg)
+	; test rax, rax
+	; 	jnz .return
+	.stdDispatch:
+		@call [TranslateMessage](addr msg)
+		@call [DispatchMessageA](addr msg)
+		mov rax, 1
 	.return:ret
-endp
-
-proc DIALOGFORM.setIcon, this, hIcon
-	virtObj .this:arg DIALOGFORM
-	mov r9, rdx
-	@call [SendMessageA]([.this.hWnd], WM_SETICON, ICON_BIG, r9)
-	ret
 endp
 
 macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogForm", _style=WS_VISIBLE+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+WS_MAXIMIZEBOX+DS_CENTER, _styleEx = NULL{
@@ -285,7 +300,7 @@ macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogF
 			cmp [msg], evnt
 			jne .nextEvent\#evnt
 				@call [.this.\#evnt](addr .this, addr hwnddlg)
-				ret
+				jmp .return
 			.nextEvent\#evnt:
 		\}
 			cmp [msg], WM_COMMAND
@@ -297,12 +312,14 @@ macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogF
 				cmp [wparam], evnt shl 16 + formType#.\#cntrl\#._id
 				jne .nextEvnt\#cntrl\\\#evnt
 					@call [.this.\#cntrl\#.\\\#evnt](addr .this, addr hwnddlg, addr .this.\#cntrl)
+					jmp .return
 				.nextEvnt\#cntrl\\\#evnt:
 				\\\}
 			\\}
 		\}
 			.NextEvent:
-			ret
+			xor eax, eax
+			.return:ret
 		endp
 
 		; formInfo NONE, formType\#.cdit, NONE, NONE, NONE, formType\#_DlgTemplate, formType\#_DialogProc, _initvals

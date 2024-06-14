@@ -139,7 +139,6 @@ macro make@atr name, atrname, atrtype, atrval{
 macro ends@handler{
 	match name, struct@lastname\{
 		local matched
-		ends
 		restruc method  								;уаляем определения макросов для методов
 		restruc override
 		restruc const
@@ -198,7 +197,14 @@ macro ends@handler{
 ; define ends@handler ends@default
 
 macro ends{
-	ends@handler
+	local matched
+	match any, sub@struct\{
+		define matched
+	\}
+	ends
+	match =matched, matched\{
+		ends@handler
+	\}
 }
 
 macro @call ObjMethArgs&{
@@ -319,13 +325,5 @@ macro virtObj args&{
 		virtual at reg
 			name type
 		end virtual
-	\}
-}
-
-macro union{
-	union
-	macro ends@handler\{
-		ends
-		purge ends@handler
 	\}
 }
