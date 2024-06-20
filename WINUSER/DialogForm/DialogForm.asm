@@ -88,6 +88,7 @@ endp
 proc DIALOGFORM_WM_CTLCOLOR uses rbx r12, formLp, paramsLp
 	virtObj .params:arg params at rbx
 	mov rbx, rdx
+	frame
 	@call [GetWindowLongPtrA]([.params.lparam], GWL_USERDATA)
 	test rax, rax
 	jz .noVal
@@ -97,6 +98,7 @@ proc DIALOGFORM_WM_CTLCOLOR uses rbx r12, formLp, paramsLp
 		@call [SetTextColor]([.params.wparam], [.control.txColor])
 		mov rax, [.control.bgColorBrush]
 	.noVal:
+	endf
 	ret
 endp
 
@@ -111,37 +113,43 @@ proc DIALOGFORM_WM_CTLCOLORDLG, formLp, paramsLp
 	ret
 endp
 
-proc DIALOGFORM.getTextLen, this
-	virtObj .this:arg DIALOGFORM
-	@call [GetWindowTextLengthA]([.this.hWnd])
-	ret
-endp
+if used DIALOGFORM.getTextLen
+	DIALOGFORM.getTextLen:;, this
+		virtObj .this:arg DIALOGFORM
+		mov rcx, [.this.hWnd]
+		jmp [GetWindowTextLengthA];([.this.hWnd])
+end if
 
-proc DIALOGFORM.getText, this, lpString, nMaxCount
-	virtObj .this:arg DIALOGFORM
-	@call [GetWindowTextA]([.this.hWnd])
-	ret
-endp
+if used DIALOGFORM.getText
+	DIALOGFORM.getText:;, this, lpString, nMaxCount
+		virtObj .this:arg DIALOGFORM
+		mov rcx, [.this.hWnd]
+		jmp [GetWindowTextA];([.this.hWnd], rdx, r8)
+end if
 
-proc DIALOGFORM.setText, this, lpString
-	virtObj .this:arg CONTROL
-	@call [SetWindowTextA]([.this.hWnd])
-	ret
-endp
+if used DIALOGFORM.setText
+	DIALOGFORM.setText:;, this, lpString
+		virtObj .this:arg CONTROL
+		mov rcx, [.this.hWnd]
+		jmp [SetWindowTextA];([.this.hWnd], rdx)
+end if
 
-proc DIALOGFORM.setIcon, this, hIcon
-	virtObj .this:arg DIALOGFORM
-	mov r9, rdx
-	@call [SendMessageA]([.this.hWnd], WM_SETICON, ICON_BIG, r9)
-	ret
-endp
+if used DIALOGFORM.setIcon
+	DIALOGFORM.setIcon:;, this, hIcon
+		virtObj .this:arg DIALOGFORM
+		mov r9, rdx
+		mov r8d, ICON_BIG
+		mov edx, WM_SETICON
+		mov rcx, [.this.hWnd]
+		jmp [SendMessageA];([.this.hWnd], WM_SETICON, ICON_BIG, r9)
+end if
 
 if used DIALOGFORM.close
 	DIALOGFORM.close:
 		virtObj .this:arg DIALOGFORM
 		xor r9, r9
 		mov r8, r9
-		mov rdx, WM_CLOSE
+		mov edx, WM_CLOSE
 		mov rcx, [.this.hWnd]
 		jmp [SendMessageA]
 end if
@@ -152,14 +160,10 @@ proc DIALOGFORM.setBgColor, this, colorref
 	cmp [.this.bgColorBrush], NULL
 	je .emptyColor
 		push rdx
-		sub rsp, 20h
 		@call [DeleteObject]([.this.bgColorBrush])
-		add rsp, 20h
 		pop rdx
 	.emptyColor:
-	sub rsp, 20h
 	@call [CreateSolidBrush](rdx)
-	add rsp, 20h
 	pop rcx
 	mov [.this.bgColorBrush], rax
 	ret

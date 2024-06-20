@@ -1,14 +1,17 @@
 importlib user32,\
 	HideCaret
 
-proc CONTROL.hideCur, this
-	virtObj .this:arg CONTROL at rcx
-	@call [HideCaret]([.this.hWnd])
-	ret
-endp
+if used CONTROL.hideCur
+	CONTROL.hideCur:;, this
+		virtObj .this:arg CONTROL
+		mov rcx, [.this.hWnd]
+		jmp [HideCaret];([.this.hWnd])
+end if
 
-proc CONTROL.setTheme, this, wstrLp
-	virtObj .this:arg CONTROL
-	@call [SetWindowTheme]([.this.hWnd], rdx, 0)
-	ret
-endp
+if used CONTROL.setTheme
+	CONTROL.setTheme:;, this, wstrLp
+		virtObj .this:arg CONTROL
+		xor r8, r8
+		mov rcx, [.this.hWnd]
+		jmp [SetWindowTheme];([.this.hWnd], rdx, 0)
+end if
