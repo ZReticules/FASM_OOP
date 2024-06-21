@@ -7,26 +7,22 @@ if used EDIT.setReadOnly
 		jmp [SendMessageA];([.this.hWnd], EM_SETREADONLY, r8)
 end if
 
-proc EDIT.addText uses rbx, this
+proc_noprologue
+proc EDIT.addText uses rbx, this, strLp
 	virtObj .this:arg EDIT at rbx
-	locals 
-		_start dd ?
-		_end dd ?
-		strLp dq ?
-	endl
+	local _start:DWORD,_end:DWORD
 	mov rbx, rcx
-	frame
 	mov [strLp], rdx
 	@call [SendMessageA]([.this.hWnd], EM_GETSEL, addr _start, addr _end)
 	@call .this->getTextLen()
 	@call [SendMessageA]([.this.hWnd], EM_SETSEL, rax, rax)
 	@call [SendMessageA]([.this.hWnd], EM_REPLACESEL, 0, [strLp])
-	endf
 	mov r9d, [_end]
 	mov r8d, [_start]
 	mov edx, EM_SETSEL
 	mov rdx, [.this.hWnd]
+	add rsp, 30h
 	pop rbx
-	leave
 	jmp [SendMessageA];([.this.hWnd], EM_SETSEL, [_start], [_end])
 endp
+proc_resprologue

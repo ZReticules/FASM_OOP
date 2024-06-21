@@ -33,19 +33,19 @@ importlib dwmapi,\
 importlib uxtheme,\
 	SetWindowTheme
 
+proc_noprologue
+
 proc DIALOGFORM.start, this, parent
 	virtObj .this:arg DIALOGFORM
-	push rcx
-	push rdx
+	local cxBuf:QWORD, dxBuf:QWORD
+	mov [cxBuf], rcx
+	mov [dxBuf], rdx
 	@call [GetModuleHandleA](0)
-	pop r8
-	mov rcx, [rsp]						;выравнивание стека
-	push rcx
-	mov r9, [.this.lpDialogFunc]
+	mov rcx, [cxBuf]
 	mov rdx, [.this.hDialogTemplate]
-	mov rcx, rax
-	@call [DialogBoxIndirectParamA]()
-	pop rcx								;выравнивание обратно
+	mov r8, [dxBuf]
+	mov r9, [.this.lpDialogFunc]
+	@call [DialogBoxIndirectParamA](rax, rdx, r8, r9, [cxBuf])
 	ret
 endp
 
@@ -76,19 +76,19 @@ end if
 
 proc DIALOGFORM_WM_CLOSE_nomodal, formLp, lpParam
 	virtObj .form:arg DIALOGFORM
-	push rcx
+	local cxBuf:QWORD
+	mov [cxBuf], rcx
 	@call [DestroyWindow]([.form.hWnd])
-	pop rcx
+	mov rcx, [cxBuf]
 	mov [.form.hWnd], 0
-	leave
 	xor rcx, rcx
+	add rsp, 28h
 	jmp [PostQuitMessage]
 endp
 
 proc DIALOGFORM_WM_CTLCOLOR uses rbx r12, formLp, paramsLp
 	virtObj .params:arg params at rbx
 	mov rbx, rdx
-	frame
 	@call [GetWindowLongPtrA]([.params.lparam], GWL_USERDATA)
 	test rax, rax
 	jz .noVal
@@ -98,7 +98,6 @@ proc DIALOGFORM_WM_CTLCOLOR uses rbx r12, formLp, paramsLp
 		@call [SetTextColor]([.params.wparam], [.control.txColor])
 		mov rax, [.control.bgColorBrush]
 	.noVal:
-	endf
 	ret
 endp
 
@@ -156,15 +155,16 @@ end if
 
 proc DIALOGFORM.setBgColor, this, colorref
 	virtObj .this:arg DIALOGFORM
-	push rcx
+	local cxBuf:QWORD, dxBuf:QWORD
+	mov [cxBuf], rcx
 	cmp [.this.bgColorBrush], NULL
 	je .emptyColor
-		push rdx
+		mov [dxBuf], rdx
 		@call [DeleteObject]([.this.bgColorBrush])
-		pop rdx
+		mov rdx, [dxBuf]
 	.emptyColor:
 	@call [CreateSolidBrush](rdx)
-	pop rcx
+	mov rcx, [cxBuf]
 	mov [.this.bgColorBrush], rax
 	ret
 endp
@@ -229,6 +229,8 @@ proc DIALOGFORM.dispatchMessages uses rbx, mainHandle
 	.return:ret
 endp
 
+proc_resprologue
+
 macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogForm", _style=WS_VISIBLE+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+WS_MAXIMIZEBOX+DS_CENTER, _styleEx = NULL{
 	; match formName formType, formInfo\{
 		local controlCounter
@@ -278,6 +280,8 @@ macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogF
 		\}
 		formType#.cdit = controlCounter
 
+		proc_noprologue
+
 		proc formType#_DialogProc uses rbx, hwnddlg, msg, wparam, lparam
 			virtObj .this:arg formType at rbx
 			mov [hwnddlg], rcx
@@ -325,7 +329,7 @@ macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogF
 			xor eax, eax
 			.return:ret
 		endp
-
+		proc_resprologue
 		; formInfo NONE, formType\#.cdit, NONE, NONE, NONE, formType\#_DlgTemplate, formType\#_DialogProc, _initvals
 	; \}
 }
