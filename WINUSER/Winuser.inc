@@ -3,7 +3,9 @@ importlib user32,\
 	SetTimer,\
 	KillTimer,\
 	GetFocus,\
-	ChangeWindowMessageFilterEx
+	ChangeWindowMessageFilterEx,\
+	GetFocus,\
+	GetActiveWindow
 
 importlib msvcrt,\
 	free
@@ -76,6 +78,8 @@ NONE fix
 	define GWL_STYLE		-16
 	define GWL_USERDATA		-21
 	define GWL_WNDPROC		–4
+
+	define HWND_BROADCAST  	0xffff
 
 struct WND
 	msgBox 					dm this

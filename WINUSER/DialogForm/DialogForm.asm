@@ -216,12 +216,10 @@ proc DIALOGFORM.dispatchMessages uses rbx, mainHandle
 		cmovne rax, rcx
 		jmp .return
 	.noEnd:
-	; @call [IsWindow]([msg.hwnd])
-	; test rax, rax
-	; 	jz .stdDispatch
-	; @call [IsDialogMessageA]([msg.hwnd], addr msg)
-	; test rax, rax
-	; 	jnz .return
+	@call [GetActiveWindow]()
+	@call [IsDialogMessageA](rax, addr msg)
+	test rax, rax
+		jnz .return
 	.stdDispatch:
 		@call [TranslateMessage](addr msg)
 		@call [DispatchMessageA](addr msg)
@@ -289,7 +287,7 @@ macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogF
 			mov [wparam], r8
 			mov [lparam], r9
 			xor eax, eax
-			cmp [msg], WM_INITDIALOG
+			cmp rdx, WM_INITDIALOG
 			jne .nextEvent
 				mov rbx, [lparam]
 				mov [.this.hWnd], rcx
@@ -304,20 +302,22 @@ macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogF
 			@call [GetWindowLongPtrA]([hwnddlg], GWL_USERDATA)
 			mov rbx, rax
 			xor eax, eax
+			mov rdx, [msg]
+			mov r8, [wparam]
 		irpv evnt, formType#@EventStack\{
-			cmp [msg], evnt
+			cmp rdx, evnt
 			jne .nextEvent\#evnt
 				@call [.this.\#evnt](addr .this, addr hwnddlg)
 				jmp .return
 			.nextEvent\#evnt:
 		\}
-			cmp [msg], WM_COMMAND
+			cmp rdx, WM_COMMAND
 			jne .NextEvent
 		irpv cntrl, formType#@ControlStack\{
 			
 			match TName, cntrl\#.Type\\{
 				irpv evnt, TName\\#@EventStack\\\{
-				cmp [wparam], evnt shl 16 + formType#.\#cntrl\#._id
+				cmp r8, evnt shl 16 + formType#.\#cntrl\#._id
 				jne .nextEvnt\#cntrl\\\#evnt
 					@call [.this.\#cntrl\#.\\\#evnt](addr .this, addr hwnddlg, addr .this.\#cntrl)
 					jmp .return
