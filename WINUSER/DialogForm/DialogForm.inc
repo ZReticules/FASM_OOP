@@ -9,6 +9,10 @@ struct DLGTEMPLATE
 ends
 
 struct DIALOGFORM
+	const _x 				= 0
+	const _y				= 0
+	const _cx 				= 100
+	const _cy 				= 50
 	hWnd 					dq ?
 	idCount 				dw ?
 	bgColorBrush 			dq 0

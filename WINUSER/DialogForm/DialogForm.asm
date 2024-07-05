@@ -229,7 +229,8 @@ endp
 
 proc_resprologue
 
-macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogForm", _style=WS_VISIBLE+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+WS_MAXIMIZEBOX+DS_CENTER, _styleEx = NULL{
+; macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogForm", _style=WS_VISIBLE+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+WS_MAXIMIZEBOX+DS_CENTER, _styleEx = NULL{
+macro ShblDialog formType, _Text = "DialogForm", _style=WS_VISIBLE+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+WS_MAXIMIZEBOX+DS_CENTER, _styleEx = NULL{
 	; match formName formType, formInfo\{
 		local controlCounter
 		controlCounter = 0
@@ -240,10 +241,10 @@ macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogF
 			_style,\
 			_styleEx,\
 			formType\#.cdit,\
-			_x,\
-			_y,\
-			_cx,\
-			_cy
+			formType\#._x,\
+			formType\#._y,\
+			formType\#._cx,\
+			formType\#._cy
 		dw 00h ; menu
 		dw 00h ; header
 		du _Text

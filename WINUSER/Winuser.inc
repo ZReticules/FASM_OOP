@@ -155,17 +155,4 @@ end if
 
 include_once "TOOLS\WINUSER\MsgBox.inc"
 include_once "TOOLS\WINUSER\StockIcons.inc"
-
-	proc WND.getStockIcon, ICONID
-		locals
-			stockInfo SHSTOCKICONINFO
-		endl
-		@call [SHGetStockIconInfo](rcx, SHGSI_ICON, addr stockInfo)
-		test eax, eax
-		jnz .error
-			mov rax, [stockInfo.hIcon]
-		.error:
-		ret
-	endp
-
 include_once "TOOLS\WINUSER\DialogForm\DialogForm.inc"
