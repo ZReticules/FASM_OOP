@@ -8,15 +8,15 @@
        - Виртуальных(хранятся в таблице виртуальных методов, создаваемой автоматически);  
        - Инлайн(макросы, на уровне препроцессора привязанные к структуре).    
        На данный момент допустимы следующие варианты синтаксиса обьявления методов:  
-       <code>
+       <pre lang="fasm"><code>
        struct point2
-       	x 		dd ?
-       	y 		dd ?
-       	print 	dm point2_print:static	;статический метод print с процедурой-обработчиком point2_print
-       	print 	dm point2_print			;статический метод print с процедурой-обработчиком point2_print
-       	print   dm point2_print:virtual	;виртуальный метод print с процедурой-обработчиком point2_print
-       	print 	dm point2_print:inline	;инлайн метод print с макросом-обработчиком point2_print
-       	print 	dm this 				;статический метод print с процедурой-обработчиком point.print(спецификаторы типа метода так же доступны)
+            x 		dd ?
+            y 		dd ?
+            print 	dm point2_print:static	;статический метод print с процедурой-обработчиком point2_print
+            print 	dm point2_print			;статический метод print с процедурой-обработчиком point2_print
+            print   dm point2_print:virtual	;виртуальный метод print с процедурой-обработчиком point2_print
+            print 	dm point2_print:inline	;инлайн метод print с макросом-обработчиком point2_print
+            print 	dm this 				;статический метод print с процедурой-обработчиком point.print(спецификаторы типа метода так же доступны)
        ends
        </code>  
        Обьявление методов структуры независимо от обьявления полей.  
