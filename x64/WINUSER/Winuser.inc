@@ -154,4 +154,3 @@ macro WND.killTimer nIDEvent, hWnd=NULL{
 
 include_once "TOOLS\x64\WINUSER\MsgBox.inc"
 include_once "TOOLS\x64\WINUSER\StockIcons.inc"
-include_once "TOOLS\x64\WINUSER\DialogForm\DialogForm.inc"

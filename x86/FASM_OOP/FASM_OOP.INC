@@ -179,7 +179,7 @@ macro ends@handler{
 			sizeof.\#name = sizeof.\#name+4
 			; vtable equ dd name\#.Table				;если нужно создать указатель на таблице виртуальных методов, добавляем константу
 		\\}
-		struc name args&\\{
+		struc name [args]\\{
 			\\common
 			.Table equ name\\#\\\.Table				;прикрепляем таблицу статически
 			.Lp equ .								;каждому обьекту создаем точку начала
@@ -200,7 +200,7 @@ macro ends@handler{
 			.TypeName equ \`name
 			.size = sizeof.\#name
 		\\}
-		macro name args&\\{						;если имени у обьекта нет, то стандартный обработчик
+		macro name [args]\\{						;если имени у обьекта нет, то стандартный обработчик
 			\\common
             match , @struct \\\{ 
             	\\\local anonymous
