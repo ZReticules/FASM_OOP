@@ -559,6 +559,7 @@ macro define@call{
 						match __argums_, argums\\\\\\{
 							_MacName __argums_
 						\\\\\\}
+						restore __argscount__
 						define argums
 					\\\\\}
 				\\\\}
@@ -585,6 +586,7 @@ macro define@call{
 					match __argums_, argums\\\\\{
 						_MacName __argums_
 					\\\\\}
+					restore __argscount__
 					define argums
 				\\\\}
 				match =inline _MacName _proc, proc\\#.Type\\\#_Struct_ proc\\#.Value\\\#_Struct_ argums\\\\{
