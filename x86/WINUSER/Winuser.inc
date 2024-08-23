@@ -6,13 +6,16 @@ importlib user32,\
 	ChangeWindowMessageFilterEx,\
 	GetFocus,\
 	GetActiveWindow,\
-	SendNotifyMessageA,\
+	SendMessageW,\
 	EnumWindows,\
 	GetParent,\
 	GetAncestor,\
 	GetDesktopWindow,\
 	GetDC,\
-	ReleaseDC
+	ReleaseDC,\
+	FillRect,\
+	LoadImageA,\
+	GetClientRect
 
 importlib msvcrt,\
 	free
@@ -21,7 +24,17 @@ importlib comctl32,\
 	InitCommonControlsEx
 
 importlib gdi32,\
-	SetBkColor
+	SetBkColor,\
+	CreateCompatibleBitmap,\
+	SelectObject,\
+	MoveToEx,\
+	LineTo,\
+	CreatePen,\
+	CreateCompatibleDC,\
+	DeleteDC,\
+	DeleteObject,\
+	CreateSolidBrush,\
+	Rectangle
 
 
 define GA_PARENT	1

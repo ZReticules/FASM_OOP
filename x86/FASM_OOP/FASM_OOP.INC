@@ -66,6 +66,13 @@ macro allow_methods{										;создаем макросы, которые п�
 			name\\#@EventStack equ .
 			. dd procaddr
 		\\}	
+	\}
+
+	struc notify procaddr\{
+		match name, struct@lastname\\{	
+			name\\#@NotifyStack equ .
+			. dd procaddr
+		\\}	
 	\} 
 
 }
@@ -136,6 +143,9 @@ macro struct NameParent{
 			\\\}
 			irpv ParentEvent, parent\#@EventStack\\\{
 				name\#@EventStack equ ParentEvent
+			\\\}
+			irpv ParentNotify, parent\#@NotifyStack\\\{
+				name\#@NotifyStack equ ParentNotify
 			\\\}
 		\\}
 	\}
@@ -496,27 +506,26 @@ macro fillParam reg*, src*{
 	\}
 }
 
-macro inlineObj name*, val*, reg*{
-	name equ val
-	match [any], src\{
-		if ~any eq reg
-		mov reg, src
-		name equ reg
+macro inlineObj nameof*, val*, reg*{
+	nameof equ val
+	match [any], val\{
+		mov reg, val
+		nameof equ reg
 	\}
-	match =ptr any, src\{
-		mov reg, src
-		name equ reg
+	match =ptr any, val\{
+		mov reg, val
+		nameof equ reg
 	\}
-	match _any[any], src\{
-		mov reg, src
-		name equ reg
+	match _any[any], val\{
+		mov reg, val
+		nameof equ reg
 	\}
-	match _any =ptr any, src\{
-		mov reg, src
-		name equ reg
+	match _any =ptr any, val\{
+		mov reg, val
+		nameof equ reg
 	\}
 	match =addr any, val\{
-		name equ any
+		nameof equ any
 	\}
 }
 
@@ -595,6 +604,12 @@ macro define@call{
 				\\\\}
 			\\\}
 		\\}
+		match _proc ( _argums , argums\\{
+			define argums _proc
+			match any), _argums\\\{
+				argums equ argums, any
+			\\\}
+		\\}
 		match _call_conv _argums, argums\\{
 			call_conv equ _call_conv
 			define argums _argums
@@ -605,12 +620,6 @@ macro define@call{
 			match =, any, _argums\\\{
 				restore argums
 				restore call_conv
-			\\\}
-		\\}
-		match _proc ( _argums , argums\\{
-			define argums _proc
-			match any), _argums\\\{
-				argums equ argums, any
 			\\\}
 		\\}
 		match _argums_, argums\\{

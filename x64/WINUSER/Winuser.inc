@@ -6,7 +6,7 @@ importlib user32,\
 	ChangeWindowMessageFilterEx,\
 	GetFocus,\
 	GetActiveWindow,\
-	SendNotifyMessageA,\
+	SendMessageW,\
 	EnumWindows,\
 	GetParent,\
 	GetAncestor,\

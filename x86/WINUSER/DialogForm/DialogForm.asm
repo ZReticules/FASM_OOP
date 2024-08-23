@@ -65,7 +65,7 @@ proc DIALOGFORM_WM_CLOSE
 	ret args_space
 endp
 
-proc DIALOGFORM_WM_CLOSE_nomodal, lpForm, lpParam
+proc DIALOGFORM_WM_CLOSE_nomodal, lpForm, lpParams
 	virtObj .form:arg DIALOGFORM
 	mov ecx, [lpForm]
 	@call [DestroyWindow]([.form.hWnd])

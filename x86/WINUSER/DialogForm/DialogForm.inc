@@ -128,6 +128,7 @@ macro form formInfo&{
 struc form formInfo&{
 	make@form ., formInfo
 }
+
 macro make@form name, formInfo&{
 	local matched
 	match formType _initvals, formInfo\{
@@ -221,11 +222,11 @@ macro ShblDialog formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION
 			jmp .return
 		.nextEvent\#evnt:
 	\}
-
+	match any, formType#@ControlStack\{
 		cmp edx, WM_COMMAND
-		jne .NextEvent
+		jne .testNotify
 			mov ecx, [wparam]
-
+	\}
 	irpv cntrl, formType#@ControlStack\{
 		match TName, cntrl\#.Type\\{
 			\\local events_count, events_counter
@@ -249,6 +250,41 @@ macro ShblDialog formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION
 
 			if events_count > 1
 			.nextCntrl\#cntrl:
+			end if
+		\\}
+	\}
+	.testNotify:
+	local has_notify 
+	match any, formType#@ControlStack\{
+		cmp edx, WM_NOTIFY
+		jne .NextEvent
+			mov ecx, [lparam]
+			virtObj .nmhdr:arg NMHDR at ecx
+	\}
+	irpv cntrl, formType#@ControlStack\{
+		match TName, cntrl\#.Type\\{
+			\\local notifies_count, notifies_counter
+			notifies_counter = 0
+
+			if notifies_count > 0
+
+			cmp [.nmhdr.idFrom], formType#.\#cntrl\#._id
+			jne .nextCntrl\#cntrl\#nf
+			
+			end if
+			irpv notify, TName\\#@NotifyStack\\\{
+				cmp [.nmhdr.code], notify
+				jne .nextEvnt\#cntrl\\\#notify
+					@call [.this.\#cntrl\#.\\\#notify](addr .this, addr hwnddlg, addr .this.\#cntrl)
+					jmp .return
+				.nextEvnt\#cntrl\\\#notify:
+				notifies_counter = notifies_counter + 1
+			\\\}
+
+			notifies_count = notifies_counter
+
+			if notifies_count > 0
+			.nextCntrl\#cntrl\#nf:
 			end if
 		\\}
 	\}

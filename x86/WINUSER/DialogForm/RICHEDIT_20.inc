@@ -64,13 +64,14 @@ struct CHARFORMAT2A CHARFORMATA
 	bAnimation 		db ?;
 	bRevAuthor 		db ?;
 	bUnderlineColor db ?;
+    ; dw ?
 ends
 
-struc CHATFORMAT2A size, [args]{
+struc CHARFORMAT2A size, [args]{
 	common
 	local argums
 	argums equ size
-	match , argums\{
+	match , size\{
 		argums equ sizeof.CHARFORMAT2A
 	\}
 	match any, args\{
@@ -81,7 +82,7 @@ struc CHATFORMAT2A size, [args]{
 	\}
 }
 
-macro CHATFORMAT2A size, [args]{
+macro CHARFORMAT2A size, [args]{
 	common
 	local argums
 	argums equ size
@@ -100,6 +101,7 @@ macro CHATFORMAT2A size, [args]{
 struct RICHEDIT_20 CONTROL
 	const CType equ "RICHEDIT20A"
 	setBgColor 	override this:inline
+	setFormat 	dm this:inline 
 ends
 
 macro RICHEDIT_20.setBgColor this, colorref{

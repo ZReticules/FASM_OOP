@@ -2,7 +2,8 @@ importlib kernel32,\
 	GetProcessHeap,\
 	HeapAlloc,\
 	HeapReAlloc,\
-	HeapFree
+	HeapFree,\
+	GetLastError
 
 struct CNV
 	; getLine 	dm this
