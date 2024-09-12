@@ -139,6 +139,12 @@ struct LISTVIEW CONTROL
 	const CType equ "SysListView32"
 ends
 
+UDM_SETRANGE32 = 1135
+
+struct UPDOWN CONTROL
+	const CType equ "msctls_updown32"
+ends
+
 include "EDIT.inc"
 include "COMBOBOX.inc"
 include "TREEVIEW.inc"

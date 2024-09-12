@@ -15,10 +15,12 @@ importlib user32,\
 	ReleaseDC,\
 	FillRect,\
 	LoadImageA,\
-	GetClientRect
+	GetClientRect,\
+	DrawTextA
 
 importlib msvcrt,\
-	free
+	free,\
+	itoa="_itoa"
 
 importlib comctl32,\
 	InitCommonControlsEx
@@ -34,7 +36,10 @@ importlib gdi32,\
 	DeleteDC,\
 	DeleteObject,\
 	CreateSolidBrush,\
-	Rectangle
+	Rectangle,\
+	PolylineTo,\
+	Polyline,\
+	GetTextMetricsA
 
 
 define GA_PARENT	1
@@ -114,6 +119,9 @@ NONE fix
 
 ;WS_EX
 	define WS_EX_COMPOSITED 33554432
+
+;UPDOWN
+	define UDS_HOTTRACK 256
 
 struct WND
 	msgBox 					dm this:inline

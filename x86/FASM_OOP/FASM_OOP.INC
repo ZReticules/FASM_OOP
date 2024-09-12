@@ -472,16 +472,21 @@ macro inline@parse param@result, [args]{
 	forward
 	local paramdef
 	paramdef equ args
-	paramdef#._Def equ args
 	paramdef#._Type equ
-	param@parser paramdef#._Type, paramdef
+	match any1:any2, args\{
+		; paramdef#._Type equ named
+		rept 0\{
+	\}
+	rept 1\{
+		param@parser paramdef#._Type, paramdef
+	\}
 	match any, param@result\{
 		param@result equ param@result,
 	\}
 	match =? any, paramdef#._Val\{
 		paramdef equ any
 	\}
-	param@result equ param@result paramdef#._Type paramdef
+	param@result equ param@result <paramdef#._Type paramdef>
 	args@count equ args@count+1
 	common
 	local _counter
@@ -499,9 +504,21 @@ macro fillParam reg*, src*{
 		end if
 		define matched
 	\}
+	match =[any=], src\{
+		mov reg, src
+		define matched
+	\}
+	match any1=[any2=], src\{
+		mov reg, src
+		define matched
+	\}
 	match =matched, matched\{
 		if ~src eq reg
-			mov reg, src
+			if src relativeto 0
+				mov reg, src
+			else
+				lea reg, [src]
+			end if
 		end if
 	\}
 }

@@ -50,18 +50,21 @@ struct DIALOGFORM
 	; const _italic  			= 0
 	; const _charset			= DEFAULT_CHARSET
 	const _font  			equ "MS Sans Serif"
+
 	hWnd 					dq ?
 	idCount 				dw ?
 	bgColorBrush 			dq 0
 	hDialogTemplate 		dq ?
 	lpDialogFunc 			dq ?
 	hWndParent 				dq 0
+
 	WM_CLOSE 				event DIALOGFORM_WM_CLOSE
 	WM_CTLCOLOREDIT  		event DIALOGFORM_WM_CTLCOLOR
 	WM_CTLCOLORDLG  		event DIALOGFORM_WM_CTLCOLOR
 	WM_CTLCOLORLISTBOX  	event DIALOGFORM_WM_CTLCOLOR
 	WM_CTLCOLORSCROLLBAR  	event DIALOGFORM_WM_CTLCOLOR
 	WM_CTLCOLORSTATIC  		event DIALOGFORM_WM_CTLCOLOR
+
 	start 					dm this
 	setText 				dm this:inline
 	getTextLen 				dm this:inline
@@ -75,6 +78,8 @@ struct DIALOGFORM
 	dispatchMessages		dm this
 	startNM					dm this
 	setIcon 				dm this:inline
+	; getClientSize			dm this:inline
+	; getWindowSize 			dm this:inline
 ends
 
 macro DIALOGFORM.getTextLen this{
@@ -141,6 +146,16 @@ macro make@form name, formInfo&{
 
 include "CONTROL.inc"
 include "DialogForm.asm"
+
+struct DLGITEMTEMPLATE
+	style dd ?
+	dwExtendedStyle dd ?
+	x dw ?
+	y dw ?
+	cx dw ?
+	cy dw ?
+	id dw ?
+ends
 
 ; macro ShblDialog formType, _x = 0, _y = 0, _cx = 100, _cy = 50, _Text = "DialogForm", _style=WS_VISIBLE+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+WS_MAXIMIZEBOX+DS_CENTER, _styleEx = NULL{
 macro ShblDialog formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION or WS_SYSMENU or WS_MINIMIZEBOX or WS_MAXIMIZEBOX or DS_CENTER, _styleEx = NULL{

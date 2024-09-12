@@ -170,4 +170,22 @@ proc DIALOGFORM.dispatchMessages uses rbx, mainHandle
 	.return:ret
 endp
 
+; proc DIALOGFORM.getSize, this, lpSizeFunc
+; 	virtObj .this:arg DIALOGFORM
+; 	local winRect:RECT
+; 	mov r8, rdx
+; 	@call r8([.this.hWnd], addr winRect)
+; 	mov rax, [winRect.right]
+; 	sub rax, [winRect.left]
+; 	mov rdx, [winRect.bottom]
+; 	sub rdx, [winRect.top]
+; 	cdq
+; 	ret
+; endp
+
+; proc DIALOGFORM.getSize
+; 	virtObj .this:arg DIALOGFORM
+; 	@call [GetClientRect]
+; endp
+
 proc_resprologue

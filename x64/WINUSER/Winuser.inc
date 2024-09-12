@@ -10,7 +10,12 @@ importlib user32,\
 	EnumWindows,\
 	GetParent,\
 	GetAncestor,\
-	GetDesktopWindow
+	GetDesktopWindow,\
+	GetDC,\
+	GetClientRect,\
+	GetWindowRect,\
+	ReleaseDC,\
+	LoadImageA
 
 importlib msvcrt,\
 	free
