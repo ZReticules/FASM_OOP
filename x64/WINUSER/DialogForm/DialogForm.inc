@@ -66,6 +66,7 @@ struct DIALOGFORM
 	WM_CTLCOLORSTATIC  		event DIALOGFORM_WM_CTLCOLOR
 
 	start 					dm this
+	ilStart 				dm this:inline
 	setText 				dm this:inline
 	getTextLen 				dm this:inline
 	getText 				dm this:inline
@@ -110,6 +111,12 @@ macro DIALOGFORM.close this{
 	local _this
 	inlineObj _this, this, rcx
 	@call [SendMessageA]([_this+CONTROL.hWnd], WM_CLOSE, 0, 0)
+}
+
+macro DIALOGFORM.ilStart this, hModule, parent{
+	local _this
+	inlineObj _this, this, rcx
+	@call [DialogBoxIndirectParamA](hModule, [_this + DIALOGFORM.hDialogTemplate], parent, [_this + DIALOGFORM.lpDialogFunc], addr _this)
 }
 
 struct params

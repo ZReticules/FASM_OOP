@@ -3,8 +3,20 @@ importlib kernel32,\
 	GetProcessHeap,\
 	HeapAlloc,\
 	HeapReAlloc,\
-	HeapFree
+	HeapFree,\
+	SetLastError,\
+	CreateFileA,\
+	WriteFile,\
+	CloseHandle
 
+importlib user32,\
+	GetDC,\
+	ReleaseDC
+
+importlib gdi32,\
+	GetDIBits
+
+DIB_RGB_COLORS = 0
 
 if used CNV._heap
 	proc_noprologue
@@ -314,3 +326,55 @@ proc CNV.parseCMD uses rbx, argvLp:qword
 	mov rax, rbx
 	ret
 endp
+
+struct BITMAPINFO
+	bmiHeader BITMAPINFOHEADER
+	bmiColors dq 1 dup(?)
+ends
+
+proc CNV.BMPToFile, hBmp, lpFname, bitCount
+	mov [hBmp], rcx
+	mov [lpFname], rdx
+	mov [bitCount], r8
+
+	local <bmInfo:BITMAPINFO <sizeof.BITMAPINFOHEADER, 0, 0, 0, 0, 0>>
+	local tmpDC:QWORD, lpBmBits:QWORD
+	@call [GetDC](NULL)
+	mov [tmpDC], rax
+	; mov [bmInfo.bmiHeader.biBitCount], 24
+	@call [GetDIBits]([tmpDC], [hBmp], 0, 0, NULL, addr bmInfo, DIB_RGB_COLORS)
+	test eax, eax
+	jnz @f
+		@call [ReleaseDC]([tmpDC])
+		mov eax, 0
+		ret
+	@@:
+	@call CNV:alloc([bmInfo.bmiHeader.biSizeImage])
+	mov [lpBmBits], rax
+	mov [bmInfo.bmiHeader.biCompression], BI_RGB 
+	mov rax, [bitCount]
+	mov [bmInfo.bmiHeader.biBitCount], ax
+	@call [GetDIBits]([tmpDC], [hBmp], 0, [bmInfo.bmiHeader.biHeight], [lpBmBits], addr bmInfo, DIB_RGB_COLORS)
+	@call [ReleaseDC]([tmpDC])
+
+	local <bmfHeader:BITMAPFILEHEADER "BM", ?, 0, 0, sizeof.BITMAPFILEHEADER+sizeof.BITMAPINFO>
+	mov eax, [bmInfo.bmiHeader.biSizeImage]
+	add eax, [bmfHeader.bfOffBits]
+	mov [bmfHeader.bfSize], eax
+
+	local fHandle:QWORD
+	mov [bmInfo.bmiHeader.biCompression], BI_RGB 
+	mov rax, [bitCount]
+	mov [bmInfo.bmiHeader.biBitCount], ax
+	@call [CreateFileA]([lpFname], GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)
+	mov [fHandle], rax
+	@call [WriteFile]([fHandle], addr bmfHeader, sizeof.BITMAPFILEHEADER, NULL, NULL)
+	@call [WriteFile]([fHandle], addr bmInfo, sizeof.BITMAPINFO, NULL, NULL)
+	@call [WriteFile]([fHandle], [lpBmBits], [bmInfo.bmiHeader.biSizeImage], NULL, NULL)
+	@call [CloseHandle]([fHandle])
+	@jret CNV:free([lpBmBits])
+endp
+
+macro CNV.BMP2File  hBmp, lpFname, bitCount=24{
+	@call CNV.BMPToFile(hBmp, lpFname, bitCount)
+}

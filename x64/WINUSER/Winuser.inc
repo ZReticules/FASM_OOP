@@ -95,6 +95,9 @@ NONE fix
 
 	define HWND_BROADCAST  	0xffff
 
+;WS_EX
+	define WS_EX_COMPOSITED 33554432
+
 struct WND
 	msgBox 					dm this:inline
 	setTimer				dm this:inline

@@ -166,6 +166,7 @@ proc DIALOGFORM.dispatchMessages uses rbx, mainHandle
 	jnz .return
 		@call [TranslateMessage](addr msg)
 		@call [DispatchMessageA](addr msg)
+		xor rdx, rdx
 		mov rax, 1
 	.return:ret
 endp

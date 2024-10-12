@@ -10,6 +10,8 @@
 		strlen		dm this:inline
 		strmov  	dm this:inline
 		BMPFromFile	dm this:inline
+		BMPToFile	dm this
+		BMP2File	dm this:inline
 		db ?
 	ends
 
