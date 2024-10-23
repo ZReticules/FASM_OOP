@@ -40,6 +40,14 @@ define SYMBOL_CHARSET 		2
 define TURKISH_CHARSET 		162
 define VIETNAMESE_CHARSET 	163
 
+macro @on_colors{
+	WM_CTLCOLORDLG  		event DIALOGFORM_WM_CTLCOLOR
+	WM_CTLCOLOREDIT  		event DIALOGFORM_WM_CTLCOLOR
+	WM_CTLCOLORLISTBOX  	event DIALOGFORM_WM_CTLCOLOR
+	WM_CTLCOLORSCROLLBAR  	event DIALOGFORM_WM_CTLCOLOR
+	WM_CTLCOLORSTATIC  		event DIALOGFORM_WM_CTLCOLOR
+}
+
 struct DIALOGFORM
 	const _x 				= 0
 	const _y				= 0
@@ -56,17 +64,11 @@ struct DIALOGFORM
 	bgColorBrush 			dq 0
 	hDialogTemplate 		dq ?
 	lpDialogFunc 			dq ?
-	hWndParent 				dq 0
 
-	WM_CLOSE 				event DIALOGFORM_WM_CLOSE
-	WM_CTLCOLOREDIT  		event DIALOGFORM_WM_CTLCOLOR
-	WM_CTLCOLORDLG  		event DIALOGFORM_WM_CTLCOLOR
-	WM_CTLCOLORLISTBOX  	event DIALOGFORM_WM_CTLCOLOR
-	WM_CTLCOLORSCROLLBAR  	event DIALOGFORM_WM_CTLCOLOR
-	WM_CTLCOLORSTATIC  		event DIALOGFORM_WM_CTLCOLOR
+	WM_CLOSE 				event ?
 
-	start 					dm this
-	ilStart 				dm this:inline
+	start 					dm this:inline
+	; ilStart 				dm this:inline
 	setText 				dm this:inline
 	getTextLen 				dm this:inline
 	getText 				dm this:inline
@@ -79,45 +81,12 @@ struct DIALOGFORM
 	dispatchMessages		dm this
 	startNM					dm this
 	setIcon 				dm this:inline
+	setEnable				dm this:inline
+	setVisible				dm this:inline
+	setFocus				dm this:inline
 	; getClientSize			dm this:inline
 	; getWindowSize 			dm this:inline
 ends
-
-macro DIALOGFORM.getTextLen this{
-	local _this
-	inlineObj _this, this, rcx
-	@call [GetWindowTextLengthA]([_this+CONTROL.hWnd])
-}
-
-macro DIALOGFORM.getText this, lpString, nMaxCount{
-	local _this
-	inlineObj _this, this, rcx
-	@call [GetWindowTextA]([_this+CONTROL.hWnd], lpString, nMaxCount)
-}
-
-macro DIALOGFORM.setText this, lpString{
-	local _this
-	inlineObj _this, this, rcx
-	@call [SetWindowTextA]([_this+CONTROL.hWnd], lpString)
-}
-
-macro DIALOGFORM.setIcon this, hIcon{
-	local _this
-	inlineObj _this, this, rcx
-	@call [SendMessageA]([_this+CONTROL.hWnd], WM_SETICON, ICON_BIG, hIcon)
-}
-
-macro DIALOGFORM.close this{
-	local _this
-	inlineObj _this, this, rcx
-	@call [SendMessageA]([_this+CONTROL.hWnd], WM_CLOSE, 0, 0)
-}
-
-macro DIALOGFORM.ilStart this, hModule, parent{
-	local _this
-	inlineObj _this, this, rcx
-	@call [DialogBoxIndirectParamA](hModule, [_this + DIALOGFORM.hDialogTemplate], parent, [_this + DIALOGFORM.lpDialogFunc], addr _this)
-}
 
 struct params
 	hWnd 	dq ?
@@ -222,66 +191,104 @@ macro ShblDialog formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION
 			mov [lparam], r9
 			xor eax, eax
 			cmp rdx, WM_INITDIALOG
-			jne .nextEvent
-				mov rbx, [lparam]
-				mov [.this.hWnd], rcx
-				@call [SetWindowLongPtrA]([hwnddlg], GWL_USERDATA, [lparam])
-		irpv cntrl, formType#@ControlStack\{
-				mov [.this.\#cntrl\#.ID], formType#.\#cntrl\#._id
-				@call [GetDlgItem]([.this.hWnd], word [.this.\#cntrl\#.ID])
-				mov [.this.\#cntrl\#.hWnd], rax
-				@call [SetWindowLongPtrA]([.this.\#cntrl\#.hWnd], GWL_USERDATA, addr .this.\#cntrl)
-		\}
-			.nextEvent:
-			@call [GetWindowLongPtrA]([hwnddlg], GWL_USERDATA)
+				je .initEvent
+			@call [GetWindowLongPtrA](rcx, GWL_USERDATA)
 			mov rbx, rax
 			xor eax, eax
 			mov rdx, [msg]
 			mov r8, [wparam]
-		irpv evnt, formType#@EventStack\{
-			cmp rdx, evnt
-			jne .nextEvent\#evnt
-				@call [.cxThis.\#evnt](addr .this, addr hwnddlg)
-				jmp .return
-			.nextEvent\#evnt:
-		\}
+			irpv evnt, formType#@EventStack\{
+				match =.cxThis.WM_INITDIALOG, .cxThis.\#evnt\\{
+					rept 0\\{
+				\\}
+				rept 1\\{
+					cmp rdx, evnt
+						je .eventHandler_\#evnt
+				\\}
+			\}
 			cmp rdx, WM_COMMAND
-			jne .NextEvent
-		irpv cntrl, formType#@ControlStack\{
-			
-			match TName, cntrl\#.Type\\{
-				\\local events_count, events_counter
-				events_counter = 0
-
-				if events_count > 1
-
-				cmp r8w, formType#.\#cntrl\#._id
-				jne .nextCntrl\#cntrl
-
-				end if
-
-				irpv evnt, TName\\#@EventStack\\\{
-					cmp r8, evnt shl 16 + formType#.\#cntrl\#._id
-					jne .nextEvnt\#cntrl\\\#evnt
-						@call [.cxThis.\#cntrl\#.\\\#evnt](addr .this, addr hwnddlg, addr .this.\#cntrl)
-						jmp .return
-					.nextEvnt\#cntrl\\\#evnt:
-					events_counter = events_counter + 1
-				\\\}
-				events_count = events_counter
-
-				if events_count > 1
-
-				.nextCntrl\#cntrl:
-				
-				end if
-			\\}
-		\}
-			.NextEvent:
+				je .commandEventsChecker
 			xor eax, eax
 			.return:ret
+
+			.initEvent:
+				mov rbx, r9
+				mov [.this.hWnd], rcx
+				@call [SetWindowLongPtrA]([hwnddlg], GWL_USERDATA, [lparam])
+				irpv cntrl, formType#@ControlStack\{
+					mov [.this.\#cntrl\#.ID], formType#.\#cntrl\#._id
+					@call [GetDlgItem]([.this.hWnd], word [.this.\#cntrl\#.ID])
+					mov [.this.\#cntrl\#.hWnd], rax
+					@call [SetWindowLongPtrA]([.this.\#cntrl\#.hWnd], GWL_USERDATA, addr .this.\#cntrl)
+				\}
+				if defined .this.WM_INITDIALOG
+					@call [.this.WM_INITDIALOG](addr .this, addr hwnddlg)
+				end if
+				jmp .return
+
+			irpv evnt, formType#@EventStack\{
+				match =.this.WM_INITDIALOG, .this.\#evnt\\{
+					rept 0\\{
+				\\}
+				rept 1\\{
+					.eventHandler_\#evnt:
+						@call [.this.\#evnt](addr .this, addr hwnddlg)
+						jmp .return
+				\\}
+			\}
+
+			.commandEventsChecker:
+				; int3
+				irpv cntrl, formType#@ControlStack\{
+					match TName, cntrl\#.Type\\{
+						\\local events_count, events_counter
+						events_counter = 0
+
+						if events_count > 1
+							cmp r8w, formType#.\#cntrl\#._id
+							jne .nextCntrl\#cntrl
+						end if
+
+						irpv evnt, TName\\#@EventStack\\\{
+							cmp r8, evnt shl 16 + formType#.\#cntrl\#._id
+								je .controlEventHandler_\#cntrl\\\#evnt
+							events_counter = events_counter + 1
+						\\\}
+						events_count = events_counter
+
+						if events_count > 1
+							.nextCntrl\#cntrl:
+						end if
+					\\}
+				\}
+				jmp .return
+
+				irpv cntrl, formType#@ControlStack\{
+					match TName, cntrl\#.Type\\{
+						irpv evnt, TName\\#@EventStack\\\{
+							.controlEventHandler_\#cntrl\\\#evnt:
+							; int3
+								@call [.this.\#cntrl\#.\\\#evnt](addr .this, addr hwnddlg, addr .this.\#cntrl)
+								jmp .return
+						\\\}
+					\\}
+				\}
+
 		endp
 		proc_resprologue
 		; formInfo NONE, formType\#.cdit, NONE, NONE, NONE, formType\#_DlgTemplate, formType\#_DialogProc, _initvals
 	; \}
 }
+
+; macro @S_Dialog FType, [args]{
+; 	common
+; 	local sufx
+; 	_Text#sufx 		equ "DialogForm"
+; 	_style#sufx 	equ WS_VISIBLE or WS_CAPTION or WS_SYSMENU or WS_MINIMIZEBOX or WS_MAXIMIZEBOX or DS_CENTER
+; 	_styleEx#sufx 	equ NULL
+; 	forward
+; 	match name:val\{
+; 		name\#sufx equ args
+; 	\}
+; 	ShblDialog _text#sufx, _style#sufx
+; } 

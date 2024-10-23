@@ -16,7 +16,9 @@ importlib user32,\
 	GetWindowLongPtrA,\
 	IsWindow,\
 	TranslateMessage,\
-	DispatchMessageA
+	DispatchMessageA,\
+	EnableWindow,\
+	ShowWindow
 
 importlib kernel32,\
 	GetModuleHandleA
@@ -35,15 +37,73 @@ importlib uxtheme,\
 
 proc_noprologue
 
-proc DIALOGFORM.start, this, parent
-	virtObj .this:arg DIALOGFORM
-	mov [this], rcx
-	mov [parent], rdx
-	@call [GetModuleHandleA](0)
-	mov rcx, [this]
-	@call [DialogBoxIndirectParamA](rax, [.this.hDialogTemplate], [parent], [.this.lpDialogFunc], rcx)
-	ret
-endp
+; proc DIALOGFORM.start, this, parent
+; 	virtObj .this:arg DIALOGFORM
+; 	mov [this], rcx
+; 	mov [parent], rdx
+; 	mov [.this.WM_CLOSE], DIALOGFORM_WM_CLOSE
+; 	@call [GetModuleHandleA](0)
+; 	mov rcx, [this]
+; 	@call [DialogBoxIndirectParamA](rax, [.this.hDialogTemplate], [parent], [.this.lpDialogFunc], rcx)
+; 	ret
+; endp
+
+
+
+macro DIALOGFORM.getTextLen this{
+	local _this
+	inlineObj _this, this, rcx
+	@call [GetWindowTextLengthA]([_this+DIALOGFORM.hWnd])
+}
+
+macro DIALOGFORM.getText this, lpString, nMaxCount{
+	local _this
+	inlineObj _this, this, rcx
+	@call [GetWindowTextA]([_this+DIALOGFORM.hWnd], lpString, nMaxCount)
+}
+
+macro DIALOGFORM.setText this, lpString{
+	local _this
+	inlineObj _this, this, rcx
+	@call [SetWindowTextA]([_this+DIALOGFORM.hWnd], lpString)
+}
+
+macro DIALOGFORM.setIcon this, hIcon{
+	local _this
+	inlineObj _this, this, rcx
+	@call [SendMessageA]([_this+DIALOGFORM.hWnd], WM_SETICON, ICON_BIG, hIcon)
+}
+
+macro DIALOGFORM.close this{
+	local _this
+	inlineObj _this, this, rcx
+	@call [SendMessageA]([_this+DIALOGFORM.hWnd], WM_CLOSE, 0, 0)
+}
+
+macro DIALOGFORM.setVisible this, bState{
+	local _this
+	inlineObj _this, this, rcx
+	@call [ShowWindow]([_this+DIALOGFORM.hWnd], bState)
+}
+
+macro DIALOGFORM.setEnable this, bState{
+	local _this
+	inlineObj _this, this, rcx
+	@call [EnableWindow]([_this+DIALOGFORM.hWnd], bState)
+}
+
+macro DIALOGFORM.setFocus this{
+	local _this
+	inlineObj _this, this, rcx
+	@call [SetFocus]([_this+DIALOGFORM.hWnd])
+}
+
+macro DIALOGFORM.start this, parent=NULL{
+	local _this
+	inlineObj _this, this, rcx
+	mov [_this + DIALOGFORM.WM_CLOSE], DIALOGFORM_WM_CLOSE
+	@call [DialogBoxIndirectParamA]([WND._hModule], [_this + DIALOGFORM.hDialogTemplate], parent, [_this + DIALOGFORM.lpDialogFunc], addr _this)
+}
 
 proc DIALOGFORM.startNM uses rbx, this, parent
 	virtObj .this:arg DIALOGFORM at rbx
@@ -51,10 +111,11 @@ proc DIALOGFORM.startNM uses rbx, this, parent
 	xor eax, eax
 	cmp [.this.hWnd], 0
 	jne .alreadyExists
-		mov [.this.hWndParent], rdx
+		local hParent:QWORD
+		mov [hParent], rdx
 		@call [GetModuleHandleA](0)
-		mov [.this.WM_CLOSE], DIALOGFORM_WM_CLOSE_nomodal
-		@call [CreateDialogIndirectParamA](rax, [.this.hDialogTemplate], [.this.hWndParent], [.this.lpDialogFunc], rbx)
+		mov [.this.WM_CLOSE], DIALOGFORM_WM_CLOSE_NOMODAL
+		@call [CreateDialogIndirectParamA](rax, [.this.hDialogTemplate], [hParent], [.this.lpDialogFunc], rbx)
 		mov [.this.hWnd], rax
 	.alreadyExists:
 	ret
@@ -62,11 +123,11 @@ endp
 
 if used DIALOGFORM_WM_CLOSE;this, paramsLp
 	DIALOGFORM_WM_CLOSE:
-		virtObj .this:arg DIALOGFORM
-		@jret [EndDialog]([.this.hWnd], NULL)
+		; virtObj .this:arg DIALOGFORM
+		@jret [EndDialog]([rcx + DIALOGFORM.hWnd], NULL)
 end if
 
-proc DIALOGFORM_WM_CLOSE_nomodal, lpForm, lpParam
+proc DIALOGFORM_WM_CLOSE_NOMODAL, lpForm, lpParam
 	virtObj .form:arg DIALOGFORM
 	mov [lpForm], rcx
 	@call [DestroyWindow]([.form.hWnd])

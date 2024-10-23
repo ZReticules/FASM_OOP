@@ -16,23 +16,38 @@ importlib user32,\
 importlib gdi32,\
 	GetDIBits
 
-DIB_RGB_COLORS = 0
+define DIB_RGB_COLORS 0
+
+; if used CNV._module
+; 	proc_noprologue
+
+; 	CNV._module dq ?
+
+; 	proc CNV._moduleinit, handle, reason, reserved
+; 		@call [GetModuleHandleA](0)
+; 		mov [CNV._module], rax
+; 		ret
+; 	endp
+
+; 	TLS_AddCallback CNV._moduleinit
+
+; 	proc_resprologue
+; end if
+
+; a = used CNV._heap
 
 if used CNV._heap
-	proc_noprologue
-
 	CNV._heap dq ?
+end if
 
-	proc CNV._heapinit
+macro CNV._initHeap{
+	if used CNV._heap
 		@call [GetProcessHeap]()
 		mov [CNV._heap], rax
-		ret
-	endp
+	end if
+}
 
-	TLS_AddCallback CNV._heapinit
-
-	proc_resprologue
-end if
+TLS_AddMacro CNV._initHeap
 
 macro CNV.alloc size, flags=HEAP_ZERO_MEMORY{
 	@call [HeapAlloc]([CNV._heap], flags, size)
@@ -53,6 +68,7 @@ macro CNV.BMPFromFile path, x=0, y=0{
 FILL_NO_SAVE	= 0
 FILL_SAVE_RSI 	= 1
 FILL_SAVE_RDI 	= 2
+
 macro CNV.fill dest*, src*, size*, flags=FILL_SAVE_RDI or FILL_SAVE_RSI{
 	local repeats, rem, _src, _dest, matched
 	if size eqtype 0 & size relativeto 0
@@ -195,15 +211,16 @@ macro CNV.fill dest*, src*, size*, flags=FILL_SAVE_RDI or FILL_SAVE_RSI{
 STRLEN_NO_SAVE 		= 0
 STRLEN_SAVE_RDI 	= 1
 STRLEN_REZULT_RCX 	= 2
+
 macro CNV.strlen src*, flags = STRLEN_SAVE_RDI{
-	if flags and FILL_SAVE_RSI
+	if flags and STRLEN_SAVE_RDI
 		if defined current@frame
-			if current@frame<8
-				current@frame = 8
+			if current@frame<16
+				current@frame = 16
 			end if
 			mov [rsp], rdi
 		else
-			push rdi
+			push rdi rdi
 		end if
 	end if
 	fillParam rdi, src
@@ -217,11 +234,11 @@ macro CNV.strlen src*, flags = STRLEN_SAVE_RDI{
 		lea rax, [rcx+2]
 		neg rax
 	end if
-	if flags and FILL_SAVE_RSI
+	if flags and STRLEN_SAVE_RDI
 		if defined current@frame
 			mov rdi, [rsp]
 		else
-			pop rdi
+			pop rdi rdi
 		end if
 	end if
 }
@@ -230,6 +247,7 @@ STRMOV_NO_SAVE 	= 0
 STRMOV_SAVE_RSI = 1
 STRMOV_SAVE_RDI = 2
 STRMOV_RET_LEN 	= 4
+
 macro CNV.strmov dest*, src*, flags=STRMOV_SAVE_RSI or STRMOV_SAVE_RDI{
 	if defined current@frame
 		if current@frame<16
@@ -242,11 +260,12 @@ macro CNV.strmov dest*, src*, flags=STRMOV_SAVE_RSI or STRMOV_SAVE_RDI{
 			mov [rsp+8], rdi
 		end if
 	else
-		if flags and STRMOV_SAVE_RSI
-			push rsi
-		end if
-		if flags and STRMOV_SAVE_RDI
-			push rdi
+		if (flags and STRMOV_SAVE_RSI) and (flags and STRMOV_SAVE_RDI)
+			push rsi rdi
+		else if flags and STRMOV_SAVE_RDI
+			push rdi rdi
+		else if flags and STRMOV_SAVE_RSI
+			push rsi rsi
 		end if
 	end if
 	fillParam rdi, dest
@@ -270,14 +289,59 @@ macro CNV.strmov dest*, src*, flags=STRMOV_SAVE_RSI or STRMOV_SAVE_RDI{
 			mov rdi, [rsp+8]
 		end if
 	else
-		if flags and STRMOV_SAVE_RDI
-			pop rdi
-		end if
-		if flags and STRMOV_SAVE_RSI
-			pop rsi
+		if (flags and STRMOV_SAVE_RSI) and (flags and STRMOV_SAVE_RDI)
+			pop rdi rsi
+		else if flags and STRMOV_SAVE_RDI
+			pop rdi rdi
+		else if flags and STRMOV_SAVE_RSI
+			pop rsi rsi
 		end if
 	end if
 }
+
+macro CNV.BMP2File hBmp, lpFname, bitCount=24{
+	@call CNV.BMPToFile(hBmp, lpFname, bitCount)
+}
+
+MEMSET_NO_SAVE 		= 0
+MEMSET_SAVE_RDI 	= 1
+
+macro CNV.memset dst*, val*, countval*, sizeval = 1, flags = MEMSET_SAVE_RDI{
+	if flags and MEMSET_SAVE_RDI
+		if defined current@frame
+			if current@frame<16
+				current@frame = 16
+			end if
+			mov [rsp], rdi
+		else
+			push rdi rdi
+		end if
+	end if
+	fillParam rdi, dst
+	mov ecx, countval
+	if sizeval = 1
+		mov al, val
+		rep stosb
+	else if sizeval = 2
+		mov ax, val
+		rep stosw
+	else if sizeval = 4
+		mov eax, val
+		rep stosd
+	else if sizeval = 8
+		mov rax, val
+		rep stosq
+	end if
+	if flags and MEMSET_SAVE_RDI
+		if defined current@frame
+			mov rdi, [rsp]
+		else
+			pop rdi rdi
+		end if
+	end if
+}
+
+proc_noprologue
 
 proc CNV.parseCMD uses rbx, argvLp:qword
 	local lpargmem:QWORD
@@ -375,6 +439,42 @@ proc CNV.BMPToFile, hBmp, lpFname, bitCount
 	@jret CNV:free([lpBmBits])
 endp
 
-macro CNV.BMP2File  hBmp, lpFname, bitCount=24{
-	@call CNV.BMPToFile(hBmp, lpFname, bitCount)
-}
+proc CNV.intToStr, lpStr, num, radix
+	test edx, edx
+	jns .positive
+		mov byte[rcx], '-'
+		neg edx
+		inc rcx
+	.positive:
+	@jret CNV:uintToStr(rcx, rdx, r8)
+endp
+
+proc CNV.uintToStr, lpStr, num, radix
+	locals
+		buf 	db 11 dup ?
+	endl
+	mov eax, edx
+	xor r10, r10
+	.loop1:
+		xor edx, edx
+		div r8d
+		add edx, 30h
+		cmp edx, 39h
+		jle .decDigits
+			add edx, 7
+		.decDigits:
+		mov [buf + r10], dl
+		inc r10
+	test eax, eax
+	jnz .loop1
+	xchg rcx, r10
+	.loop2:
+		mov al, [buf + rcx - 1]
+		mov [r10], al
+		inc r10
+	loop .loop2
+	mov byte[r10], 0
+	ret
+endp
+
+proc_resprologue

@@ -5,10 +5,13 @@
 		ID				dw ?
 		bgColorBrush 	dq 0
 
+		setBgColor		dm DIALOGFORM.setBgColor
 		getTextLen 		dm DIALOGFORM.getTextLen:inline
 		getText 		dm DIALOGFORM.getText:inline
 		setText 		dm DIALOGFORM.setText:inline
-		setBgColor		dm DIALOGFORM.setBgColor
+		setEnable		dm DIALOGFORM.setEnable:inline
+		setVisible		dm DIALOGFORM.setVisible:inline
+		setFocus		dm DIALOGFORM.setFocus:inline
 		hideCur 		dm this:inline
 		setTheme 		dm this:inline
 		getClientSize	dm this:inline

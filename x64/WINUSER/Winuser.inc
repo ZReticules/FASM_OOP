@@ -26,6 +26,8 @@ define GA_ROOTOWNER	3
 
 define NULL 0
 NONE fix
+
+;button styles
 	define BS_SPLITBUTTON          0x0000000C
 	define BS_DEFSPLITBUTTON       0x0000000D
 	define BS_COMMANDLINK          0x0000000E
@@ -103,9 +105,9 @@ struct WND
 	setTimer				dm this:inline
 	killTimer				dm this:inline
 	getStockIcon			dm this
-	const darkThemeColor 	= 0x2E2E2E
-	const darkThemeCFD		= DarkThemeCFD
-	const darkThemeExplorer	= DarkThemeExplorer
+	const darkThemeColor 	equ 0x2E2E2E
+	const darkThemeCFD		equ du "DarkMode_CFD", 0
+	const darkThemeExplorer	equ du "DarkMode_Explorer", 0
 	db ?
 ends
 
@@ -146,19 +148,6 @@ DWMWCP enum\
 	ROUND,\
 	ROUNDSMALL
 
-define MAX_PATH 260
-
-macro WND.msgBox lpText, lpCaption = NULL, utype = MB_OK, hWnd = NULL{
-	@call [MessageBoxA](hWnd, lpText, lpCaption, utype)
-}
-
-macro WND.setTimer uElapse, lpTimerFunc, nIDEvent=0, hWnd=NULL{
-	@call [SetTimer](hWnd, nIDEvent, uElapse, lpTimerFunc)
-}
-
-macro WND.killTimer nIDEvent, hWnd=NULL{
-	@call [KillTimer](hwnd, nIDEvent)
-}
-
+include "Winuser.asm"
 include_once "TOOLS\x64\WINUSER\MsgBox.inc"
 include_once "TOOLS\x64\WINUSER\StockIcons.inc"
