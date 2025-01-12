@@ -1,0 +1,46 @@
+define MAX_PATH 260
+
+if used WND._hModule
+	WND.hModule dptr ?
+end if
+
+macro WND.moduleInit{
+	if used WND.hModule
+		@call [GetModuleHandleA](0)
+		mov [WND.hModule], pax
+	end if
+}
+
+TLS_AddMacro WND.moduleInit
+
+macro WND.msgBox lpText, lpCaption, [args]{
+	common
+	local a, _lpCaption
+	a#_type equ MB_OK
+	a#_hWnd equ NULL
+	match name:val, lpCaption\{
+		_lpCaption equ NULL
+		restore a\#name
+		a\#name equ val
+	rept 0 \{ \} rept 1\{
+		_lpCaption equ lpCaption
+	\}
+	forward
+	match name:val, args\{
+		restore a\#name
+		a\#name equ val
+	\}
+	common
+	@call [MessageBoxA](a#_hWnd, lpText, _lpCaption, a#_type)
+	restore _lpCaption 
+	restore a#_type 	
+	restore a#_hWnd 	
+}
+
+macro WND.setTimer uElapse, lpTimerFunc, nIDEvent=0, hWnd=NULL{
+	@call [SetTimer](hWnd, nIDEvent, uElapse, lpTimerFunc)
+}
+
+macro WND.killTimer nIDEvent, hWnd=NULL{
+	@call [KillTimer](hWnd, nIDEvent)
+}
