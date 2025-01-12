@@ -3,9 +3,7 @@
 	struct CONTROL
 		hWnd			dq ?
 		ID				dw ?
-		bgColorBrush 	dq 0
 
-		setBgColor		dm DIALOGFORM.setBgColor
 		getTextLen 		dm DIALOGFORM.getTextLen:inline
 		getText 		dm DIALOGFORM.getText:inline
 		setText 		dm DIALOGFORM.setText:inline
@@ -21,9 +19,27 @@
 	include "CONTROL.asm"
 
 	struct _DLG_SPECIAL_CONTROL CONTROL
+		setBgColor		dm _DLG_SPECIAL_CONTROL.setBgColor
+		
 		bkColor 		dd 0xFFFFFF
 		txColor			dd 0x000000
+		bgColorBrush 	dq 0
 	ends
+
+	proc _DLG_SPECIAL_CONTROL.setBgColor, this, colorref
+		virtObj .this:arg _DLG_SPECIAL_CONTROL
+		mov [this], rcx
+		cmp [.this.bgColorBrush], NULL
+		je .emptyColor
+			mov [colorref], rdx
+			@call [DeleteObject]([.this.bgColorBrush])
+			mov rdx, [colorref]
+		.emptyColor:
+		@call [CreateSolidBrush](rdx)
+		mov rcx, [this]
+		mov [.this.bgColorBrush], rax
+		ret
+	endp
 
 	struct BUTTON CONTROL
 		const CType equ "Button"

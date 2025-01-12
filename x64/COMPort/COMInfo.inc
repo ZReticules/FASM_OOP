@@ -104,13 +104,13 @@ ends
 macro COMInfo.choseId this, idPort{
 	local _this
 	inlineObj _this, this, rcx
-	@call [SetupDiEnumDeviceInfo]([_this+COMInfo.hDevInfoSet], idPort, addr _this+COMInfo.devInfo)
+	@call [SetupDiEnumDeviceInfo]([_this + COMInfo.hDevInfoSet], idPort, addr _this + COMInfo.devInfo)
 }
 
 macro COMInfo.close this{
 	local _this
 	inlineObj _this, this, rcx
-	@call [SetupDiDestroyDeviceInfoList]([_this+COMInfo.hDevInfoSet])
+	@call [SetupDiDestroyDeviceInfoList]([_this + COMInfo.hDevInfoSet])
 }
 
 include "COMInfo.asm"

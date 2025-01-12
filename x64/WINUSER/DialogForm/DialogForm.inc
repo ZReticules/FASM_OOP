@@ -41,7 +41,7 @@ define TURKISH_CHARSET 		162
 define VIETNAMESE_CHARSET 	163
 
 macro @on_colors{
-	WM_CTLCOLORDLG  		event DIALOGFORM_WM_CTLCOLOR
+	WM_CTLCOLORDLG  		event DIALOGFORM_WM_CTLCOLORDLG
 	WM_CTLCOLOREDIT  		event DIALOGFORM_WM_CTLCOLOR
 	WM_CTLCOLORLISTBOX  	event DIALOGFORM_WM_CTLCOLOR
 	WM_CTLCOLORSCROLLBAR  	event DIALOGFORM_WM_CTLCOLOR
@@ -120,8 +120,9 @@ macro make@form name, formInfo&{
 	\}
 }
 
-include "CONTROL.inc"
 include "DialogForm.asm"
+include "CONTROL.inc"
+include "DefaultEvents.asm"
 
 struct DLGITEMTEMPLATE
 	style dd ?
@@ -221,6 +222,7 @@ macro ShblDialog formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION
 					mov [.this.\#cntrl\#.hWnd], rax
 					@call [SetWindowLongPtrA]([.this.\#cntrl\#.hWnd], GWL_USERDATA, addr .this.\#cntrl)
 				\}
+				xor eax, eax
 				if defined .this.WM_INITDIALOG
 					@call [.this.WM_INITDIALOG](addr .this, addr hwnddlg)
 				end if
