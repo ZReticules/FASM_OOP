@@ -12,8 +12,6 @@ importlib user32,\
 	PostQuitMessage,\
 	GetMessageA,\
 	IsDialogMessageA,\
-	SetWindowLongPtrA,\
-	GetWindowLongPtrA,\
 	IsWindow,\
 	TranslateMessage,\
 	DispatchMessageA,\
@@ -102,37 +100,36 @@ macro DIALOGFORM.start this, parent=NULL{
 	local _this
 	inlineObj _this, this, pcx
 	mov [_this + DIALOGFORM.WM_CLOSE], DIALOGFORM_WM_CLOSE
-	@call [DialogBoxIndirectParamA]([WND._hModule], [_this + DIALOGFORM.hDialogTemplate], parent, [_this + DIALOGFORM.lpDialogFunc], addr _this)
+	@call [DialogBoxIndirectParamA]([WND.hModule], [_this + DIALOGFORM.hDialogTemplate], parent, [_this + DIALOGFORM.lpDialogFunc], addr _this)
 }
 
-proc DIALOGFORM.startNM uses rbx, this, parent
-	virtObj .this:arg DIALOGFORM at rbx from rcx
+proc DIALOGFORM.startNM c uses pbx, this, parent
+	virtObj .this:arg DIALOGFORM at pbx from @arg1
 	xor eax, eax
 	cmp [.this.hWnd], 0
 	jne .alreadyExists
-		local hParent:QWORD
-		mov [hParent], rdx
-		@call [GetModuleHandleA](0)
 		mov [.this.WM_CLOSE], DIALOGFORM_WM_CLOSE_NOMODAL
-		@call [CreateDialogIndirectParamA](rax, [.this.hDialogTemplate], [hParent], [.this.lpDialogFunc], rbx)
-		mov [.this.hWnd], rax
+		@call [CreateDialogIndirectParamA]([WND.hModule], [.this.hDialogTemplate], @arg2, [.this.lpDialogFunc], pbx)
+		mov [.this.hWnd], pax
 	.alreadyExists:
 	ret
 endp
 
-if used DIALOGFORM_WM_CLOSE;this, paramsLp
-	DIALOGFORM_WM_CLOSE:
-		virtObj .this:arg DIALOGFORM
-		@jret [EndDialog]([.this.hWnd], NULL)
-end if
+
+proc DIALOGFORM_WM_CLOSE, lpForm, lpParam
+	virtObj .this:arg DIALOGFORM at pcx from @arg1
+	@call [EndDialog]([.this.hWnd], NULL)
+	ret
+endp
 
 proc DIALOGFORM_WM_CLOSE_NOMODAL, lpForm, lpParam
-	virtObj .form:arg DIALOGFORM
-	mov [lpForm], rcx
+	virtObj .form:arg DIALOGFORM at pcx from @arg1
+	@sarg @arg1
 	@call [DestroyWindow]([.form.hWnd])
-	mov rcx, [lpForm]
+	mov pcx, [lpForm]
 	mov [.form.hWnd], 0
-	@jret [PostQuitMessage](0)
+	@call [PostQuitMessage](0)
+	ret
 endp
 
 ; proc DIALOGFORM_WM_CTLCOLORDLG, formLp, paramsLp
@@ -190,30 +187,29 @@ proc DIALOGFORM.setCornerType, this, RectType
 	ret
 endp
 
-proc DIALOGFORM.dispatchMessages uses rbx, mainHandle
-	virtObj .this:arg DIALOGFORM at rbx
+proc DIALOGFORM.dispatchMessages c uses pbx, mainHandle
+	virtObj .this:arg DIALOGFORM at pbx from @arg1
 	locals 
 		msg MSG
 	endl
-	mov rbx, rcx
 	@call [GetMessageA](addr msg, NULL, 0, 0)
 	test eax, eax
 	jnz .noEnd
-		mov rcx, 1
-		mov rdx, [.this.hWnd]
-		cmp [msg.hwnd], rdx
-		cmovne rax, rcx
+		mov ecx, 1
+		mov pdx, [.this.hWnd]
+		cmp [msg.hwnd], pdx
+		cmovne eax, ecx
 		jmp .return
 	.noEnd:
 	@call [GetActiveWindow]()
-	@call [IsDialogMessageA](rax, addr msg)
-	test rax, rax
+	@call [IsDialogMessageA](pax, addr msg)
+	test eax, eax
 	jnz .return
 		@call [TranslateMessage](addr msg)
 		@call [DispatchMessageA](addr msg)
-		xor rdx, rdx
-		mov rax, 1
-	.return:ret
+		xor pdx, pdx
+		mov eax, 1
+	.return: ret
 endp
 
 ; proc DIALOGFORM.getSize, this, lpSizeFunc

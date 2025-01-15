@@ -228,6 +228,7 @@ macro base@call clean_stack, action, proc, [arg]{
 	..argscount = counter
 	call proc
 	if stackspace & clean_stack
+		; display "lol", 10
 		lea esp, [esp action stackspace]
 	end if 
 }

@@ -1,6 +1,6 @@
 define MAX_PATH 260
 
-if used WND._hModule
+if used WND.hModule
 	WND.hModule dptr ?
 end if
 

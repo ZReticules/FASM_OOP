@@ -1,7 +1,7 @@
 @module CONTROL
 
 	struct CONTROL
-		hWnd			dq ?
+		hWnd			dptr ?
 		ID				dw ?
 
 		getTextLen 		dm DIALOGFORM.getTextLen:inline
@@ -23,7 +23,7 @@
 		
 		bkColor 		dd 0xFFFFFF
 		txColor			dd 0x000000
-		bgColorBrush 	dq 0
+		bgColorBrush 	dptr 0
 	ends
 
 	proc _DLG_SPECIAL_CONTROL.setBgColor, this, colorref

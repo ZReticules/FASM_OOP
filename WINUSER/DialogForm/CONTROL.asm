@@ -13,7 +13,7 @@ macro CONTROL.setTheme this, wstrLp{
 	@call [SetWindowTheme]([_this+CONTROL.hWnd], wstrLp, 0)
 }
 
-macro control _control*, initvals=NONE, _Text="Control", _x=0, _y=0, _cx=60, _cy=20, _style=WS_VISIBLE, _styleEx=NULL{
+macro control _control*, initvals=?, _Text="Control", _x=0, _y=0, _cx=60, _cy=20, _style=WS_VISIBLE, _styleEx=NULL{
 	local thislab, _initvals, _cname, _ctype, any
 	_cname equ thislab
 	_ctype equ _control
@@ -24,7 +24,7 @@ macro control _control*, initvals=NONE, _Text="Control", _x=0, _y=0, _cx=60, _cy
 		_cname equ cname
 		_ctype equ ctype
 	\}
-	_initvals equ NONE, NONE
+	_initvals equ ?, ?
 	match any, initvals\{
 		_initvals equ _initvals, initvals
 	\}
@@ -63,7 +63,7 @@ macro @control _control*, [argums]{
 		_cname equ cname
 		_ctype equ ctype
 	\}
-	initvals equ NONE, NONE
+	initvals equ ?, ?
 	forward
 	local _thisarg
 	define _thisarg argums

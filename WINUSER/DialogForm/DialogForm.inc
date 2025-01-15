@@ -1,3 +1,17 @@
+match =x64, __architecture{
+	SetWindowPtrA fix SetWindowLongPtrA
+	GetWindowPtrA fix GetWindowLongPtrA
+}
+
+match =x86, __architecture{
+	SetWindowPtrA fix SetWindowLongA
+	GetWindowPtrA fix GetWindowLongA
+}
+
+importlib user32,\
+	SetWindowPtrA,\
+	GetWindowPtrA
+
 struct DLGTEMPLATE
 	style dd ?
 	dwExtendedStyle dd ?
@@ -59,11 +73,11 @@ struct DIALOGFORM
 	; const _charset			= DEFAULT_CHARSET
 	const _font  			equ "MS Sans Serif"
 
-	hWnd 					dq ?
+	hWnd 					dptr ?
 	idCount 				dw ?
-	bgColorBrush 			dq 0
-	hDialogTemplate 		dq ?
-	lpDialogFunc 			dq ?
+	bgColorBrush 			dptr 0
+	hDialogTemplate 		dptr ?
+	lpDialogFunc 			dptr ?
 
 	WM_CLOSE 				event ?
 
@@ -89,10 +103,10 @@ struct DIALOGFORM
 ends
 
 struct params
-	hWnd 	dq ?
-	msg 	dq ?
-	wparam 	dq ?
-	lparam 	dq ?
+	hWnd 	dptr ?
+	msg 	dptr ?
+	wparam 	dptr ?
+	lparam 	dptr ?
 ends
 
 macro form formInfo&{
@@ -183,44 +197,43 @@ macro ShblDialog formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION
 
 		proc_noprologue
 
-		proc formType#_DialogProc uses rbx, hwnddlg, msg, wparam, lparam
-			virtObj .this:arg formType at rbx
-			virtObj .cxThis:arg formType at rcx
-			mov [hwnddlg], rcx
-			mov [msg], rdx
-			mov [wparam], r8
-			mov [lparam], r9
+		proc formType#_DialogProc uses pbx, hwnddlg, msg, wparam, lparam
+			virtObj .this:arg formType at pbx
+			@sarg @arg1, @arg2, @arg3, @arg4
 			xor eax, eax
-			cmp rdx, WM_INITDIALOG
+			cmp @arg2, WM_INITDIALOG
 				je .initEvent
-			@call [GetWindowLongPtrA](rcx, GWL_USERDATA)
-			mov rbx, rax
+			@call [GetWindowPtrA]([hwnddlg], GWL_USERDATA)
+			mov pbx, pax
 			xor eax, eax
-			mov rdx, [msg]
-			mov r8, [wparam]
+			mov pdx, [msg]
+			mov pcx, [wparam]
 			irpv evnt, formType#@EventStack\{
-				match =.cxThis.WM_INITDIALOG, .cxThis.\#evnt\\{
+				match =.this.WM_INITDIALOG, .this.\#evnt\\{
 					rept 0\\{
 				\\}
 				rept 1\\{
-					cmp rdx, evnt
+					cmp edx, evnt
 						je .eventHandler_\#evnt
 				\\}
 			\}
-			cmp rdx, WM_COMMAND
+			cmp edx, WM_COMMAND
 				je .commandEventsChecker
 			xor eax, eax
-			.return:ret
+			.return: 
+			; int3
+			ret
 
 			.initEvent:
-				mov rbx, r9
-				mov [.this.hWnd], rcx
-				@call [SetWindowLongPtrA]([hwnddlg], GWL_USERDATA, [lparam])
+				@larg pcx, @arg1, \
+					pbx, @arg4
+				mov [.this.hWnd], pcx
+				@call [SetWindowPtrA]([hwnddlg], GWL_USERDATA, [lparam])
 				irpv cntrl, formType#@ControlStack\{
 					mov [.this.\#cntrl\#.ID], formType#.\#cntrl\#._id
 					@call [GetDlgItem]([.this.hWnd], word [.this.\#cntrl\#.ID])
-					mov [.this.\#cntrl\#.hWnd], rax
-					@call [SetWindowLongPtrA]([.this.\#cntrl\#.hWnd], GWL_USERDATA, addr .this.\#cntrl)
+					mov [.this.\#cntrl\#.hWnd], pax
+					@call [SetWindowPtrA]([.this.\#cntrl\#.hWnd], GWL_USERDATA, addr .this.\#cntrl)
 				\}
 				xor eax, eax
 				if defined .this.WM_INITDIALOG
@@ -230,9 +243,7 @@ macro ShblDialog formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION
 
 			irpv evnt, formType#@EventStack\{
 				match =.this.WM_INITDIALOG, .this.\#evnt\\{
-					rept 0\\{
-				\\}
-				rept 1\\{
+				rept 0\\{\\}rept 1\\{
 					.eventHandler_\#evnt:
 						@call [.this.\#evnt](addr .this, addr hwnddlg)
 						jmp .return
@@ -247,12 +258,12 @@ macro ShblDialog formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION
 						events_counter = 0
 
 						if events_count > 1
-							cmp r8w, formType#.\#cntrl\#._id
+							cmp cx, formType#.\#cntrl\#._id
 							jne .nextCntrl\#cntrl
 						end if
 
 						irpv evnt, TName\\#@EventStack\\\{
-							cmp r8, evnt shl 16 + formType#.\#cntrl\#._id
+							cmp ecx, evnt shl 16 + formType#.\#cntrl\#._id
 								je .controlEventHandler_\#cntrl\\\#evnt
 							events_counter = events_counter + 1
 						\\\}
