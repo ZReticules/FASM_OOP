@@ -3,13 +3,13 @@ importlib user32,\
 
 macro CONTROL.hideCur this{
 	local _this
-	inlineObj _this, this, rcx
+	inlineObj _this, this, pcx
 	@call [HideCaret]([_this+CONTROL.hWnd])
 }
 
 macro CONTROL.setTheme this, wstrLp{
 	local _this
-	inlineObj _this, this, rcx
+	inlineObj _this, this, pcx
 	@call [SetWindowTheme]([_this+CONTROL.hWnd], wstrLp, 0)
 }
 
@@ -24,7 +24,7 @@ macro control _control*, initvals=?, _Text="Control", _x=0, _y=0, _cx=60, _cy=20
 		_cname equ cname
 		_ctype equ ctype
 	\}
-	_initvals equ ?, ?
+	_initvals equ ?, ?, NONE
 	match any, initvals\{
 		_initvals equ _initvals, initvals
 	\}
@@ -63,7 +63,7 @@ macro @control _control*, [argums]{
 		_cname equ cname
 		_ctype equ ctype
 	\}
-	initvals equ ?, ?
+	initvals equ ?, ?, NONE
 	forward
 	local _thisarg
 	define _thisarg argums

@@ -143,51 +143,51 @@ endp
 ; 	ret
 ; endp
 
-proc DIALOGFORM.setBgColor, this, colorref
-	virtObj .this:arg DIALOGFORM
-	mov [this], rcx
+proc DIALOGFORM.setBgColor c, this, colorref
+	virtObj .this:arg DIALOGFORM at pcx from @arg1
+	@sarg @arg1
+	@larg pdx, @arg2
 	cmp [.this.bgColorBrush], NULL
 	je .emptyColor
-		mov [colorref], rdx
+		@sarg @arg2
 		@call [DeleteObject]([.this.bgColorBrush])
-		mov rdx, [colorref]
+		mov pdx, [colorref]
 	.emptyColor:
-	@call [CreateSolidBrush](rdx)
-	mov rcx, [this]
-	mov [.this.bgColorBrush], rax
+	@call [CreateSolidBrush](pdx)
+	mov pcx, [this]
+	mov [.this.bgColorBrush], pax
 	ret
 endp
 
-proc DIALOGFORM.setCaptionColor, this, Colorref
-	virtObj .this:arg DIALOGFORM
-	local Color:DWORD
-	mov [Color], edx
-	@call [DwmSetWindowAttribute]([.this.hWnd], DWMWA.CAPTION_COLOR, addr Color, 4)
+proc DIALOGFORM.setCaptionColor c, this, Colorref
+	virtObj .this:arg DIALOGFORM at pcx from @arg1
+	@sarg @arg2
+	@call [DwmSetWindowAttribute]([.this.hWnd], DWMWA.CAPTION_COLOR, addr Colorref, 4)
 	ret
 endp
 
-proc DIALOGFORM.setTextColor, this, Colorref
-	virtObj .this:arg DIALOGFORM
-	mov [Colorref], rdx
+proc DIALOGFORM.setTextColor c, this, Colorref
+	virtObj .this:arg DIALOGFORM at pcx from @arg1
+	@sarg @arg2
 	@call [DwmSetWindowAttribute]([.this.hWnd], DWMWA.TEXT_COLOR, addr Colorref, 4)
 	ret
 endp
 
-proc DIALOGFORM.setBorderColor, this, Colorref
-	virtObj .this:arg DIALOGFORM
-	mov [Colorref], rdx
+proc DIALOGFORM.setBorderColor c, this, Colorref
+	virtObj .this:arg DIALOGFORM at pcx from @arg1
+	@sarg @arg2
 	@call [DwmSetWindowAttribute]([.this.hWnd], DWMWA.BORDER_COLOR, addr Colorref, 4)
 	ret
 endp
 
-proc DIALOGFORM.setCornerType, this, RectType
-	virtObj .this:arg DIALOGFORM
-	mov [RectType], rdx
+proc DIALOGFORM.setCornerType c, this, RectType
+	virtObj .this:arg DIALOGFORM at pcx from @arg1
+	@sarg @arg2
 	@call [DwmSetWindowAttribute]([.this.hWnd], DWMWA.WINDOW_CORNER_PREFERENCE, addr RectType, 4)
 	ret
 endp
 
-proc DIALOGFORM.dispatchMessages c uses pbx, mainHandle
+proc DIALOGFORM.dispatchMessages c uses pbx, this
 	virtObj .this:arg DIALOGFORM at pbx from @arg1
 	locals 
 		msg MSG
@@ -202,12 +202,12 @@ proc DIALOGFORM.dispatchMessages c uses pbx, mainHandle
 		jmp .return
 	.noEnd:
 	@call [GetActiveWindow]()
-	@call [IsDialogMessageA](pax, addr msg)
+	mov ecx, eax
+	@call [IsDialogMessageA](ecx, addr msg)
 	test eax, eax
 	jnz .return
 		@call [TranslateMessage](addr msg)
 		@call [DispatchMessageA](addr msg)
-		xor pdx, pdx
 		mov eax, 1
 	.return: ret
 endp

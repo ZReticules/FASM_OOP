@@ -1,18 +1,18 @@
 proc_noprologue
 
-proc COMBOBOX.initSubControl uses rbx, this
-	virtObj .this:arg COMBOBOX at rbx
+proc COMBOBOX.initSubControl c uses pbx, this
+	virtObj .this:arg COMBOBOX at pbx from @arg1
 	locals 
 		cbInfo COMBOBOXINFO
 	endl
-	mov rbx, rcx
 	@call [SendMessageA]([.this.hWnd], CB_GETCOMBOBOXINFO, NULL, addr cbInfo)
-	mov rax, [cbInfo.hwndItem]
-	mov [.this.cEdit.hWnd], rax
+	mov pax, [cbInfo.hwndItem]
+	mov [.this.cEdit.hWnd], pax
 	@call [SetWindowLongPtrA]([cbInfo.hwndItem], GWL_USERDATA, addr .this.cEdit)
-	mov rax, [cbInfo.hwndList]
-	mov [.this.cListBox.hWnd], rax
-	@jret [SetWindowLongPtrA]([cbInfo.hwndList], GWL_USERDATA, addr .this.cListBox)
+	mov pax, [cbInfo.hwndList]
+	mov [.this.cListBox.hWnd], pax
+	@call [SetWindowLongPtrA]([cbInfo.hwndList], GWL_USERDATA, addr .this.cListBox)
+	ret
 endp
 
 proc_resprologue

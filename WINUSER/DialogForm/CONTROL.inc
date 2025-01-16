@@ -3,6 +3,7 @@
 	struct CONTROL
 		hWnd			dptr ?
 		ID				dw ?
+		baseRect		RECT ?, ?, ?, ?
 
 		getTextLen 		dm DIALOGFORM.getTextLen:inline
 		getText 		dm DIALOGFORM.getText:inline
@@ -26,18 +27,19 @@
 		bgColorBrush 	dptr 0
 	ends
 
-	proc _DLG_SPECIAL_CONTROL.setBgColor, this, colorref
-		virtObj .this:arg _DLG_SPECIAL_CONTROL
-		mov [this], rcx
+	proc _DLG_SPECIAL_CONTROL.setBgColor c, this, colorref
+		virtObj .this:arg _DLG_SPECIAL_CONTROL at pcx from @arg1
+		@sarg @arg1
+		@larg pdx, @arg2
 		cmp [.this.bgColorBrush], NULL
 		je .emptyColor
-			mov [colorref], rdx
+			@sarg @arg2
 			@call [DeleteObject]([.this.bgColorBrush])
-			mov rdx, [colorref]
+			mov pdx, [colorref]
 		.emptyColor:
-		@call [CreateSolidBrush](rdx)
-		mov rcx, [this]
-		mov [.this.bgColorBrush], rax
+		@call [CreateSolidBrush](pdx)
+		mov pcx, [this]
+		mov [.this.bgColorBrush], pax
 		ret
 	endp
 

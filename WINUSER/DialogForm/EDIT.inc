@@ -6,7 +6,7 @@ ends
 
 macro EDIT.setReadOnly this, isReadOnly{
 	local _this
-	inlineObj _this, this, ecx
+	inlineObj _this, this, pcx
 	@call [SendMessageA]([_this+EDIT.hWnd], EM_SETREADONLY, isReadOnly)
 }
 
