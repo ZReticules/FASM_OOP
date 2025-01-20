@@ -47,6 +47,11 @@ proc_noprologue
 ; endp
 
 
+macro DIALOGFORM.invalidate this{
+	local _this
+	inlineObj _this, this, pcx
+	@call [InvalidateRect]([_this+DIALOGFORM.hWnd], NULL, 1)
+}
 
 macro DIALOGFORM.getTextLen this{
 	local _this

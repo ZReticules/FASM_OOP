@@ -107,7 +107,7 @@
 		setTimer				dm this:inline
 		killTimer				dm this:inline
 		getStockIcon			dm this
-		const darkThemeColor 	equ 0x2E2E2E
+		const darkThemeColor 	equ 0x333333
 		const darkThemeCFD		equ du "DarkMode_CFD", 0
 		const darkThemeExplorer	equ du "DarkMode_Explorer", 0
 		db ?

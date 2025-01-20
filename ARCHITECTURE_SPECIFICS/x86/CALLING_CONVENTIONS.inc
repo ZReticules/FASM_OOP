@@ -110,7 +110,18 @@ macro base@call clean_stack, action, proc, [arg]{
 
 			if defined current@frame
 				if type@param eq addr
-					if (param eqtype 0 & param relativeto 0) | param eq eax
+					if param eqtype 0
+						if param relativeto 0
+							mov dword[esp+(..argscount-counter)*4], param
+						irp reg, eax, ecx, edx, ebx, esp, ebp, esi, edi \\\{
+						else if param - reg relativeto 0 & param - reg = 0
+							mov dword[esp+(..argscount-counter)*4], reg
+						\\\}
+						else
+							lea eax,[param]
+							mov [esp+(..argscount-counter)*4], eax
+						end if
+					else if param eqtype eax
 						mov dword[esp+(..argscount-counter)*4], param
 					else
 						lea eax,[param]
