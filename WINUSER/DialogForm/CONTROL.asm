@@ -13,36 +13,6 @@ macro CONTROL.setTheme this, wstrLp{
 	@call [SetWindowTheme]([_this+CONTROL.hWnd], wstrLp, 0)
 }
 
-macro control _control*, initvals=?, _Text="Control", _x=0, _y=0, _cx=60, _cy=20, _style=WS_VISIBLE, _styleEx=NULL{
-	local thislab, _initvals, _cname, _ctype, any
-	_cname equ thislab
-	_ctype equ _control
-	match cname ctype, _control\{
-		define matched
-		restore _cname
-		restore _ctype
-		_cname equ cname
-		_ctype equ ctype
-	\}
-	_initvals equ ?, ?, NONE
-	match any, initvals\{
-		_initvals equ _initvals, initvals
-	\}
-	match name _cname_ _ctype_ _initvals_, struct@lastname _cname _ctype _initvals\{
-		_cname_ _ctype_ _initvals_	
-		name\#@ControlStack equ _cname_
-		name\#.\#_cname_\#._x = _x
-		name\#.\#_cname_\#._y = _y
-		name\#.\#_cname_\#._cx = _cx
-		name\#.\#_cname_\#._cy = _cy
-		name\#.\#_cname_\#._rx = _x+_cx
-		name\#.\#_cname_\#._ry = _y+_cy
-		name\#.\#_cname_\#._style = _style
-		name\#.\#_cname_\#._styleEx = _styleEx
-		name\#.\#_cname_\#._Text equ _Text
-	\}	
-}
-
 macro @control _control*, [argums]{
 	common
 	local thislab, _cname, _ctype, any, a
@@ -63,7 +33,6 @@ macro @control _control*, [argums]{
 		_cname equ cname
 		_ctype equ ctype
 	\}
-	initvals equ ?, ?, NONE
 	forward
 	local _thisarg
 	define _thisarg argums
@@ -71,6 +40,9 @@ macro @control _control*, [argums]{
 		_name_\#a equ _val
 	\}
 	common
+	match _name_|_strname, _cname|struct@lastname\{
+		initvals equ NONE, NONE, <_strname\#.\#_name_\#._x, _strname\#.\#_name_\#._y, _strname\#.\#_name_\#._cx, _strname\#.\#_name_\#._cy>
+	\} 
 	match any, _initvals#a\{
 		initvals equ initvals, _initvals#a
 	\}

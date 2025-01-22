@@ -8,7 +8,7 @@
 		getTextLen 		dm DIALOGFORM.getTextLen:inline
 		getText 		dm DIALOGFORM.getText:inline
 		setText 		dm DIALOGFORM.setText:inline
-		setEnable		dm DIALOGFORM.setEnable:inline
+		setEnabled		dm DIALOGFORM.setEnabled:inline
 		setVisible		dm DIALOGFORM.setVisible:inline
 		setFocus		dm DIALOGFORM.setFocus:inline
 		hideCur 		dm this:inline
@@ -20,7 +20,8 @@
 	include "CONTROL.asm"
 
 	struct _DLG_SPECIAL_CONTROL CONTROL
-		setBgColor		dm _DLG_SPECIAL_CONTROL.setBgColor
+		setBgColor		dm this
+		unsetBgColor	dm this
 		
 		bkColor 		dd 0xFFFFFF
 		txColor			dd 0x000000
@@ -40,6 +41,14 @@
 		@call [CreateSolidBrush](pdx)
 		mov pcx, [this]
 		mov [.this.bgColorBrush], pax
+		ret
+	endp
+
+	proc _DLG_SPECIAL_CONTROL.unsetBgColor c, this
+		virtObj .this:arg _DLG_SPECIAL_CONTROL at pcx from @arg1
+		xor eax, eax
+		xchg pax, [.this.bgColorBrush]
+		@call [DeleteObject](pax)
 		ret
 	endp
 

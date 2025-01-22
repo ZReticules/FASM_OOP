@@ -1,3 +1,6 @@
+importlib kernel32,\
+	GetModuleHandleA
+
 define MAX_PATH 260
 
 if used WND.hModule

@@ -5,21 +5,16 @@ importlib user32,\
 	GetWindowTextA,\
 	GetDlgItem,\
 	SetWindowTextA,\
-	ComboBox_AddStringA,\
 	SendMessageA,\
 	CreateDialogIndirectParamA,\
 	DestroyWindow,\
 	PostQuitMessage,\
 	GetMessageA,\
 	IsDialogMessageA,\
-	IsWindow,\
 	TranslateMessage,\
 	DispatchMessageA,\
 	EnableWindow,\
 	ShowWindow
-
-importlib kernel32,\
-	GetModuleHandleA
 
 importlib gdi32,\
 	CreateSolidBrush,\
@@ -31,7 +26,8 @@ importlib dwmapi,\
 	DwmSetWindowAttribute
 	
 importlib uxtheme,\
-	SetWindowTheme
+	SetWindowTheme,\
+    CloseThemeData
 
 proc_noprologue
 
@@ -39,7 +35,7 @@ proc_noprologue
 ; 	virtObj .this:arg DIALOGFORM
 ; 	mov [this], rcx
 ; 	mov [parent], rdx
-; 	mov [.this.WM_CLOSE], DIALOGFORM_WM_CLOSE
+; 	mov [.this.__close], DIALOGFORM_WM_CLOSE
 ; 	@call [GetModuleHandleA](0)
 ; 	mov rcx, [this]
 ; 	@call [DialogBoxIndirectParamA](rax, [.this.hDialogTemplate], [parent], [.this.lpDialogFunc], rcx)
@@ -89,7 +85,7 @@ macro DIALOGFORM.setVisible this, bState{
 	@call [ShowWindow]([_this+DIALOGFORM.hWnd], bState)
 }
 
-macro DIALOGFORM.setEnable this, bState{
+macro DIALOGFORM.setEnabled this, bState{
 	local _this
 	inlineObj _this, this, pcx
 	@call [EnableWindow]([_this+DIALOGFORM.hWnd], bState)
@@ -104,7 +100,7 @@ macro DIALOGFORM.setFocus this{
 macro DIALOGFORM.start this, parent=NULL{
 	local _this
 	inlineObj _this, this, pcx
-	mov [_this + DIALOGFORM.WM_CLOSE], DIALOGFORM_WM_CLOSE
+	mov [_this + DIALOGFORM.__close], DIALOGFORM_WM_CLOSE
 	@call [DialogBoxIndirectParamA]([WND.hModule], [_this + DIALOGFORM.hDialogTemplate], parent, [_this + DIALOGFORM.lpDialogFunc], addr _this)
 }
 
@@ -113,7 +109,7 @@ proc DIALOGFORM.startNM c uses pbx, this, parent
 	xor eax, eax
 	cmp [.this.hWnd], 0
 	jne .alreadyExists
-		mov [.this.WM_CLOSE], DIALOGFORM_WM_CLOSE_NOMODAL
+		mov [.this.__close], DIALOGFORM_WM_CLOSE_NOMODAL
 		@call [CreateDialogIndirectParamA]([WND.hModule], [.this.hDialogTemplate], @arg2, [.this.lpDialogFunc], pbx)
 		mov [.this.hWnd], pax
 	.alreadyExists:
@@ -121,15 +117,19 @@ proc DIALOGFORM.startNM c uses pbx, this, parent
 endp
 
 
-proc DIALOGFORM_WM_CLOSE, lpForm, lpParam
-	virtObj .this:arg DIALOGFORM at pcx from @arg1
-	@call [EndDialog]([.this.hWnd], NULL)
+proc DIALOGFORM_WM_CLOSE uses pbx, lpForm, lpParam, exitVal
+	virtObj .form:arg DIALOGFORM at pbx from @arg1
+    @call [CloseThemeData]([.form.hTheme])
+	@call [EndDialog]([.form.hWnd], [exitVal])
+	mov pcx, [lpForm]
+	mov [.form.hWnd], 0
 	ret
 endp
 
-proc DIALOGFORM_WM_CLOSE_NOMODAL, lpForm, lpParam
+proc DIALOGFORM_WM_CLOSE_NOMODAL, lpForm, lpParam, exitVal
 	virtObj .form:arg DIALOGFORM at pcx from @arg1
 	@sarg @arg1
+    @call [CloseThemeData]([.this.hTheme])
 	@call [DestroyWindow]([.form.hWnd])
 	mov pcx, [lpForm]
 	mov [.form.hWnd], 0
