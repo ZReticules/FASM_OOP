@@ -129,7 +129,7 @@ endp
 proc DIALOGFORM_WM_CLOSE_NOMODAL, lpForm, lpParam, exitVal
 	virtObj .form:arg DIALOGFORM at pcx from @arg1
 	@sarg @arg1
-    @call [CloseThemeData]([.this.hTheme])
+    @call [CloseThemeData]([.form.hTheme])
 	@call [DestroyWindow]([.form.hWnd])
 	mov pcx, [lpForm]
 	mov [.form.hWnd], 0

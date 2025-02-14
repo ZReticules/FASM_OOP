@@ -1,13 +1,20 @@
-struct EDIT _DLG_SPECIAL_CONTROL
-	setReadOnly	dm this:inline
-	addText		dm this
-	const CType equ "Edit"
-ends
+@module EDIT
 
-macro EDIT.setReadOnly this, isReadOnly{
-	local _this
-	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+EDIT.hWnd], EM_SETREADONLY, isReadOnly)
-}
+	define EM_SETCUEBANNER 0x1501
 
-include "EDIT.asm"
+	define EM_GETCUEBANNER 0x1502
+
+	struct EDIT _DLG_SPECIAL_CONTROL
+		setReadOnly		dm this:inline
+		getLimitText	dm this:inline
+		setLimitText	dm this:inline
+		getPlaceholder	dm this:inline
+		setPlaceholder	dm this:inline
+		addText			dm this
+
+		const CType equ "Edit"
+	ends
+
+	include "EDIT.asm"
+
+@endm

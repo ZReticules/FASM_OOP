@@ -75,23 +75,27 @@ macro importlib @thislib*, [$procfull*]{
 	\}
 }
 
-macro makeimport{
-	common
-	local buf@libmatch, buf@procmatch
-	match buf@libmatch, total@libArr\{
-		library buf@libmatch
-		irp libname, buf@libmatch\\{
-			if ~(libname eqtype "")
-				match buf@procmatch, libname\\#@procArr\\\{
-					import buf@procmatch
-				\\\}
-			end if
+macro @init_import{
+	match =@init_import, @init_import\{
+		local buf@libmatch, buf@procmatch
+		match buf@libmatch, total@libArr\\{
+			library buf@libmatch
+			irp libname, buf@libmatch\\\{
+				if ~(libname eqtype "")
+					match buf@procmatch, libname\\\#@procArr\\\\{
+						import buf@procmatch
+					\\\\}
+				end if
+			\\\}
 		\\}
+		define @init_import
 	\}
 }
 
 postpone{
-	data import
-		makeimport
-	end data
+	match =@init_import, @init_import\{
+		data import
+			@init_import
+		end data
+	\}
 }

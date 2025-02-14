@@ -65,7 +65,7 @@ macro CNV.alloc size, flags=HEAP_ZERO_MEMORY{
 	@call [HeapAlloc]([CNV._heap], flags, size)
 }
 
-macro CMV.realloc lpMem, size, flags=HEAP_ZERO_MEMORY{
+macro CNV.realloc lpMem, size, flags=HEAP_ZERO_MEMORY{
 	@call [HeapReAlloc]([CNV._heap], flags, lpMem, size)
 }
 
@@ -366,7 +366,9 @@ proc_noprologue
 
 @arch_include "CNV"
 
+; next functions both returns count of chars 
 proc CNV.intToStr c, lpStr, num, radix
+	@sarg @arg2
 	cmp @arg2, 0
 	jns .positive
 		@larg pcx, @arg1
@@ -374,10 +376,14 @@ proc CNV.intToStr c, lpStr, num, radix
 		neg @arg2
 		inc @arg1
 	.positive:
-	@jret CNV.uintToStr()
+	@call c CNV.uintToStr(@arg1, @arg2, @arg3)
+	lea edx, [eax + 1]
+	cmp [num], 0
+		cmovl eax, edx
+	ret
 endp
 
-proc CNV.uintToStr c uses pbx, lpStr, num, radix
+proc CNV.uintToStr c uses pbx psi, lpStr, num, radix
 	locals
 		buf 	db 33 dup ?
 	endl
@@ -403,14 +409,17 @@ proc CNV.uintToStr c uses pbx, lpStr, num, radix
 		inc ecx
 	test eax, eax
 	jnz .loop1
-	mov pdx, [lpStr]
-	.loop2:
-		mov al, [buf + pcx - 1]
-		mov [pdx], al
-		inc edx
-	loop .loop2
-	mov byte[pdx], 0
-	ret
+	mov psi, pcx
+	.migration_loop:
+		mov pdx, [lpStr]
+		.loop2:
+			mov al, [buf + pcx - 1]
+			mov [pdx], al
+			inc pdx
+		loop .loop2
+		mov byte[pdx], 0
+		mov pax, psi
+		ret
 
 	.power_of_two:
 		; @larg pdx, @arg1
@@ -430,13 +439,14 @@ proc CNV.uintToStr c uses pbx, lpStr, num, radix
 			inc pdx
 		test eax, eax
 		jnz .loop3
-		mov pcx, [lpStr]
-		xchg pdx, pcx
-		jmp .loop2
+		mov pcx, pdx
+		mov psi, pdx
+		jmp .migration_loop
 
 	.zeroret:
 		@larg pcx, @arg1
 		mov word[pcx], "0"
+		mov pax, 1
 		ret
 endp
 

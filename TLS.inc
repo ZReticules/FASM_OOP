@@ -58,43 +58,52 @@ macro TLS_AddMacro [args]{
 
 ; TLS_AddMacro CNV._initHeap
 
-postpone {
-	local ._start, ._end, ._size, TLS._init
-	virtual at $
-		._start:
-		irpv mac, TLS_Marcoses\{
-			match macr, mac\\{
-				macr
-			\\}
-		\}
-		._end:
-		._size = ._start - ._end
-	end virtual
-	if ._size
-		; proc_noprologue
-		proc TLS._init, handle, reason, reserved
-			irpv mac, TLS_Marcoses\{
-				match macr, mac\\{
+macro @init_tls{
+	match =@init_tls, @init_tls\{
+		local ._start, ._end, ._size, TLS._init
+		virtual at $
+			._start:
+			irpv mac, TLS_Marcoses\\{
+				match macr, mac\\\{
 					macr
+				\\\}
+			\\}
+			._end:
+			._size = ._start - ._end
+		end virtual
+		if ._size
+			proc_noprologue
+			proc TLS._init, handle, reason, reserved
+				irpv mac, TLS_Marcoses\\{
+					match macr, mac\\\{
+						macr
+					\\\}
+					; match name, \\\`mac\\\{display name\\\}
 				\\}
-			\}
-			ret
-		endp
-		; proc_resprologue
-		TLS_AddCallback TLS._init
-	end if
-	if Has_Tls
-		; section ".TLS" readable writeable
-		data 9
-			_IMAGE_TLS_DIRECTORY 0, 0, tls_index, tls_callbacks, 0, 0
-			tls_index   	dptr 0
-			tls_callbacks:	
-				irpv thiscallback, TLS_Callbacks\{
-					if defined thiscallback
-						dptr thiscallback
-					end if
-				\}
-				dptr 0
-		end data
-	end if
+				ret
+			endp
+			proc_resprologue
+			TLS_AddCallback TLS._init
+		end if
+		if Has_Tls
+		; display "lol"
+			; section ".tls" readable writeable
+			data 9
+				_TLS_DIR _IMAGE_TLS_DIRECTORY 0, 0, tls_index, tls_callbacks, 0, 0
+				tls_index   	dptr 0
+				tls_callbacks:	
+					irpv thiscallback, TLS_Callbacks\\{
+						if defined thiscallback
+							dptr thiscallback
+						end if
+					\\}
+					dptr 0
+			end data
+		end if
+		define @init_tls
+	\}
+}
+
+postpone {
+	@init_tls
 }
