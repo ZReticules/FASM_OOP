@@ -92,7 +92,10 @@ macro @init_import{
 	\}
 }
 
-postpone{
+
+total_postpone equ @init_import_postpone
+
+macro @init_import_postpone{
 	match =@init_import, @init_import\{
 		data import
 			@init_import

@@ -3,7 +3,7 @@
 ; 	start, end, center, evenly, evenly_edges, evenly_start_edge, evenly_end_edge
 ; _orientation(base - vertical):
 ; 	horizontal, vertical
-; _cx/_cy(for layout base - content, for control - parent):
+; _cx/_cy(base - parent):
 ; 	parent, content, [n] %, [n]
 
 ; other parameters
@@ -199,16 +199,21 @@ macro $calculate_position layout, sufx_parent, name, sufx_component{
 macro $control _type*, [argums]{
 	common
 	local thislab, _ctype, any, a
-	_initvals#a 	equ 
-	_text#a 		equ ""
-	_x#a 			equ
-	_y#a 			equ
-	_cx#a 			equ parent
-	_cy#a 			equ parent
-	_style#a 		equ WS_VISIBLE
-	_style_ex#a 	equ NULL
-	_name#a 		equ thislab
-	_position#a		equ
+	_initvals#a 		equ 
+	_text#a 			equ ""
+	_x#a 				equ
+	_y#a 				equ
+	_cx#a 				equ parent
+	_cy#a 				equ parent
+	_style#a 			equ WS_VISIBLE
+	_style_ex#a 		equ NULL
+	_name#a 			equ thislab
+	_position#a			equ
+	_padding#a 			equ 0
+	_padding_left#a		equ 0
+	_padding_right#a	equ 0
+	_padding_top#a 		equ 0
+	_padding_bottom#a 	equ 0
 
 	forward
 	local _thisarg
@@ -218,9 +223,9 @@ macro $control _type*, [argums]{
 		_name_\#a equ _val
 	\}
 	common
-	match _name_|_strname, _name#a|struct@lastname\{
-		initvals equ NONE, NONE, <_strname\#.\#_name_\#._x, _strname\#.\#_name_\#._y, _strname\#.\#_name_\#._cx, _strname\#.\#_name_\#._cy>
-	\} 
+	; match _name_|_strname, _name#a|struct@lastname\{
+	; 	initvals equ NONE, NONE, <_strname\#.\#_name_\#._x, _strname\#.\#_name_\#._y, _strname\#.\#_name_\#._cx, _strname\#.\#_name_\#._cy>
+	; \} 
 
 	match |sufx_parent, _position#a|last@sufx\{
 		\local name
@@ -232,21 +237,30 @@ macro $control _type*, [argums]{
 		_y#a equ name\#._y
 	\}
 
-	match any, _initvals#a\{
-		initvals equ initvals, _initvals#a
-	\}
-	match name _name_ _initvals_, struct@lastname _name#a initvals\{
-		_name_ _type _initvals_	
-		name\#@ControlStack equ _name_
-		name\#.\#_name_\#._x = _x#a
-		name\#.\#_name_\#._y = _y#a
-		name\#.\#_name_\#._cx = _cx#a
-		name\#.\#_name_\#._cy = _cy#a
-		name\#.\#_name_\#._rx = _x#a+_cx#a
-		name\#.\#_name_\#._ry = _y#a+_cy#a
-		name\#.\#_name_\#._style = _style#a
-		name\#.\#_name_\#._styleEx = _style_ex#a
-		name\#.\#_name_\#._Text equ _text#a
+	; match any, _initvals#a\{
+	; 	initvals equ initvals, _initvals#a
+	; \}
+	match name|_initvals_, struct@lastname|initvals\{
+		@control _name#a _type,\
+			_x: (_x#a) + (_padding#a) + (_padding_left#a),\
+			_y: (_y#a) + (_padding#a) + (_padding_top#a),\
+			_cx: (_cx#a) - (_padding#a) * 2 - (_padding_left#a) - (_padding_right#a),\
+			_cy: (_cy#a) - (_padding#a) * 2 - (_padding_top#a) - (_padding_bottom#a),\
+			_style: _style#a,\
+			_style_ex: _style_ex#a,\
+			_text: _text#a,\
+			_initvals: _initvals#a
+		; _name_ _type _initvals_	
+		; name\#@ControlStack equ _name_
+		; name\#.\#_name_\#._x = _x#a
+		; name\#.\#_name_\#._y = _y#a
+		; name\#.\#_name_\#._cx = _cx#a
+		; name\#.\#_name_\#._cy = _cy#a
+		; name\#.\#_name_\#._rx = _x#a+_cx#a
+		; name\#.\#_name_\#._ry = _y#a+_cy#a
+		; name\#.\#_name_\#._style = _style#a
+		; name\#.\#_name_\#._styleEx = _style_ex#a
+		; name\#.\#_name_\#._Text equ _text#a
 	\}	
 	restore _x#a, _y#a, _cx#a, _cy#a, _style#a, _text#a, _style_ex#a
 }
@@ -258,8 +272,8 @@ macro $layout [args] {
 	_x#sufx				equ 0
 	_y#sufx				equ 0
 	; % в процентах от родителя, иначе в пунктах, не указывать для авто
-	_cx#sufx 			equ content
-	_cy#sufx 			equ content
+	_cx#sufx 			equ parent
+	_cy#sufx 			equ parent
 	_orientation#sufx 	equ vertical
 	_align#sufx			equ start
 	_position#sufx		equ
@@ -293,7 +307,7 @@ macro $layout [args] {
 	\}
 }
 
-macro $endl{
+macro $endl {
 	match sufx|name, last@sufx|last@layout\{
 		name\#._elems_count = name\#._elems_counter
 		name\#._elems_coord_count = name\#._elems_coord_counter

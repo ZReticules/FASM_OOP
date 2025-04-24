@@ -1,6 +1,10 @@
 importlib kernel32,\
 	GetModuleHandleA
 
+importlib gdi32,\
+	BitBlt,\
+	CreateRectRgn
+
 define MAX_PATH 260
 
 if used WND.hModule
@@ -16,17 +20,16 @@ macro WND.moduleInit{
 
 TLS_AddMacro WND.moduleInit
 
-macro WND.msgBox lpText, lpCaption, [args]{
+macro WND.msgBox lpText*, lpCaption=NULL, [args]{
 	common
 	local a, _lpCaption
-	a#_type equ MB_OK
-	a#_hWnd equ NULL
+	_lpCaption equ lpCaption
+	a#dwStyle equ MB_OK
+	a#hwndOwner equ NULL
 	match name:val, lpCaption\{
 		_lpCaption equ NULL
 		restore a\#name
 		a\#name equ val
-	rept 0 \{ \} rept 1\{
-		_lpCaption equ lpCaption
 	\}
 	forward
 	match name:val, args\{
@@ -34,10 +37,10 @@ macro WND.msgBox lpText, lpCaption, [args]{
 		a\#name equ val
 	\}
 	common
-	@call [MessageBoxA](a#_hWnd, lpText, _lpCaption, a#_type)
+	@call [MessageBoxA](a#hwndOwner, lpText, _lpCaption, a#dwStyle)
 	restore _lpCaption 
-	restore a#_type 	
-	restore a#_hWnd 	
+	restore a#dwStyle 	
+	restore a#hwndOwner 	
 }
 
 macro WND.setTimer uElapse, lpTimerFunc, nIDEvent=0, hWnd=NULL{
@@ -47,3 +50,88 @@ macro WND.setTimer uElapse, lpTimerFunc, nIDEvent=0, hWnd=NULL{
 macro WND.killTimer nIDEvent, hWnd=NULL{
 	@call [KillTimer](hWnd, nIDEvent)
 }
+
+macro WND.taskDlg lpWTitle, lpWCaption=NULL, lpWContent=NULL, [args]{
+	common
+	local a, _lpWTitle, _lpWCaption, _lpWContent
+	_lpWTitle equ lpWTitle
+	_lpWCaption equ lpWCaption
+	_lpWContent equ lpWContent
+	a#dwCommonButtons equ TDCBF_CANCEL_BUTTON
+	a#hwndOwner equ NULL
+	a#pszIcon equ TD_INFORMATION_ICON
+	a#pnButton equ 0
+	match name:val, lpWTitle\{
+		restore _lpWTitle
+		_lpWTitle equ NULL
+		restore a\#name
+		a\#name equ val
+	\}
+	match name:val, lpWCaption\{
+		restore _lpWCaption
+		display "lol"
+		_lpWCaption equ NULL
+		restore a\#name
+		a\#name equ val
+	\}
+	match name:val, lpWContent\{
+		restore _lpWContent
+		_lpWContent equ NULL
+		restore a\#name
+		a\#name equ val
+	\}
+	forward
+	match name:val, args\{
+		restore a\#name
+		a\#name equ val
+	\}
+	common
+	@call [TaskDialog](a#hwndOwner, NULL, _lpWTitle, _lpWCaption, _lpWContent, a#dwCommonButtons, a#pszIcon, a#pnButton)
+	restore _lpWTitle
+	restore _lpWCaption 
+	restore _lpWContent 
+	restore a#dwCommonButtons 	
+	restore a#hwndOwner 	
+	restore a#pszIcon
+	restore a#pnButton 	
+}
+
+
+
+proc WND.repaintWindow c, hWnd, hDC, lpRect, hBrush
+	@sarg @arg1, @arg2, @arg3, @arg4
+	locals
+		bmpSize POINT
+		gf 		Graphics
+	endl
+	@call gf->createCompatible([hDC])
+	mov pcx, [lpRect]
+	mov eax, [pcx + RECT.right]
+	sub eax, [pcx + RECT.left]
+	mov [bmpSize.x], eax
+	mov eax, [pcx + RECT.bottom]
+	sub eax, [pcx + RECT.top]
+	mov [bmpSize.y], eax
+	
+	; @call [CreateRectRgn]([pcx + RECT.left], [pcx + RECT.top], [pcx + RECT.right], [pcx + RECT.bottom])
+	; @call gf->selectObject(pax, Graphics.Rgn)
+	@call gf->createObjects(\
+		<_BMP: [hDC], [bmpSize.x], [bmpSize.y]>, \
+	)
+	@call [SendMessageA]([hWnd], WM_PRINT, [gf.hDC], PRF_CLIENT)
+	@call gf->selectObject([hBrush], Graphics.Brush)
+	@call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], PATINVERT)
+	@call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], DSTINVERT)
+	@call gf->freeObject(Graphics.Brush)
+	@call [BitBlt]([hDC], 0, 0, [bmpSize.x], [bmpSize.y], \
+		[gf.hDC], 0, 0, SRCCOPY)
+	
+	; local hBmp:POINTER
+	; @call gf->freeObject(Graphics.BMP)
+	; mov [hBmp], pax
+	; @call CNV:BMP2File(pax, "lol.bmp")
+	; @call [DeleteObject]([hBmp])
+
+	@call gf->destroy()
+	ret
+endp

@@ -1,6 +1,6 @@
 @module STATIC
 
-	struct STATIC _DLG_SPECIAL_CONTROL
+	struct STATIC CONTROL
 		const CType equ "Static"
 		setImage 	dm this:inline
 	ends

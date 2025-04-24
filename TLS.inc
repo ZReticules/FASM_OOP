@@ -16,6 +16,11 @@ macro TLS_AddCallback [args]{
 	Has_Tls = 1
 }
 
+importlib kernel32,\
+	GetCurrentThreadId
+
+TLS_THREAD_ATTACH equ 1
+TLS_THREAD_DETACH equ 3
 ; example
 
 ; if used CNV._heap
@@ -43,6 +48,14 @@ macro TLS_AddMacro [args]{
 	TLS_Marcoses equ args
 }
 
+macro @at_start [args]{
+	TLS_Marcoses equ args
+}
+
+macro @at_end [args]{
+	TLS_Marcoses_end equ args
+}
+
 ; example
 
 ; if used CNV._heap
@@ -60,27 +73,64 @@ macro TLS_AddMacro [args]{
 
 macro @init_tls{
 	match =@init_tls, @init_tls\{
-		local ._start, ._end, ._size, TLS._init
+		local ._start, ._end, ._size, TLS._init, _used
 		virtual at $
-			._start:
+			proc false_TLS.init, handle, reason, reserved
+			false_TLS._start:
 			irpv mac, TLS_Marcoses\\{
 				match macr, mac\\\{
 					macr
 				\\\}
 			\\}
-			._end:
-			._size = ._start - ._end
+			false_TLS._exit:
+			irpv mac, TLS_Marcoses_end\\{
+				match macr, mac\\\{
+					macr
+				\\\}
+				; match name, \\\`mac\\\{display name\\\}
+			\\}
+			false_TLS._end:
+			endp
+			_used = false_TLS.init
+			false_TLS._size = false_TLS._start - false_TLS._end
 		end virtual
-		if ._size
+		if false_TLS._size
 			proc_noprologue
 			proc TLS._init, handle, reason, reserved
-				irpv mac, TLS_Marcoses\\{
-					match macr, mac\\\{
-						macr
-					\\\}
-					; match name, \\\`mac\\\{display name\\\}
-				\\}
-				ret
+				@sarg @arg1, @arg2
+				cmp @arg2, TLS_THREAD_ATTACH
+				jne TLS._init.no_start_tls
+					cmp [TLS._init.idProcess], 0
+						jne TLS._init.return
+					@call [GetCurrentThreadId]()
+					mov [TLS._init.idProcess], pax
+					irpv mac, TLS_Marcoses\\{
+						match macr, mac\\\{
+							macr
+						\\\}
+						; match name, \\\`mac\\\{display name\\\}
+					\\}
+
+				if false_TLS._exit <> false_TLS._end
+					jmp TLS._init.return
+				end if
+				TLS._init.no_start_tls:
+				if false_TLS._exit <> false_TLS._end
+					cmp @arg2, TLS_THREAD_DETACH
+					jne TLS._init.return
+						@call [GetCurrentThreadId]()
+						cmp [TLS._init.idProcess], pax
+							jne TLS._init.return
+						irpv mac, TLS_Marcoses_end\\{
+							\\reverse
+							match macr, mac\\\{
+								macr
+							\\\}
+							; match name, \\\`mac\\\{display name\\\}
+						\\}
+				end if
+				TLS._init.return: ret
+				TLS._init.idProcess dptr 0
 			endp
 			proc_resprologue
 			TLS_AddCallback TLS._init
@@ -88,6 +138,7 @@ macro @init_tls{
 		if Has_Tls
 		; display "lol"
 			; section ".tls" readable writeable
+			align 16
 			data 9
 				_TLS_DIR _IMAGE_TLS_DIRECTORY 0, 0, tls_index, tls_callbacks, 0, 0
 				tls_index   	dptr 0
@@ -104,6 +155,8 @@ macro @init_tls{
 	\}
 }
 
-postpone {
-	@init_tls
-}
+total_postpone equ @init_tls
+
+; postpone {
+; 	@init_tls
+; }

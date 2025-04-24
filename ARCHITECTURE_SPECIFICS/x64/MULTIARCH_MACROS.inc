@@ -11,7 +11,7 @@ macro defargs@proc [arg] {
 		rept 1 _numarg:_counter\{
 			current@numarg equ @arg\#_numarg, @float_arg\#_numarg
 			@arg\#_numarg\#mem equ [..arg]
-			@float_arg\#_numarg\#mem equ [..arg]
+			@farg\#_numarg\#mem equ [..arg]
 		\}
 		match argname:type, arg \{ 
 			current@arg equ argname
@@ -66,10 +66,10 @@ define @arg2 rdx
 define @arg3 r8
 define @arg4 r9
 
-define @float_arg1 xmm0
-define @float_arg2 xmm1
-define @float_arg3 xmm2
-define @float_arg4 xmm3
+define @farg1 xmm0
+define @farg2 xmm1
+define @farg3 xmm2
+define @farg4 xmm3
 
 macro @sarg [argreg]{
 	match argmem,argreg#mem\{

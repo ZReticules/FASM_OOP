@@ -4,6 +4,8 @@ __obj_call equ c
 
 __struc_call equ c
 
+_oop_default fix c
+
 macro static_esp_prologue procname,flag,parmbytes,localbytes,reglist { 
 	local counter,loc,frame,current 
 	counter = 0 
@@ -69,6 +71,11 @@ macro base@call clean_stack, action, proc, [arg]{
 		current@frame = stackspace
 	end if
 	match any, arg\{
+
+		local ax_destroyed, ax_restored, ..ax_save, ax_need_save, check_reg
+		ax_destroyed = 0
+		ax_restored = 2
+
 		reverse
 		counter = counter + 1
 		define type@param
@@ -100,55 +107,128 @@ macro base@call clean_stack, action, proc, [arg]{
 						size@param = 1
 					end if 
 				\\\}
-			else if param in <eax, ebx, ecx, edx, ebp, esp, edi, esi>
-				size@param = 4
-			else if param in <ax, bx, cx, dx, bp, sp, di, si>
-				size@param = 2
-			else if param in <al, ah, bl, bh, cl, ch, dl, dh, bp, sp, di, si>
-				size@param = 1
+			else if ~ param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7>
+				virtual
+					use64
+					origin = $	
+					if type@param eq qword
+						inc qword param
+					else
+						inc param
+					end if
+					load opcode byte from origin
+					if opcode = 67h | opcode = 41h
+						load opcode byte from origin+1
+					end if
+					if opcode and 0F8h = 48h
+						size@param = 8
+						counter = counter + 1
+					else if opcode = 66h
+						size@param = 2
+					else if opcode = 0FFh
+						size@param = 4
+					else
+						size@param = 1
+					end if
+					use32
+				end virtual
 			end if
+			; else if param in <eax, ebx, ecx, edx, ebp, esp, edi, esi>
+			; 	size@param = 4
+			; else if param in <ax, bx, cx, dx, bp, sp, di, si>
+			; 	size@param = 2
+			; else if param in <al, ah, bl, bh, cl, ch, dl, dh, bp, sp, di, si>
+			; 	size@param = 1
+			; end if
+
 
 			if defined current@frame
 				if type@param eq addr
 					if param eqtype 0
 						if param relativeto 0
 							mov dword[esp+(..argscount-counter)*4], param
-						irp reg, eax, ecx, edx, ebx, esp, ebp, esi, edi \\\{
-						else if param - reg relativeto 0 & param - reg = 0
+
+						else if param relativeto eax & param - eax relativeto 0 & param - eax = 0
+							if ax_destroyed & ~(ax_restored = 1)
+								mov eax, [esp - 4]
+								ax_restored = 1
+							end if
+							mov dword[esp+(..argscount-counter)*4], eax
+
+						irp reg, ecx, edx, ebx, esp, ebp, esi, edi \\\{
+
+						else if param relativeto reg & param - reg relativeto 0 & param - reg = 0
 							mov dword[esp+(..argscount-counter)*4], reg
+
 						\\\}
 						else
+							reg_in_addr check_reg, ax, param
+							if check_reg & ax_destroyed & ~(ax_restored = 1)
+								mov eax, [esp - 4]
+								ax_restored = 0
+							else if ax_need_save & ~ax_destroyed
+								mov [esp - 4], eax
+							end if
+							ax_destroyed = 1
 							lea eax,[param]
 							mov [esp+(..argscount-counter)*4], eax
 						end if
 					else if param eqtype eax
+						if param eq eax & ax_destroyed & ~(ax_restored = 1)
+							mov eax, [esp - 4]
+							ax_restored = 1
+						end if
 						mov dword[esp+(..argscount-counter)*4], param
 					else
+						reg_in_addr check_reg, ax, param
+						if check_reg & ax_destroyed & ~(ax_restored = 1)
+							mov eax, [esp - 4]
+							ax_restored = 0
+						else if ax_need_save & ~ax_destroyed
+							mov [esp - 4], eax
+						end if
+						ax_destroyed = 1
 						lea eax,[param]
 						mov [esp+(..argscount-counter)*4], eax
 					end if
 				else if type@param eq sep_qword
 					match _high:_low, param\\\{
+						if (_high eq eax | _low eq eax) & ax_destroyed & ~(ax_restored = 1)
+							mov eax, [esp - 4]
+							ax_restored = 1
+						end if
 						mov dword[esp+(..argscount-counter)*4], _low
 						mov dword[esp+(..argscount-(counter-1))*4], _high
 					\\\}
-				else if type@param eq sep_qword
-					match high:low, param\\\{
-						mov dword[esp+(..argscount-counter)*4], low
-						mov dword[esp+(..argscount-(counter-1))*4], high
-					\\\}
+				; else if type@param eq sep_qword
+				; 	match high:low, param\\\{
+				; 		mov dword[esp+(..argscount-counter)*4], low
+				; 		mov dword[esp+(..argscount-(counter-1))*4], high
+				; 	\\\}
 				else if param eqtype [0] | param eqtype byte [0]
 					if size@param = 8
 						movq xmm0, qword param
 						movq [esp+(..argscount-counter)*4], xmm0
-					else if size@param = 4
-						mov eax,param
-						mov [esp+(..argscount-counter)*4],eax
-					else if size@param <> 0
-						if ~(param eq al|param eq ax)
-							movzx eax,param
+					else 
+						match any1[addr], any1 param\\\{
+							reg_in_addr check_reg, ax, addr
+							if check_reg & ax_destroyed & ~(ax_restored = 1)
+								mov eax, [esp - 4]
+								ax_restored = 0
+							else if ax_need_save & ~ax_destroyed
+								mov [esp - 4], eax
+							end if
+							ax_destroyed = 1
+						\\\}
+						if size@param = 4
+							mov eax,param
+							mov [esp+(..argscount-counter)*4],eax
+						else if size@param <> 0
+							if ~(param eq al|param eq ax)
+								movzx eax,param
+							end if
+							mov [esp+(..argscount-counter)*4], eax
 						end if
-						mov [esp+(..argscount-counter)*4], eax
 					end if
 				else if param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7>
 					if size@param = 4
@@ -158,15 +238,35 @@ macro base@call clean_stack, action, proc, [arg]{
 					end if
 				else
 					if size@param = 4
+						if param eq eax & ax_destroyed & ~(ax_restored = 1)
+							mov eax, [esp - 4]
+							ax_restored = 1
+						end if
 						mov dword[esp+(..argscount-counter)*4],param
 					else if size@param = 8
-						if param >= 0
+						if param eqtype 0
+							; if param >= 0
 							mov dword[esp+(..argscount-(counter-1))*4], (param) shr 32
 							mov dword[esp+(..argscount-counter)*4], (param) and 0FFFFFFFFh
-						else 
-							mov dword[esp+(..argscount-(counter-1))*4], 0FFFFFFFFh
-							mov dword[esp+(..argscount-counter)*4], param
+							; else 
+							; 	mov dword[esp+(..argscount-(counter-1))*4], (param) shr 32
+							; 	mov dword[esp+(..argscount-counter)*4], (param) and 0FFFFFFFFh
+							; end if
+						else
+							virtual at $
+								origin = $
+								dq param
+								load opcode qword from origin
+							end virtual
+							mov dword[esp+(..argscount-(counter-1))*4], (opcode) shr 32
+							mov dword[esp+(..argscount-counter)*4], (opcode) and 0FFFFFFFFh
 						end if
+					else
+						if (param eq ax | param eq al | param eq ah) & ax_destroyed & ~(ax_restored = 1)
+							mov eax, [esp - 4]
+							ax_restored = 1
+						end if
+						mov [esp+(..argscount-counter)*4],param
 					end if
 				end if
 			else
@@ -231,6 +331,11 @@ macro base@call clean_stack, action, proc, [arg]{
 		\\}
 		args@count equ args@count+1
 		common
+		if ax_restored = 2
+			ax_need_save = 0
+		else
+			ax_need_save = 1
+		end if
 	\}
 	local _counter
 	rept 1 _counter:args@count\{

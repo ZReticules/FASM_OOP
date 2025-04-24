@@ -1,0 +1,87 @@
+importlib kernel32,\
+	VirtualProtect
+
+macro Hook.hookAPI_static func, const_hook{
+	local ..start, ..end, loword, hiword
+	virtual at 0
+		..start:
+		mov pax, const_hook
+		jmp pax
+		..end:
+		align pointer.size * 2
+		load loword pointer from ..start
+		load hiword pointer from ..start + pointer.size
+	end virtual
+	match =hook_result, hook_result\{
+		locals 
+			hook_result dptr ?
+		endl
+	\}
+	@call [VirtualProtect](func, pointer.size * 2, PAGE_EXECUTE_READWRITE, addr hook_result)
+	mov pax, func
+	mov pdx, loword
+	mov pointer[pax], pdx
+	mov pdx, hiword
+	mov pointer[pax + pointer.size], pdx
+}
+
+
+macro Hook.captureAPI_static func, const_hook, bytesDest, bytesReserved{
+	local ..start, ..end, loword, hiword
+	virtual at 0
+		..start:
+		mov pax, pointer const_hook
+		; align 10
+		jmp pax
+		..end:
+		align (pointer.size * 2)
+		load loword pointer from ..start
+		load hiword pointer from ..start + pointer.size
+	end virtual
+	match =hook_result, hook_result\{
+		locals 
+			hook_result dptr ?
+		endl
+	\}
+	@call [VirtualProtect](func, bytesReserved, PAGE_EXECUTE_READWRITE, addr hook_result)
+	mov pax, func
+	lea pcx, [pax + bytesReserved]
+	push psi pdi pcx
+	mov psi, pax
+	mov pdi, bytesDest
+	mov ecx, bytesReserved
+	rep movsb
+	mov pdx, loword
+	mov pointer[pdi], pdx
+	mov pointer[pax], pdx
+	mov pdx, hiword
+	mov pointer[pdi + pointer.size], pdx
+	mov pointer[pax + pointer.size], pdx
+	pop pcx
+	mov pointer[pdi + pointer.size / 4], pcx
+	pop pdi psi
+	; @call c [printf]("%d", ..end - ..start)
+}
+
+; importlib uxtheme,\
+; 	GetThemeColor
+	
+; match =x86, __architecture{
+; 	copyBytes.rewriteSize = 8
+; }
+; match =x64, __architecture{
+; 	copyBytes.rewriteSize = 24
+; }
+
+; copyBytes: 
+; 	db (copyBytes.rewriteSize + pointer.size * 2) dup (?)
+
+; proc GetThemeColorHook, hTheme, iPartId, iStateId, iProIdm, pColor
+; 	@call copyBytes(@arg1, @arg2, @arg3, @arg4, [pColor])
+; 	mov pcx, [pColor]
+; 	mov pointer[pcx], 0xFFFF
+; 	ret
+; endp
+
+; @call Hook::captureAPI_static([GetThemeColor], GetThemeColorHook, copyBytes, copyBytes.rewriteSize)
+; @call [GetThemeColor](0, 0, 0, 0, 0)

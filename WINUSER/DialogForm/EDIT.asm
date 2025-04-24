@@ -39,7 +39,8 @@ proc EDIT.addText c uses pbx, this, strLp
 	@call .this->getTextLen()
 	@call [SendMessageA]([.this.hWnd], EM_SETSEL, eax, eax)
 	@call [SendMessageA]([.this.hWnd], EM_REPLACESEL, 0, [strLp])
-	@jret [SendMessageA]([.this.hWnd], EM_SETSEL, [_start], [_end])
+	@call [SendMessageA]([.this.hWnd], EM_SETSEL, [_start], [_end])
+	ret
 endp
 
 proc_resprologue

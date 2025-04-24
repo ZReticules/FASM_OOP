@@ -20,9 +20,13 @@
 		BMP2File	dm this:inline
 		intToStr	dm this
 		uintToStr	dm this
-		udivq		dm this
+		; udivq		dm this
+		ui64div		dm this
 		ui32sqrt	dm this
-		ui64sqrt 	dm this:inline
+		ui64sqrt 	dm this
+		ui32pow		dm this
+		ui64ToStr	dm this
+		i64ToStr	dm this
 		db ?
 	ends
 

@@ -44,6 +44,9 @@
 		ReleaseDC,\
 		LoadImageA
 
+	importlib comctl32,\
+		TaskDialog
+
 	importlib msvcrt,\
 		free
 
@@ -131,10 +134,15 @@
 		msgBox 					dm this:inline
 		setTimer				dm this:inline
 		killTimer				dm this:inline
+		taskDlg 				dm this:inline
+
+		repaintWindow			dm this
 		getStockIcon			dm this
+		
 		const darkThemeColor 	equ 0x333333
-		const darkThemeCFD		equ du "DarkMode_CFD", 0
-		const darkThemeExplorer	equ du "DarkMode_Explorer", 0
+		const darkThemeCFD		equ L "DarkMode_CFD"
+		const darkThemeExplorer	equ L "DarkMode_Explorer"
+		
 		db ?
 	ends
 
@@ -175,9 +183,64 @@
 		ROUND,\
 		ROUNDSMALL
 
+	TD_WARNING_ICON 	= 65535
+	TD_ERROR_ICON 		= 65534
+	TD_INFORMATION_ICON = 65533
+	TD_SHIELD_ICON 		= 65532
+
+	TDCBF_OK_BUTTON 	= 0x1
+	TDCBF_YES_BUTTON 	= 0x2
+	TDCBF_NO_BUTTON 	= 0x4
+	TDCBF_CANCEL_BUTTON = 0x8
+	TDCBF_RETRY_BUTTON 	= 0x10
+	TDCBF_CLOSE_BUTTON 	= 0x20
+
+	include "TOOLS\Graphics\Graphics.inc"
 	include "WINUSER\CUSTOMDRAW.inc"
 	include "WINUSER\Winuser.fasm"
 	include "WINUSER\MsgBox.inc"
 	include "WINUSER\StockIcons.inc"
+	include "WINUSER\ColorsHook\ColorsHook.inc"
+
+	struct MENUINFO
+		cbSize			dd ?
+		fMask			dd ?
+		dwStyle			dd ?
+		cyMax			dd ?
+		hbrBack 		dptr ?
+		dwContextHelpID	dptr ?
+	  	dwMenuData 		dptr ?
+	ends
+
+	define MIM_APPLYTOSUBMENUS 0x80000000
+	define MIM_BACKGROUND 0x00000002
+	define MIM_HELPID 0x00000004
+	define MIM_MAXHEIGHT 0x00000001
+	define MIM_MENUDATA 0x00000008
+	define MIM_STYLE 0x00000010
+
+	define MNS_AUTODISMISS 0x10000000
+	define MNS_CHECKORBMP 0x04000000
+	define MNS_DRAGDROP 0x20000000
+	define MNS_MODELESS 0x40000000
+	define MNS_NOCHECK 0x80000000
+	define MNS_NOTIFYBYPOS 0x08000000
+
+	struct MENUBARINFO
+		cbSize 		dd ?;
+		match =x64, __architecture\{
+			struct
+				rcBar 		RECT;
+				dd ?
+			ends
+		rept 0\{\}rept 1\{
+			struct
+				rcBar 		RECT;
+			ends
+		\}
+		hMenu		dptr ?;
+		hwndMenu	dptr ?;
+		dwFlags 	dptr ?
+	ends
 
 @endm

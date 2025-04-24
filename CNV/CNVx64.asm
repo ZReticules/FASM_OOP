@@ -34,7 +34,7 @@
 ; 	cmp r8d, 0
 ; 	jne .mainloop
 ; 	push rdx
-; 	@call CNV:alloc(addr rbx*8)
+; 	@call CNV::alloc(addr rbx*8)
 ; 	mov [argvLp], rax
 ; 	mov rcx, rbx
 ; 	@@:
@@ -70,13 +70,13 @@ proc CNV.BMPToFile, hBmp, lpFname, bitCount
 		mov eax, 0
 		ret
 	@@:
-	@call CNV:alloc([bmInfo.bmiHeader.biSizeImage])
+	@call CNV::alloc([bmInfo.bmiHeader.biSizeImage])
 	mov [lpBmBits], rax
 	mov [bmInfo.bmiHeader.biCompression], BI_RGB 
 	mov rax, [bitCount]
 	mov [bmInfo.bmiHeader.biBitCount], ax
 	@call [GetDIBits]([tmpDC], [hBmp], 0, [bmInfo.bmiHeader.biHeight], [lpBmBits], addr bmInfo, DIB_RGB_COLORS)
-	@call [ReleaseDC]([tmpDC])
+	@call [ReleaseDC](NULL, [tmpDC])
 
 	local <bmfHeader:BITMAPFILEHEADER "BM", ?, 0, 0, sizeof.BITMAPFILEHEADER+sizeof.BITMAPINFO>
 	mov eax, [bmInfo.bmiHeader.biSizeImage]
@@ -96,18 +96,36 @@ proc CNV.BMPToFile, hBmp, lpFname, bitCount
 	@jret CNV:free([lpBmBits])
 endp
 
-proc CNV.ui64div, dividend, divisor
-	virtual at dividend
-		.result Divq
-	end virtual
-	mov rax, rcx
-	xor rcx, rcx
-	xchg rdx, rcx
-	div rcx
+proc CNV.ui64div c, result, dividend, divisor
+	virtObj .result:arg Divq at rcx
+	mov [.result.reminder], rdx
+	mov [.result.result], r8
+	xor rax, rax
+	xchg rax, rdx
+	div r8
 	mov [.result.reminder], rdx
 	mov [.result.result], rax
-	lea rax, [.result]
 	ret
 endp
+
+proc i32ToStr, lpStr, num, radix
+	mov rax, rdx
+	cdq
+	shl rdx, 32
+	add rdx, rax
+	jmp intToStr
+endp
+
+if used CNV.ui64ToStr 
+	CNV.ui64ToStr = CNV.uintToStr
+end if
+
+if used CNV.i64ToStr
+	CNV.i64ToStr = CNV.intToStr
+end if
+
+if used CNV.ui64sqrt
+	CNV.ui64sqrt = CNV.ui32sqrt
+end if
 
 ; proc_resprologue

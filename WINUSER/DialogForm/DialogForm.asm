@@ -14,7 +14,8 @@ importlib user32,\
 	TranslateMessage,\
 	DispatchMessageA,\
 	EnableWindow,\
-	ShowWindow
+	ShowWindow,\
+	SetFocus
 
 importlib gdi32,\
 	CreateSolidBrush,\
@@ -43,10 +44,10 @@ proc_noprologue
 ; endp
 
 
-macro DIALOGFORM.invalidate this{
+macro DIALOGFORM.invalidate this, lpRect=NULL, bErase=0{
 	local _this
 	inlineObj _this, this, pcx
-	@call [InvalidateRect]([_this+DIALOGFORM.hWnd], NULL, 1)
+	@call [InvalidateRect]([_this+DIALOGFORM.hWnd], lpRect, bErase)
 }
 
 macro DIALOGFORM.getTextLen this{
@@ -55,16 +56,16 @@ macro DIALOGFORM.getTextLen this{
 	@call [GetWindowTextLengthA]([_this+DIALOGFORM.hWnd])
 }
 
-macro DIALOGFORM.getText this, lpString, nMaxCount{
+macro DIALOGFORM.getText this, lpCstr, nMaxCount{
 	local _this
 	inlineObj _this, this, pcx
-	@call [GetWindowTextA]([_this+DIALOGFORM.hWnd], lpString, nMaxCount)
+	@call [GetWindowTextA]([_this+DIALOGFORM.hWnd], lpCstr, nMaxCount)
 }
 
-macro DIALOGFORM.setText this, lpString{
+macro DIALOGFORM.setText this, lpCstr{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SetWindowTextA]([_this+DIALOGFORM.hWnd], lpString)
+	@call [SetWindowTextA]([_this+DIALOGFORM.hWnd], lpCstr)
 }
 
 macro DIALOGFORM.setIcon this, hIcon{
@@ -101,7 +102,7 @@ macro DIALOGFORM.start this, parent=NULL{
 	local _this
 	inlineObj _this, this, pcx
 	mov [_this + DIALOGFORM.__close], DIALOGFORM_WM_CLOSE
-	@call [DialogBoxIndirectParamA]([WND.hModule], [_this + DIALOGFORM.hDialogTemplate], parent, [_this + DIALOGFORM.lpDialogFunc], addr _this)
+	@call [DialogBoxIndirectParamA]([WND.hModule], [_this + DIALOGFORM.hDialogTemplate], parent, DLG.DialogProc, addr _this)
 }
 
 proc DIALOGFORM.startNM c uses pbx, this, parent
@@ -110,7 +111,7 @@ proc DIALOGFORM.startNM c uses pbx, this, parent
 	cmp [.this.hWnd], 0
 	jne .alreadyExists
 		mov [.this.__close], DIALOGFORM_WM_CLOSE_NOMODAL
-		@call [CreateDialogIndirectParamA]([WND.hModule], [.this.hDialogTemplate], @arg2, [.this.lpDialogFunc], pbx)
+		@call [CreateDialogIndirectParamA]([WND.hModule], [.this.hDialogTemplate], @arg2, DLG.DialogProc, pbx)
 		mov [.this.hWnd], pax
 	.alreadyExists:
 	ret
@@ -126,12 +127,10 @@ proc DIALOGFORM_WM_CLOSE uses pbx, lpForm, lpParam, exitVal
 	ret
 endp
 
-proc DIALOGFORM_WM_CLOSE_NOMODAL, lpForm, lpParam, exitVal
-	virtObj .form:arg DIALOGFORM at pcx from @arg1
-	@sarg @arg1
+proc DIALOGFORM_WM_CLOSE_NOMODAL uses pbx, lpForm, lpParam, exitVal
+	virtObj .form:arg DIALOGFORM at pbx from @arg1
     @call [CloseThemeData]([.form.hTheme])
 	@call [DestroyWindow]([.form.hWnd])
-	mov pcx, [lpForm]
 	mov [.form.hWnd], 0
 	@call [PostQuitMessage](0)
 	ret
@@ -217,6 +216,25 @@ proc DIALOGFORM.dispatchMessages c uses pbx, this
 	.return: ret
 endp
 
+proc DIALOGFORM.unsetBgColor c, this
+	virtObj .this:arg DIALOGFORM at pcx from @arg1
+	xor eax, eax
+	xchg pax, [.this.bgColorBrush]
+	@call [DeleteObject](pax)
+	ret
+endp
+
+proc DIALOGFORM.scaleChilds c uses pbx, this
+	virtObj .this:arg DIALOGFORM at pbx from @arg1
+	local NewRect:RECT
+	@call [GetClientRect]([.this.hWnd], addr NewRect)
+	; movq xmm0, qword[.this.baseRect.right]
+	; movq qword[NewRect.left], xmm0
+	@call CNV::fill(addr NewRect.left, addr .this.sData.baseRect.right, sizeof.POINT)
+	@call [EnumChildWindows]([.this.hWnd], DIALOGFORM.EnumChildsProc, addr NewRect)
+	ret
+endp
+
 ; proc DIALOGFORM.getSize, this, lpSizeFunc
 ; 	virtObj .this:arg DIALOGFORM
 ; 	local winRect:RECT
@@ -234,5 +252,27 @@ endp
 ; 	virtObj .this:arg DIALOGFORM
 ; 	@call [GetClientRect]
 ; endp
+
+proc DIALOGFORM.getString c uses pbx pdi, this, lpString
+	; int3
+	@sarg @arg2
+	virtObj .this:arg DIALOGFORM at pbx from @arg1
+	virtObj .string:arg String at pdi from @arg2
+	@call [GetWindowTextLengthA]([.this.hWnd])
+	mov [.string.len], eax
+	@call .string->realloc([.string.len])->getLpChars()
+	mov edx, [.string.len]
+	inc edx
+	@call [GetWindowTextA]([.this.hWnd], pax, pdx)
+	mov eax, [.string.len]
+	ret
+endp
+
+; macro DIALOGFORM.setText this, lpCstr{
+; 	local _this
+; 	inlineObj _this, this, pcx
+; 	@call [SetWindowTextA]([_this+DIALOGFORM.hWnd], lpCstr)
+; }
+
 
 proc_resprologue

@@ -1,5 +1,3 @@
-
-
 define BP_PUSHBUTTON 1
 define BP_RADIOBUTTON 2
 define BP_CHECKBOX 3
@@ -18,6 +16,11 @@ define PBS_PRESSED 3
 define PBS_DISABLED 4
 define PBS_DEFAULTED 5
 define PBS_DEFAULTED_ANIMATING 6
+
+define MPI_NORMAL		1
+define MPI_HOT			2
+define MPI_DISABLED		3
+define MPI_DISABLEDHOT	4
 
 struct NMCUSTOMDRAW
 	hdr NMHDR

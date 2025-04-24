@@ -15,7 +15,7 @@ macro defargs@proc [arg] {
 			; \\}
 			current@numarg equ @arg\#_numarg, @float_arg\#_numarg
 			@arg\#_numarg equ [..arg]
-			@float_arg\#_numarg equ [..arg]
+			@farg\#_numarg equ [..arg]
 		\}
 		match argname:type, arg \{ 
 			current@arg equ argname
@@ -69,11 +69,28 @@ macro endp {
 macro @sarg args&{}
 
 macro @larg [dest, argmem]{
-	if dest in <xmm1, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7>
-		if argmem eqtype qword [0]
+	local origin, opcode
+	if dest in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7>
+		virtual
+			use64
+			origin = $	
+			
+			inc argmem
+			
+			load opcode byte from origin
+			
+			if opcode = 67h | opcode = 41h
+				load opcode byte from origin+1
+			end if
+			use32
+		end virtual
+		if opcode and 0F8h = 48h
 			movq dest, argmem
-		else
+		else if opcode = 66h
 			movd dest, argmem
+		else
+			display "invalid operand size"
+			err
 		end if
 	else
 		if argmem eqtype qword [0]

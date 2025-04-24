@@ -1,0 +1,150 @@
+proc_noprologue
+
+proc fstr_dynamic c uses psi pdi pbx pbp, lpCstr
+    @larg psi, @arg1
+    @sarg @arg1
+    local result:POINTER
+
+    xor pdi, pdi
+    .loop1:
+        lodsb
+        cmp al, '%'
+            je .catch_percent1
+    test al, al
+    jnz .loop1
+
+    lea pdi, [pdi * 9]
+    sub psi, [lpCstr]
+    @call CNV:alloc(addr pdi + psi)
+
+    mov pdi, pax
+    mov [result], pax
+    mov psi, [lpCstr]
+    xor eax, eax
+    .loop2:
+        lodsb
+        stosb
+        cmp eax, "%"
+            je .catch_percent2
+    test eax, eax
+    jnz .loop2
+
+    mov pax, [result]
+    ret
+
+    .catch_percent1:
+        inc psi
+        inc pdi
+        jmp .loop1
+
+    .catch_percent2:
+        ; int3
+        mov pbp, pdi    ; first byte of parameter
+        inc pdi
+        xor ebx, ebx    ; flags
+
+        xor edx, edx
+        .find_flags:
+            or ebx, edx
+            lodsb
+            mov ecx, FSTR_MINUS_FLAG
+        cmp eax, "-"
+        cmove edx, ecx
+        je .find_flags
+        mov ecx, FSTR_PLUS_FLAG
+        cmp eax, "+"
+        cmove edx, ecx
+        je .find_flags
+        mov ecx, FSTR_ZERO_FLAG
+        cmp eax, "0"
+        cmove edx, ecx
+        je .find_flags
+        mov ecx, FSTR_SPACE_FLAG
+        cmp eax, " "
+        cmove edx, ecx
+        je .find_flags
+
+        test ebx, ebx
+        jz .no_flags
+            xchg ebx, eax
+            stosb
+            xchg eax, ebx
+            or byte[pbp], FSTR_HAS_FLAGS
+        .no_flags:
+
+        xor edx, edx
+        cmp eax, "*"
+            je .star_width
+        .calc_width:
+        cmp eax, "0"
+        jb .end_width
+        cmp eax, "9"
+        ja .end_width
+            lea edx, [edx * 5]
+            lea edx, [edx * 2 + eax - 0x30]
+            lodsb
+        jmp .calc_width
+        .star_width:
+            mov edx, -2
+            lodsb
+        .end_width:
+
+        test edx, edx
+        jz .no_width
+            xchg edx, eax
+            stosd
+            xchg eax, edx
+            or byte[pbp], FSTR_HAS_WIDTH
+        .no_width:
+
+        cmp eax, "."
+        jne .no_precision
+            xor edx, edx
+            or byte[pbp], FSTR_HAS_PRECISION
+            lodsb
+            cmp eax, "*"
+                je .star_precision
+            .calc_precision:
+            cmp eax, "0"
+            jb .end_precision
+            cmp eax, "9"
+            ja .end_precision
+                lea edx, [edx * 5]
+                lea edx, [edx * 2 + eax - 0x30]
+                lodsb
+            jmp .calc_precision
+            .star_precision:
+                mov edx, -2
+                lodsb
+            .end_precision:
+            xchg edx, eax
+            stosd
+            xchg eax, edx
+        .no_precision:
+        mov edx, -1
+        xor ecx, ecx
+        cmp eax, "c"
+        cmove edx, ecx
+        .cntr = 1
+        irp a, <"d", "i">, "u", "x", "o", "s", "S"{
+            mov ecx, .cntr
+            irp b, a\{
+                cmp eax, b
+                cmove edx, ecx
+            \}
+            .cntr = .cntr + 1
+        }
+        mov ecx, 15
+        cmp eax, "%"
+        cmove edx, ecx
+
+        or byte[pbp], dl
+        jmp .loop2
+endp
+
+proc fstr_free c, lpFstr
+    @call CNV:free(@arg1) 
+    ret
+endp
+
+proc_resprologue

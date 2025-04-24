@@ -132,36 +132,8 @@ macro define@proc name,statement{
 }
 
 include_once "TOOLS\FASM_OOP\FASM_OOP.inc"
-include_once "TOOLS\TLS.inc"
 include_once "TOOLS\importlib.inc"
-
-macro setenum parent, name, value{
-	parent#.#name = value
-}
-
-struc enum [args]{
-	common
-	local counter
-	counter = 0
-	forward
-	local matched
-	match argum==num, args\{
-		counter = num
-		setenum ., argum, counter
-		define matched
-	\}
-	match =matched, matched\{
-		setenum ., args, counter
-	\}
-	counter = counter + 1
-}
-
-@endm fix }
-
-macro @module name{
-	match =name#_included, name#_included{
-		define name#_included
-}
+include_once "TOOLS\TLS.inc"
 
 include "cstr\cstr.inc"
 
@@ -172,5 +144,4 @@ macro @arch_include fname, ext=".asm"{
 		\\}
 	\}
 }
-
 include "TOOLS\CNV\CNV.inc"

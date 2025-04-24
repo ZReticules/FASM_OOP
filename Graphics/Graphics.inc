@@ -1,22 +1,22 @@
 @module Graphics
 
 	struct Graphics
-		const BMP 	= (Graphics.__hBMP_prev - Graphics.__hArr) / 8
-		const Pen 	= (Graphics.__hPen_prev - Graphics.__hArr) / 8
-		const Brush = (Graphics.__hBrush_prev - Graphics.__hArr) / 8
-		const Rgn 	= (Graphics.__hRgn_prev - Graphics.__hArr) / 8
-		const Font 	= (Graphics.__hFont_prev - Graphics.__hArr) / 8
+		const BMP 	= (Graphics.__hBMP_prev - Graphics.__hArr) / pointer.size
+		const Pen 	= (Graphics.__hPen_prev - Graphics.__hArr) / pointer.size
+		const Brush = (Graphics.__hBrush_prev - Graphics.__hArr) / pointer.size
+		const Rgn 	= (Graphics.__hRgn_prev - Graphics.__hArr) / pointer.size
+		const Font 	= (Graphics.__hFont_prev - Graphics.__hArr) / pointer.size
 
-		hDC				dq ?
+		hDC				dptr ?
 		union
 			struct
-				__hBMP_prev		dq 0
-				__hPen_prev		dq 0
-				__hBrush_prev	dq 0
-				__hRgn_prev		dq 0
-				__hFont_prev	dq 0
+				__hBMP_prev		dptr 0
+				__hPen_prev		dptr 0
+				__hBrush_prev	dptr 0
+				__hRgn_prev		dptr 0
+				__hFont_prev	dptr 0
 			ends
-			__hArr		dq 5 dup(?)
+			__hArr		dptr 5 dup(?)
 		ends
 		
 		createCompatible 	dm this
@@ -40,6 +40,10 @@
 		selectObjects 		dm this:inline
 		destroyObject		dm this:inline
 		freeObject			dm this:inline
+		setDCBrushColor 	dm this:inline
+		getDCBrushColor 	dm this:inline
+		setDCPenColor 		dm this:inline
+		getDCPenColor 		dm this:inline
 	ends
 
 	struct XFORM 

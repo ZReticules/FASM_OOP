@@ -4,7 +4,7 @@
 
 	define EM_GETCUEBANNER 0x1502
 
-	struct EDIT _DLG_SPECIAL_CONTROL
+	struct EDIT CONTROL
 		setReadOnly		dm this:inline
 		getLimitText	dm this:inline
 		setLimitText	dm this:inline

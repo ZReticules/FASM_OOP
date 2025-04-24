@@ -177,7 +177,7 @@ macro ShblDialog formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION
 				du formType#.\#cntrl\#._Text
 				dw 00h
 			\\}
-			db 4-($ mod 4) dup(?) 	; РІС‹СЂР°РІРЅРёРІР°РЅРёРµ
+			db 4-($ mod 4) dup(?) 	; выравнивание
 		\}
 		formType#.cdit = controlCounter
 

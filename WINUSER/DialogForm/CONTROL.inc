@@ -1,16 +1,26 @@
 @module CONTROL
 
+	include "control_specialfields.inc"
+
+	struct DLG_CONTROL_SPECTIAL_DATA
+		baseRect		RECT ?, ?, ?, ?
+		lpEvents		dptr ?
+		lpNotifications	dptr ?
+		lpHooks 		dptr ?
+	ends
+
 	struct CONTROL
 		hWnd			dptr ?
 		ID				dw ?
-		baseRect		RECT ?, ?, ?, ?
-
+		sData 			DLG_CONTROL_SPECTIAL_DATA
+		
 		getTextLen 		dm DIALOGFORM.getTextLen:inline
 		getText 		dm DIALOGFORM.getText:inline
 		setText 		dm DIALOGFORM.setText:inline
 		setEnabled		dm DIALOGFORM.setEnabled:inline
 		setVisible		dm DIALOGFORM.setVisible:inline
 		setFocus		dm DIALOGFORM.setFocus:inline
+		getString		dm DIALOGFORM.getString
 		hideCur 		dm this:inline
 		setTheme 		dm this:inline
 		getClientSize	dm this:inline
@@ -19,49 +29,22 @@
 
 	include "CONTROL.asm"
 
-	struct _DLG_SPECIAL_CONTROL CONTROL
-		setBgColor		dm this
-		unsetBgColor	dm this
-		
-		bkColor 		dd 0xFFFFFF
-		txColor			dd 0x000000
-		bgColorBrush 	dptr 0
-	ends
-
-	proc _DLG_SPECIAL_CONTROL.setBgColor c, this, colorref
-		virtObj .this:arg _DLG_SPECIAL_CONTROL at pcx from @arg1
-		@sarg @arg1
-		@larg pdx, @arg2
-		cmp [.this.bgColorBrush], NULL
-		je .emptyColor
-			@sarg @arg2
-			@call [DeleteObject]([.this.bgColorBrush])
-			mov pdx, [colorref]
-		.emptyColor:
-		@call [CreateSolidBrush](pdx)
-		mov pcx, [this]
-		mov [.this.bgColorBrush], pax
-		ret
-	endp
-
-	proc _DLG_SPECIAL_CONTROL.unsetBgColor c, this
-		virtObj .this:arg _DLG_SPECIAL_CONTROL at pcx from @arg1
-		xor eax, eax
-		xchg pax, [.this.bgColorBrush]
-		@call [DeleteObject](pax)
-		ret
-	endp
-
 	struct BUTTON CONTROL
 		const CType equ "Button"
 	ends
 
-	struct LISTBOX _DLG_SPECIAL_CONTROL
+	struct LISTBOX CONTROL
 		const CType equ "Listbox"
 	ends
 
 	struct TABCONTROL CONTROL
 		const CType equ "SysTabControl32"
+	ends
+
+	UDM_SETRANGE32 = 1135
+
+	struct UPDOWN CONTROL
+		const CType equ "msctls_updown32"
 	ends
 
 	include "STATIC.inc"

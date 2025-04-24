@@ -1,0 +1,86 @@
+importlib user32,\
+	GetSysColor,\
+	GetSysColorBrush
+
+importlib gdi32,\
+	DeleteObject
+
+COLORS_TABLE_SIZE = 31
+
+if used ColorsHook.oldColors | used ColorsHook.newColors | used ColorsHook.oldBrushes | used ColorsHook.newBrushes
+	ColorsHook.newColors dd COLORS_TABLE_SIZE dup(-1)
+	ColorsHook.oldColors dd COLORS_TABLE_SIZE dup(?)
+	ColorsHook.newBrushes dptr COLORS_TABLE_SIZE dup(-1)
+	ColorsHook.oldBrushes dptr COLORS_TABLE_SIZE dup(?)
+end if
+
+; returns old color value
+proc SetHookSysColor uses psi pbx, idColor, colorref
+	@larg pbx, @arg1, psi, @arg2
+	local result:DWORD
+	mov eax, [ColorsHook.newColors + pbx * 4]
+	mov [result], eax
+	cmp eax, -1
+	jne .not_set_already
+		@call [DeleteObject]([ColorsHook.newBrushes + pbx * pointer.size])
+		mov eax, [ColorsHook.oldColors + pbx * 4]
+		mov [result], eax
+	.not_set_already:
+	@call [CreateSolidBrush](psi)
+	mov [ColorsHook.newBrushes + pbx * pointer.size], pax
+	mov [ColorsHook.newColors + pbx * 4], esi
+	mov eax, [result]
+	ret
+endp
+
+; proc SetHookSysColor, idColor, colorref
+; 	@larg pcx, @arg1, pax, @arg2
+; 	xchg [ColorsHook.newColors + pcx], pax
+; 	ret
+; endp
+
+proc GetHookSysColor, idColor, colorref
+	@larg pcx, @arg1
+	mov pax, [ColorsHook.newColors + pcx * 4]
+	ret
+endp
+
+proc GetSysColor_new, idColor
+	@larg pcx, @arg1
+	mov eax, [ColorsHook.newColors + pcx * 4]
+	mov edx, [ColorsHook.oldColors + pcx * 4]
+	cmp eax, -1
+		cmove eax, edx
+	ret
+endp
+
+proc GetSysColorBrush_new, idColor
+	@larg pcx, @arg1
+	mov pax, [ColorsHook.newBrushes + pcx * pointer.size]
+	mov pdx, [ColorsHook.oldBrushes + pcx * pointer.size]
+	cmp pax, -1
+		cmove pax, pdx
+	ret
+endp
+
+proc FillOldSysColors c uses pbx
+	mov ebx, COLORS_TABLE_SIZE - 1
+	@@:
+		@call [GetSysColor](ebx)
+		mov [ColorsHook.oldColors + ebx * 4], eax
+		@call [GetSysColorBrush](ebx)
+		mov [ColorsHook.oldBrushes + ebx * pointer.size], pax
+	dec ebx
+	jns @b
+	ret
+endp
+
+macro SetColorsHook{
+	if used ColorsHook.oldColors | used ColorsHook.newColors | used ColorsHook.oldBrushes | used ColorsHook.newBrushes
+		@call c FillOldSysColors()
+		@call Hook::hookAPI_static([GetSysColor], GetSysColor_new)
+		@call Hook::hookAPI_static([GetSysColorBrush], GetSysColorBrush_new)
+	end if
+}
+
+@at_start SetColorsHook
