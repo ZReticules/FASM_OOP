@@ -53,7 +53,7 @@ ends
 	
 	proc main
 		@call myPoint->print()		;вызов метода напрямую через обьект
-		@call point3:print(myPoint)	;вызов метода через имя структуры
+		@call point3::print(myPoint)	;вызов метода через имя структуры
 		ret
 	endp
 ```
@@ -203,13 +203,13 @@ ends
 
 proc button_Clicked, formLp, paramsLp, controlLp
 	virtObj .form:arg dForm1
-	@call WND:msgBox("Привет, мир!", "Приветствие", MB_OK, [.form.hWnd])
+	@call WND::msgBox("Привет, мир!", "Приветствие", MB_OK, [.form.hWnd])
 	ret
 endp
 
 proc form_Init, formLp, paramsLp
 	virtObj .form:arg dForm1
-	@call WND:msgBox("Форма запущена!", "Приветствие", MB_OK, [.form.hWnd])
+	@call WND::msgBox("Форма запущена!", "Приветствие", MB_OK, [.form.hWnd])
 	ret
 endp
 
