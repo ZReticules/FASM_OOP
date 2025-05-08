@@ -308,3 +308,40 @@ endp
 if used CMV.i32ToStr
 	CMV.i32ToStr = CNV.intToStr
 end if
+
+; int64 x int64 multiply
+	; locals 
+	; 	db ?
+	; 	buf rq 4
+	; 	dest dq ?, ?
+	; endl
+
+	; movq xmm1, [b]
+	; movq xmm0, [a]
+
+	; pshufd xmm0, xmm0, 01000100b
+	; vpmovzxdq ymm0, xmm0
+	; pshufd xmm1, xmm1, 01010000b
+	; vpmovzxdq ymm1, xmm1
+	; vpmuludq ymm0, ymm0, ymm1
+	; vmovups yword[buf], ymm0
+	
+	; movq [dest], xmm0
+	
+	; mov eax, dword[buf + 8]
+	; mov edx, dword[buf + 12]
+	; add dword[dest + 4], eax
+	; adc dword[dest + 8], edx
+	; adc dword[dest + 12], 0
+
+	; mov eax, dword[buf + 16]
+	; mov edx, dword[buf + 20]
+	; add dword[dest + 4], eax
+	; adc dword[dest + 8], edx
+	; adc dword[dest + 12], 0
+	
+	; vextractf128 xmm0, ymm0, 1
+	; psrldq xmm0, 8
+	; pslldq xmm0, 8
+	; movups xmm1, xword[dest]
+	; paddq xmm0, xmm1

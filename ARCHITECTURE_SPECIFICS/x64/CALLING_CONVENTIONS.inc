@@ -18,6 +18,127 @@ macro proc_resprologue{
 	restore close@proc 
 }
 
+
+macro va_list@load counter, ax_destroyed, ax_restored, ax_need_save, size@param, type@param, param{
+	if type@param eq addr
+		repeat 1
+			if param eqtype 0
+				if param relativeto 0
+					mov dword[va@list + counter], param
+					break
+				end if
+				if param relativeto rax & param - rax relativeto 0 & param - rax = 0
+					if ax_destroyed & ~(ax_restored = 1)
+						mov rax, [psp - 8]
+						ax_restored = 1
+					end if
+					mov qword[va@list + counter], eax
+					break
+				end if
+				irp reg, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 \{
+
+				if param relativeto reg & param - reg relativeto 0 & param - reg = 0
+					mov qword[va@list + counter], reg
+					break
+				end if
+
+				\}
+			end if
+			if param eqtype rax
+				if param eq rax & ax_destroyed & ~(ax_restored = 1)
+					mov rax, [rsp - 8]
+					ax_restored = 1
+				end if
+				mov qword[va@list + counter], param
+				break
+			end if
+			reg_in_addr check_reg, ax, param
+			if check_reg & ax_destroyed & ~(ax_restored = 1)
+				mov rax, [psp - 8]
+				ax_restored = 0
+			else if ax_need_save & ~ax_destroyed
+				mov [psp - 8], rax
+			end if
+			ax_destroyed = 1
+			lea rax, [param]
+			mov qword[va@list + counter], rax
+		end repeat
+	else if type@param eq sep_qword
+		match _high:_low, param\{
+			if (_high eq eax | _low eq eax) & ax_destroyed & ~(ax_restored = 1)
+				mov rax, [rsp - 8]
+				ax_restored = 1
+			end if
+			mov dword[va@list + counter], _low
+			mov dword[va@list + counter + 4], _high
+		\}
+	else if param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
+		movq qword[va@list + counter], param
+	else if param eqtype [0] | param eqtype byte [0]
+		match any1[addr], any1 param\{
+			reg_in_addr check_reg, ax, addr
+			if check_reg & ax_destroyed & ~(ax_restored = 1)
+				mov rax, [rsp - 8]
+				ax_restored = 0
+			else if ax_need_save & ~ax_destroyed
+				mov [rsp - 8], rax
+			end if
+			ax_destroyed = 1
+		\}
+		if size@param = 8
+			mov rax, param
+		else if size@param = 4
+			mov eax, param
+		else if size@param = 2
+			if param eqtype byte 0
+				mov eax, param
+			else if param eqtype byte 0f
+				virtual at $
+					origin = $
+					match __pref val, param\{
+						dw val
+					\}
+					load opcode word from origin
+				end virtual
+				mov eax, opcode
+			else
+				movzx eax, param
+			end if
+		else
+			movzx eax, param
+		end if
+		mov qword[va@list + counter],rax
+	else if size@param = 8
+		virtual
+			origin = $
+			mov rax,param
+			load opcode byte from origin+1
+		end virtual
+		if opcode = 0B8h
+			if ax_need_save & ~ax_destroyed
+				mov [rsp - 8], rax
+			end if
+			ax_destroyed = 1
+			mov rax,param
+			mov qword[va@list + counter],rax
+		else
+			if param eq rax & ax_destroyed & ~(ax_restored = 1)
+				mov rax, [rsp - 8]
+				ax_restored = 1
+			end if
+			mov qword[va@list + counter],param
+		end if
+	else if param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
+		movq qword[va@list + counter], param
+	else
+		if (param eq rax | param eq rax) & ax_destroyed & ~(ax_restored = 1)
+			mov rax, [rsp - 8]
+			ax_restored = 1
+		end if
+		mov qword[va@list + counter], param
+	end if
+}
+
 macro @oopcall proc,[arg]{ 
 	common 
 	local stackspace,..argscount,counter, args@count
@@ -51,6 +172,11 @@ macro @oopcall proc,[arg]{
 	define type@param
 	define definition@param arg
 	param@parser type@param, definition@param
+	match =va_list|_va_list|param, type@param|va@list|definition@param\{
+		va_list@handler ax_destroyed, ax_restored, ax_need_save, param
+		type@param equ addr
+		define definition@param _va_list
+	\}
 	match param,definition@param\{ 
 		local opcode,origin
 		size@param = 0
@@ -145,10 +271,10 @@ macro @oopcall proc,[arg]{
 				end if
 			else if type@param eq sep_qword
 				match _high:_low, param\\{
-					mov dword[esp+(..argscount-counter)*4], _low
-					mov dword[esp+(..argscount-(counter-1))*4], _high
+					mov dword[rsp + (..argscount - counter) * 8], _low
+					mov dword[rsp + (..argscount-counter) * 8 + 4], _high
 				\\}
-				mov rcx, qword[esp+(..argscount-counter)*4]
+				mov rcx, qword[rsp + (..argscount - counter) * 8]
 			else if param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
 				movq rcx, param
 			else if size@param = 8
@@ -242,10 +368,10 @@ macro @oopcall proc,[arg]{
 				end if
 			else if type@param eq sep_qword
 				match _high:_low, param\\{
-					mov dword[esp+(..argscount-counter)*4], _low
-					mov dword[esp+(..argscount-(counter-1))*4], _high
+					mov dword[rsp + (..argscount - counter) * 8], _low
+					mov dword[rsp + (..argscount-counter) * 8 + 4], _high
 				\\}
-				mov rdx, qword[esp+(..argscount-counter)*4]
+				mov rdx, qword[rsp + (..argscount - counter) * 8]
 			else if param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
 				movq rdx, param
 			else if size@param = 8
@@ -339,10 +465,10 @@ macro @oopcall proc,[arg]{
 				end if
 			else if type@param eq sep_qword
 				match _high:_low, param\\{
-					mov dword[esp+(..argscount-counter)*4], _low
-					mov dword[esp+(..argscount-(counter-1))*4], _high
+					mov dword[rsp + (..argscount - counter) * 8], _low
+					mov dword[rsp + (..argscount-counter) * 8 + 4], _high
 				\\}
-				mov r8, qword[esp+(..argscount-counter)*4]
+				mov r8, qword[rsp + (..argscount - counter) * 8]
 			else if param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
 				movq r8, param
 			else if size@param = 8
@@ -436,10 +562,10 @@ macro @oopcall proc,[arg]{
 				end if
 			else if type@param eq sep_qword
 				match _high:_low, param\\{
-					mov dword[esp+(..argscount-counter)*4], _low
-					mov dword[esp+(..argscount-(counter-1))*4], _high
+					mov dword[rsp + (..argscount - counter) * 8], _low
+					mov dword[rsp + (..argscount-counter) * 8 + 4], _high
 				\\}
-				mov r9, qword[esp+(..argscount-counter)*4]
+				mov r9, qword[rsp + (..argscount - counter) * 8]
 			else if param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
 				movq r9, param
 			else if size@param = 8
@@ -490,32 +616,56 @@ macro @oopcall proc,[arg]{
 			end if
 		else
 			if type@param eq addr
-				if (param eqtype 0 & param relativeto 0) | param eq rax
-					if param eq rax & ax_destroyed & ~(ax_restored = 1)
-						mov rax, [rsp - 8]
-						ax_restored = 1
+				repeat 1
+					if param eqtype 0
+						if param relativeto 0
+							mov dword[rsp + (..argscount - counter) * 8], param
+							break
+						end if
+						if param relativeto rax & param - rax relativeto 0 & param - rax = 0
+							if ax_destroyed & ~(ax_restored = 1)
+								mov rax, [psp - 8]
+								ax_restored = 1
+							end if
+							mov qword[rsp + (..argscount - counter) * 8], eax
+							break
+						end if
+						irp reg, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 \\{
+
+						if param relativeto reg & param - reg relativeto 0 & param - reg = 0
+							mov qword[rsp + (..argscount - counter) * 8], reg
+							break
+						end if
+
+						\\}
 					end if
-					mov qword[rsp+(..argscount-counter)*8], param
-				else
+					if param eqtype rax
+						if param eq rax & ax_destroyed & ~(ax_restored = 1)
+							mov rax, [rsp - 8]
+							ax_restored = 1
+						end if
+						mov qword[rsp + (..argscount - counter) * 8], param
+						break
+					end if
 					reg_in_addr check_reg, ax, param
 					if check_reg & ax_destroyed & ~(ax_restored = 1)
-						mov rax, [rsp - 8]
+						mov rax, [psp - 8]
 						ax_restored = 0
 					else if ax_need_save & ~ax_destroyed
-						mov [rsp - 8], rax
+						mov [psp - 8], rax
 					end if
 					ax_destroyed = 1
-					lea rax,[param]
-					mov [rsp+(..argscount-counter)*8],rax
-				end if
+					lea rax, [param]
+					mov qword[rsp + (..argscount - counter) * 8], rax
+				end repeat
 			else if type@param eq sep_qword
 				match _high:_low, param\\{
 					if (_high eq eax | _low eq eax) & ax_destroyed & ~(ax_restored = 1)
 						mov rax, [rsp - 8]
 						ax_restored = 1
 					end if
-					mov dword[rsp+(..argscount-counter)*4], _low
-					mov dword[rsp+(..argscount-(counter-1))*4], _high
+					mov dword[rsp + (..argscount - counter) * 8], _low
+					mov dword[rsp + (..argscount - counter) * 8 + 4], _high
 				\\}
 			else if param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
 				movq [rsp+(..argscount-counter)*8], param

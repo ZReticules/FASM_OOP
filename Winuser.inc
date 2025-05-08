@@ -118,12 +118,12 @@
 		define IDI_WINLOGO		32517
 		define IDI_SHIELD		32518
 
-		define GWL_EXSTYLE		–20
-		define GWL_HINSTANCE	–6
+		define GWL_EXSTYLE		-20
+		define GWL_HINSTANCE	-6
 		define GWL_ID			-12
 		define GWL_STYLE		-16
 		define GWL_USERDATA		-21
-		define GWL_WNDPROC		–4
+		define GWL_WNDPROC		-4
 
 		define HWND_BROADCAST  	0xffff
 
@@ -135,8 +135,10 @@
 		setTimer				dm this:inline
 		killTimer				dm this:inline
 		taskDlg 				dm this:inline
+		deleteStockIcon			dm this:inline
 
 		repaintWindow			dm this
+		; repaintWindowWithBack	dm this
 		getStockIcon			dm this
 		
 		const darkThemeColor 	equ 0x333333
@@ -201,6 +203,7 @@
 	include "WINUSER\MsgBox.inc"
 	include "WINUSER\StockIcons.inc"
 	include "WINUSER\ColorsHook\ColorsHook.inc"
+	include "WINUSER\MapDialog.inc"
 
 	struct MENUINFO
 		cbSize			dd ?

@@ -17,7 +17,11 @@ macro TLS_AddCallback [args]{
 }
 
 importlib kernel32,\
-	GetCurrentThreadId
+	GetCurrentThreadId,\
+	TlsAlloc,\
+	TlsFree,\
+	TlsGetValue,\
+	TlsSetValue
 
 TLS_THREAD_ATTACH equ 1
 TLS_THREAD_DETACH equ 3

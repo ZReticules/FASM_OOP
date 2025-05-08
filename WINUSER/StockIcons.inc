@@ -1,6 +1,9 @@
 importlib Shell32,\
 	SHGetStockIconInfo
 
+importlib user32,\
+	DestroyIcon 
+
 struct SHSTOCKICONINFO
 	cbSize			dptr sizeof.SHSTOCKICONINFO
 	hIcon			dptr ?
@@ -194,5 +197,9 @@ proc WND.getStockIcon c, ICONID
 	.error:
 	ret
 endp
+
+macro WND.deleteStockIcon hIcon{
+	@call [DestroyIcon](hIcon)
+}
 
 proc_resprologue

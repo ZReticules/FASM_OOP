@@ -43,7 +43,7 @@ proc DLG.controlNotifyChecker c uses psi pdi pbx, lpForm, lParam
 	virtObj .form:arg DIALOGFORM at pbx from @arg1
 	virtObj .nmhdr NMHDR at pdi from [lParam]
 	mov eax, dword[.nmhdr.idFrom]
-	cmp ax, [.form.idCount]
+	cmp eax, [.form.idCount]
 		ja .return
 	@call [GetWindowPtrA]([.nmhdr.hwndFrom], GWL_USERDATA)
 	test eax, eax
@@ -137,32 +137,36 @@ proc DLG.initEvent c uses pbx psi pdi pbp, hwndDlg, lParam
 	mov [.form.hWnd], pcx
 	mov pbp, [.form.sData.lpClOffsets]
 	@call [SetWindowPtrA]([hwndDlg], GWL_USERDATA, addr .form)
-	@call [MapDialogRect]([.form.hWnd], addr .form.sData.baseRect)
-    @call [OpenThemeData]([.form.hWnd], L "Menu;Button")
-    mov [.form.hTheme], pax
+    ; @call [OpenThemeData]([.form.hWnd], L "Menu;Button")
+    ; mov [.form.hTheme], pax
 
 	cmp [.form.sData.lpHooks], 0
 	je .no_main_hook
 		@call [SetWindowSubclass]([.form.hWnd], DLG.hooksMainChecker, -1, addr .form)
 	.no_main_hook:
 
-    cmp [.form.idCount], 0
-    je .return
-		movzx edi, [.form.idCount]
-		.init_control_loop:
-			mov psi, [pbp + (pdi - 1) * pointer.size]
-			virtObj .cntrl:arg CONTROL at psi from addr .form + psi 
-			mov [.cntrl.ID], di
-			@call [GetDlgItem]([.form.hWnd], edi)
-			mov [.cntrl.hWnd], pax
-			@call [SetWindowPtrA]([.cntrl.hWnd], GWL_USERDATA, addr .cntrl)
-			@call [MapDialogRect]([.form.hWnd], addr .cntrl.sData.baseRect)
-			cmp [.cntrl.sData.lpHooks], 0
-			je .no_hook
-				@call [SetWindowSubclass]([.cntrl.hWnd], DLG.hookEventsChecker, -1, addr .form)
-			.no_hook:
-		dec pdi
-		jnz .init_control_loop
+	with mapDialog:MapDialog([.form.hWnd])
+		@call mapDialog->mapRect(addr .form.sData.baseRect)
+	    cmp [.form.idCount], 0
+	    je .no_childs
+			mov edi, [.form.idCount]
+			.init_control_loop:
+				mov psi, [pbp + (pdi - 1) * pointer.size]
+				virtObj .cntrl:arg CONTROL at psi from addr .form + psi 
+				mov [.cntrl.ID], edi
+				@call [GetDlgItem]([.form.hWnd], edi)
+				mov [.cntrl.hWnd], pax
+				@call [SetWindowPtrA]([.cntrl.hWnd], GWL_USERDATA, addr .cntrl)
+				@call mapDialog->mapRect(addr .cntrl.sData.baseRect)
+				cmp [.cntrl.sData.lpHooks], NULL
+				je .no_hook
+					@call [SetWindowSubclass]([.cntrl.hWnd], DLG.hookEventsChecker, -1, addr .form)
+				.no_hook:
+			dec pdi
+			jnz .init_control_loop
+			@call .form->__scaleChildRects()
+		.no_childs:
+	end_with
 	.return: ret
 endp
 
@@ -214,7 +218,7 @@ proc DLG.DialogProc uses pdi pbx psi, hwndDlg, uMsg, wParam, lParam
 		jmp .after_init
 
 	.commandEventsChecker:
-		cmp cx, [.form.idCount]
+		cmp cx, word[.form.idCount]
 			ja .return
 		@call c DLG.controlEventsChecker(addr .form, ecx, addr hwndDlg)
 		jmp .return
@@ -222,8 +226,11 @@ proc DLG.DialogProc uses pdi pbx psi, hwndDlg, uMsg, wParam, lParam
 	.notificationsChecker:
 		@call c DLG.controlNotifyChecker(addr .form, [lParam])
 		jmp .return
-	
+		
 	.close_event:
+	; int3
+		cmp pax, NULL
+			cmove pax, [wParam]
 		@call [.form.__close](addr .form, addr hwndDlg, pax)
 		jmp .return
 

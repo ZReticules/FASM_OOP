@@ -3,76 +3,88 @@ define CB_GETCOMBOBOXINFO 164h
 macro COMBOBOX.addItem this, lpString{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_ADDSTRING, NULL, lpString)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_ADDSTRING, NULL, lpString)
 }
 
 macro COMBOBOX.delItem this, idItem{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_DELETESTRING, idItem, NULL)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_DELETESTRING, idItem, NULL)
 }
 
 macro COMBOBOX.setSelected this, idItem{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_SETCURSEL, idItem, NULL)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_SETCURSEL, idItem, NULL)
 }
 
 macro COMBOBOX.getSelected this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_GETCURSEL, NULL, NULL)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_GETCURSEL, NULL, NULL)
 }
 
 macro COMBOBOX.setItemData this, idItem, dataValue{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_SETITEMDATA, idItem, dataValue)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_SETITEMDATA, idItem, dataValue)
 }
 
 macro COMBOBOX.getItemData this, idItem{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_GETITEMDATA, idItem, NULL)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_GETITEMDATA, idItem, NULL)
 }
 
 macro COMBOBOX.clear this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_RESETCONTENT, NULL, NULL)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_RESETCONTENT, NULL, NULL)
 }
 
 macro COMBOBOX.findItem this, idBefore, strLp{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_FINDSTRINGEXACT, idBefore, strLp)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_FINDSTRINGEXACT, idBefore, strLp)
 }
 
 macro COMBOBOX.getCount this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_GETCOUNT, NULL, NULL)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_GETCOUNT, NULL, NULL)
 }
 
 macro COMBOBOX.findStartWith this, idBefore, strLp{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_FINDSTRING, idBefore, strLp)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_FINDSTRING, idBefore, strLp)
 }
 
 macro COMBOBOX.getItemTextLen this, idItem{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_GETLBTEXTLEN, idItem, NULL)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_GETLBTEXTLEN, idItem, NULL)
 }
 
 macro COMBOBOX.getItemText this, idItem, lpString{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this+COMBOBOX.hWnd], CB_GETLBTEXT, idItem, lpString)
+	@call [SendMessageA]([_this + COMBOBOX.hWnd], CB_GETLBTEXT, idItem, lpString)
 }
 
 proc_noprologue
+
+proc COMBOBOX.getItemString c uses pbx pdi psi, _this, idItem, lpString
+	@virtObj this:arg COMBOBOX at pbx from @arg1
+	@larg psi, @arg2
+	@virtObj strDest:arg String at pdi from @arg3
+
+	@call [SendMessageA]([this.hWnd], CB_GETLBTEXTLEN, psi, NULL)
+	mov [strDest.len], eax
+	@call strDest->realloc(addr pax + 1)->getLpChars()
+	@call [SendMessageA]([this.hWnd], CB_GETLBTEXT, psi, pax)
+	ret
+endp
 
 proc COMBOBOX.initEdit c uses pbx, this
 	virtObj .this:arg COMBOBOX at pbx from @arg1

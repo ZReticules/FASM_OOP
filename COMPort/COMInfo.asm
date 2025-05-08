@@ -7,8 +7,9 @@ importlib setupapi,\
 	; SetupDiEnumDeviceInterfaces,\
 	; SetupDiGetDeviceInterfaceDetailA
 
-importlib Advapi32,\
-	RegQueryValueExA 
+importlib advapi32,\
+	RegQueryValueExA,\
+	RegCloseKey
 
 importlib msvcrt,\
 	setlocale
@@ -16,108 +17,215 @@ importlib msvcrt,\
 importlib kernel32,\
 	CloseHandle
 
-GUID_DEVINTERFACE_COMPORT GUID 86E0D1E0h, 8089h, 11D0h, <9Ch, 0E4h, 8h, 0h, 3Eh, 30h, 1Fh, 73h>
+importlib user32,\
+	RegisterDeviceNotificationA,\
+	UnregisterDeviceNotification
 
 proc_noprologue
 
-proc COMInfo.init uses rbx r12, this
-	virtObj .this:arg COMInfo at rbx
-	mov rbx, rcx
-	@call [SetupDiGetClassDevsA](addr GUID_DEVINTERFACE_COMPORT,\
+@const_align equ 16
+COMInfo.DevinterfaceComportGuid @const GUID 86E0D1E0h, 8089h, 11D0h, <9Ch, 0E4h, 8h, 0h, 3Eh, 30h, 1Fh, 73h>
+restore @const_align
+
+proc COMInfo.make c uses pbx psi, this
+	virtObj .this:arg COMInfo at pbx from @arg1
+	@call [SetupDiGetClassDevsA](COMInfo.DevinterfaceComportGuid,\
 		NULL, NULL, DIGCF_PRESENT or DIGCF_DEVICEINTERFACE)
-	cmp rax, INVALID_HANDLE_VALUE
+	cmp pax, INVALID_HANDLE_VALUE
 	jne .noGetClassErr
-		mov rax, 0
+		mov pax, 0
 		jmp .return
 	.noGetClassErr:
-	mov [.this.hDevInfoSet], rax
-	mov r12, -1
+	mov [.this.hDevInfoSet], pax
+	mov psi, -1
 	.next:
-		inc r12
-		@call [SetupDiEnumDeviceInfo]([.this.hDevInfoSet], r12, addr .this.devInfo)
-		test rax, rax
+		inc esi
+		@call [SetupDiEnumDeviceInfo]([.this.hDevInfoSet], psi, addr .this.devInfo)
+	test pax, pax
 	jnz .next
-	mov rax, 1
-	mov [.this.countPorts], r12w
-	.return:ret
+	mov pax, 1
+	mov [.this.countPorts], si
+	.return: ret
 endp
 
-proc COMInfo.getPortName uses rbx r12 r13, this, strLp, size
-	virtObj .this:arg COMInfo at rbx
-	.strLp equ r12
-	.hDeviceKey_r equ r13
+proc COMInfo.getPortNameLen c uses pbx psi, this
+	virtObj .this:arg COMInfo at pbx from @arg1
+	hDeviceKey_r equ psi
 	locals
-		dwDataSize dd ?
-		dwType dd ?
+		dwDataSize 	dd ?
+		dwType 		dd ?
 	endl
-	mov rbx, rcx
-	mov .strLp, rdx
-	mov [dwDataSize], r8d
 	@call [SetupDiOpenDevRegKey]([.this.hDevInfoSet], addr .this.devInfo,\
             DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_QUERY_VALUE)
-	test rax, rax
-	mov .hDeviceKey_r, rax
-	mov rax, 0
+	test eax, eax
+	mov hDeviceKey_r, pax
+	mov eax, 0
 		jz .return
-	@call [RegQueryValueExA](.hDeviceKey_r, "PortName", NULL,\
-		addr dwType, .strLp, addr dwDataSize)
-	mov eax, [dwDataSize]
-	.return:ret
-endp
-
-proc COMInfo.getPortNameLen uses rbx r12, this
-	virtObj .this:arg COMInfo at rbx
-	.hDeviceKey_r equ r12
-	locals
-		dwDataSize dd ?
-		dwType dd ?
-	endl
-	mov rbx, rcx
-	@call [SetupDiOpenDevRegKey]([.this.hDevInfoSet], addr .this.devInfo,\
-            DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_QUERY_VALUE)
-	test rax, rax
-	mov .hDeviceKey_r, rax
-	mov rax, 0
-		jz .return
-	@call [RegQueryValueExA](.hDeviceKey_r, "PortName", NULL,\
+	@call [RegQueryValueExA](hDeviceKey_r, "PortName", NULL,\
 		addr dwType, NULL, addr dwDataSize)
+	@call [RegCloseKey](hDeviceKey_r)
 	mov eax, [dwDataSize]
-	.return:ret
+	dec eax
+	.return: ret
+
+	restore hDeviceKey_r
 endp
 
-proc COMInfo.getPortInfoLen, this, typeInfo
-	virtObj .this:arg COMInfo
+proc COMInfo.getPortNameChars c uses pbx psi pdi, this, strLp, size
+	virtObj .this:arg COMInfo at pbx from @arg1
+	_strLp 			equ psi
+	hDeviceKey_r 	equ pdi
+	@larg _strLp, @arg2
+	@larg pax, @arg3
+	locals
+		dwDataSize 	dd ?
+		dwType 		dd ?
+	endl
+
+	mov [dwDataSize], eax
+	@call [SetupDiOpenDevRegKey]([.this.hDevInfoSet], addr .this.devInfo,\
+            DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_QUERY_VALUE)
+	test eax, eax
+	mov hDeviceKey_r, pax
+	mov eax, 0
+		jz .return
+	@call [RegQueryValueExA](hDeviceKey_r, "PortName", NULL,\
+			addr dwType, _strLp, addr dwDataSize)
+	@call [RegCloseKey](hDeviceKey_r)
+	mov eax, [dwDataSize]
+	dec eax
+	.return: ret
+
+	restore _strLp, hDeviceKey_r
+endp
+
+proc COMInfo.getPortNameString c uses pbx psi pdi, _this, lpString
+	@virtObj this:arg COMInfo at pbx from @arg1
+	@virtObj strDest:arg String at pdi from @arg2
+	
+	hDeviceKey_r equ psi
 	locals
 		dwDataSize dd ?
 		dwType dd ?
 	endl
-	mov r8, rdx
-	lea rdx, [.this.devInfo]
-	mov rcx, [.this.hDevInfoSet]
-	@call [SetupDiGetDeviceRegistryPropertyA](rcx, rdx,\
-	 	r8, addr dwType, NULL, 0, addr dwDataSize)
+
+	@call [SetupDiOpenDevRegKey]([this.hDevInfoSet], addr this.devInfo,\
+            DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_QUERY_VALUE)
+	test eax, eax
+	mov hDeviceKey_r, pax
+	mov eax, 0
+		jz .return
+	@call [RegQueryValueExA](hDeviceKey_r, "PortName", NULL,\
+			addr dwType, NULL, addr dwDataSize)
+	@call strDest->realloc([dwDataSize])->getLpChars()
+	@call [RegQueryValueExA](hDeviceKey_r, "PortName", NULL,\
+			addr dwType, pax, addr dwDataSize)
+
+	@call [RegCloseKey](hDeviceKey_r)
 	mov eax, [dwDataSize]
-	.return:ret
+	dec eax
+	mov [string.len], eax
+	.return: ret
+
+	restore hDeviceKey_r
 endp
 
-proc COMInfo.getPortInfo uses r12 r13, this, typeInfo, strLp, maxLen
-	virtObj .this:arg COMInfo
-	.strLp 		equ r12
-	.maxLen 	equ r13
+proc COMInfo.getPortInfoLen c, this, typeInfo
+	virtObj .this:arg COMInfo at pcx from @arg1
 	locals
-		dwDataSize dd ?
-		dwType dd ?
+		dwDataSize 	dd ?
+		dwType 		dd ?
 	endl
-	mov .maxLen, r9
-	mov .strLp, r8
-	mov r8, rdx
-	lea rdx, [.this.devInfo]
-	mov rcx, [.this.hDevInfoSet]
-	@call [SetupDiGetDeviceRegistryPropertyA](rcx, rdx,\
-	 	r8, addr dwType, .strLp, .maxLen, addr dwDataSize)
+	@call [SetupDiGetDeviceRegistryPropertyA]([.this.hDevInfoSet], addr .this.devInfo,\
+	 	@arg2, addr dwType, NULL, 0, addr dwDataSize)
 	mov eax, [dwDataSize]
-	.return:ret
+	dec eax
+	.return: ret
 endp
+
+proc COMInfo.getPortInfoChars c uses psi pdi, this, strLp, maxLen, typeInfo
+	virtObj .this:arg COMInfo at pcx from @arg1
+	@sarg @arg4
+	_strLp 		equ psi
+	_maxLen 	equ pdi
+	@larg _strLp, @arg2, \
+		_maxLen, @arg3
+	locals
+		dwDataSize 	dd ?
+		dwType 		dd ?
+	endl
+	@call [SetupDiGetDeviceRegistryPropertyA]([.this.hDevInfoSet], addr .this.devInfo,\
+	 	[typeInfo], addr dwType, _strLp, _maxLen, addr dwDataSize)
+	mov eax, [dwDataSize]
+	dec eax
+	.return: ret
+
+	restore _strLp, _maxLen
+endp
+
+proc COMInfo.getPortInfoString c uses psi pdi, _this, lpString, typeInfo
+	@virtObj this:arg COMInfo at psi from @arg1
+	@virtObj string:arg String at pdi from @arg2
+	@sarg @arg3
+
+	locals
+		dwDataSize 	dd ?
+		dwType 		dd ?
+	endl
+	@call [SetupDiGetDeviceRegistryPropertyA]([this.hDevInfoSet], addr this.devInfo,\
+	 		@arg3, addr dwType, NULL, 0, addr dwDataSize)
+	@call string->realloc([dwDataSize])->getLpChars()
+	@call [SetupDiGetDeviceRegistryPropertyA]([this.hDevInfoSet], addr this.devInfo,\
+	 		[typeInfo], addr dwType, pax, [dwDataSize], addr dwDataSize)
+	mov eax, [dwDataSize]
+	dec eax
+	mov [string.len], eax
+	.return: ret
+endp
+
+proc COMInfo.registerNotify c, handle, type
+	@sarg @arg1, @arg2
+	local notifyFilter:DEV_BROADCAST_DEVICEINTERFACE_A
+	mov [notifyFilter.dbcc_size], sizeof.DEV_BROADCAST_DEVICEINTERFACE_A
+	mov [notifyFilter.dbcc_devicetype], DBT_DEVTYP_DEVICEINTERFACE
+	@call CNV::fill(addr notifyFilter.dbcc_classguid, addr COMInfo.DevinterfaceComportGuid, sizeof.GUID)
+	@call [RegisterDeviceNotificationA]([handle], addr notifyFilter, [type])
+	ret
+endp
+
+macro COMInfo.unregisterNotify hNotify{
+	@call [UnregisterDeviceNotification](hNotify)
+}
+
+macro COMInfo.getPortInfo this, [args]{
+	common
+	match =4, __argscount__\{
+		@call c COMInfo.getPortInfoChars(this, args)
+	rept 0\{\} rept 1\{
+		@call c COMInfo.getPortInfoString(this, args)
+	\}
+}
+
+macro COMInfo.getPortName this, [args]{
+	common
+	match =3, __argscount__\{
+		@call c COMInfo.getPortNameChars(this, args)
+	rept 0\{\} rept 1\{
+		@call c COMInfo.getPortNameString(this, args)
+	\}
+}
+
+macro COMInfo.choseId this, idPort{
+	local _this
+	inlineObj _this, this, pcx
+	@call [SetupDiEnumDeviceInfo]([_this + COMInfo.hDevInfoSet], idPort, addr _this + COMInfo.devInfo)
+}
+
+macro COMInfo.unmake this{
+	local _this
+	inlineObj _this, this, pcx
+	@call [SetupDiDestroyDeviceInfoList]([_this + COMInfo.hDevInfoSet])
+}
 
 proc_resprologue
 

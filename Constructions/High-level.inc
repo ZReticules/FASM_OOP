@@ -198,13 +198,12 @@
 	}
 
 	macro end_switch{
-		local len_data, byte_val, ..next_addr
+		local len_data, byte_val
 		len_data = $ - switch@lastcode
 		end virtual
-		if case@default <> ..next_addr
+		if case@default <> switch@lastcode
 			jmp case@default
 		end if
-		..next_addr:
 		switch@lastcode:
 		repeat len_data
 			load byte_val byte from megalabel@last:switch@lastcode + %-1
@@ -219,9 +218,10 @@
 ; with
 	macro with [args]{
 		common
-		local with_name
+		local with_name, ..break_with
 		define last@width with_name
 
+		break_with equ ..break_with
 		forward
 		match name:Type any, args [:|:]\{
 			width_name#dels equ name
@@ -261,11 +261,26 @@
 				endl
 			\\}
 		\}
+		macro ret operand\{
+			match any, operand\\{
+				ret operand
+			rept 0\\{\\} rept 1\\{
+				irpv all_with, last@with\\\{
+					\\\reverse
+					irpv del, all_with\\\#dels\\\\{
+						@call del->unmake()	
+					\\\\}
+				\\\}
+			\\}
+		\}
 	}
 
 	macro end_with{
-		match last_width, last@width\{
-			irpv del, last_width\#dels\\{
+		break_with:
+		restore break_with
+		purge ret
+		match last_with, last@width\{
+			irpv del, last_with\#dels\\{
 				@call del->unmake()	
 			\\}
 		\}

@@ -34,9 +34,14 @@ importlib uxtheme,\
 ; 	WM_CTLCOLORSTATIC  		event DIALOGFORM_WM_CTLCOLOR
 ; }
 
-macro @on_scaling{
+macro @on_scaling {
 	WM_SIZE event DIALOGFORM_WM_SIZE
 } 
+
+macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
+	WM_GETMINMAXINFO event DIALOGFORM_WM_GETMINMAXINFO
+	minMaxRect RECT x, y, cx, cy
+}
 
 proc_noprologue
 
@@ -66,62 +71,19 @@ proc_noprologue
 ; 	ret
 ; endp
 
-proc DIALOGFORM_WM_CTLCOLORDLG, lpForm, lpParams, lpEventData
-	; int3
-	@larg pcx, @arg1
-	mov pax, [pcx + DIALOGFORM.bgColorBrush]
-	ret
-endp
+; proc DIALOGFORM_WM_CTLCOLORDLG, lpForm, lpParams, lpEventData
+; 	; int3
+; 	@larg pcx, @arg1
+; 	mov pax, [pcx + DIALOGFORM.bgColorBrush]
+; 	ret
+; endp
 
-proc DIALOGFORM.EnumChildsProc uses pbx psi, hWnd, lParam
-	@sarg @arg1, @arg2
-	@larg pbx, @arg2
-	virtual at pbx
-		.old POINT
-		.new POINT
-	end virtual
-	; local RestSize:POINT
-	@call [GetWindowPtrA]([hWnd], GWL_USERDATA)
-	test eax, eax
-		jz .return
-	virtObj .cntr:arg CONTROL at psi from pax
-	cmp [.cntr.ID], 0
-		jz .return
-	; @call c [printf]("%d) %d, %d\n", pdi, [.cntr.baseRect.left], [.cntr.baseRect.top])
-	mov eax, [.cntr.sData.baseRect.left]
-	imul eax, [.new.x]
-	xor edx, edx
-	div [.old.x]
-	mov ecx, eax
-	movd xmm0, eax
-	
-	mov eax, [.cntr.sData.baseRect.right]
-	add eax, [.cntr.sData.baseRect.left]
-	imul eax, [.new.x]
-	xor edx, edx
-	div [.old.x]
-	sub eax, ecx
-	movd xmm2, eax
-
-	mov eax, [.cntr.sData.baseRect.top]
-	imul eax, [.new.y]
-	xor edx, edx
-	div [.old.y]
-	mov ecx, eax
-	movd xmm1, eax
-
-	mov eax, [.cntr.sData.baseRect.bottom]
-	add eax, [.cntr.sData.baseRect.top]
-	imul eax, [.new.y]
-	xor edx, edx
-	div [.old.y]
-	sub eax, ecx
-	movd xmm3, eax
-	; int3
-	@call [MoveWindow]([hWnd], xmm0, xmm1, xmm2, xmm3, 1)
-	; @call [InvalidateRect]([hWnd], NULL, 0)
-	.return: 
-	mov eax, 1
+proc DIALOGFORM_WM_GETMINMAXINFO, lpForm, lpParams, lpEventData
+	@sarg @arg3
+	@larg pdx, @arg2
+	virtObj .minMaxInfo MINMAXINFO at pax from [pdx + params.lParam]
+	@call CNV::fill(addr .minMaxInfo.ptMinTrackSize, @arg3, sizeof.RECT)
+	mov eax, 0
 	ret
 endp
 

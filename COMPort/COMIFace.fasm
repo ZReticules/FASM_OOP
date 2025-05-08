@@ -1,0 +1,120 @@
+importlib kernel32,\
+	CreateFileA,\
+	CloseHandle,\
+	ClearCommError,\
+	PurgeComm,\
+	ReadFile,\
+	GetCommState,\
+	SetCommState,\
+	SetCommTimeouts,\
+	SetupComm,\
+	WriteFile,\
+	SetCommMask,\
+	GetOverlappedResult
+
+importlib msvcrt,\
+	atoi
+
+define PURGE_RXCLEAR 	8
+define PURGE_TXCLEAR 	4
+define EV_BREAK			0x0040
+define EV_CTS			0x0008
+define EV_DSR			0x0010
+define EV_ERR			0x0080
+define EV_RING			0x0100
+define EV_RLSD			0x0020
+define EV_RXCHAR		0x0001
+define EV_RXFLAG		0x0002
+define EV_TXEMPTY		0x0004
+
+macro COMIface.close this{
+	local _this
+	inlineObj _this, this, pcx
+	@call [CloseHandle]([_this + COMIface.handle])
+}
+
+macro COMIface.getStat this{
+	local _this
+	inlineObj _this, this, pcx
+	@call [ClearCommError]([_this + COMIface.handle], NULL, addr _this + COMIface.comstat)
+}
+
+macro COMIface.reset this{
+	local _this
+	inlineObj _this, this, pcx
+	@call [PurgeComm]([_this + COMIface.handle], PURGE_RXCLEAR or PURGE_TXCLEAR)
+}
+
+macro COMIface.getParams this, dcb{
+	local _this
+	inlineObj _this, this, pcx
+	@call [GetCommState]([_this + COMIface.handle], dcb)
+}
+
+macro COMIface.setParams this, dcb{
+	local _this
+	inlineObj _this, this, pcx
+	@call [SetCommState]([_this + COMIface.handle], dcb)
+}
+
+macro COMIface.setTimeouts this{
+	local _this
+	inlineObj _this, this, pcx
+	@call [SetCommTimeouts]([_this + COMIface.handle], addr _this + COMIface.timeouts)
+}
+
+macro COMIface.setup this, dwInQueueSize, dwOutQueueSize{
+	local _this
+	inlineObj _this, this, pcx
+	@call [SetupComm]([_this + COMIface.handle], dwInQueueSize, dwOutQueueSize)
+}
+
+macro COMIface.setMask this, flags{
+	local _this
+	inlineObj _this, this, pcx
+	@call [SetCommMask]([_this + COMIface.handle], flags)
+}
+
+macro COMIface.waitEvent this, lpFlags, lpOverlapped{
+	local _this
+	inlineObj _this, this, pcx
+	@call [WaitCommEvent]([_this + COMIface.handle], lpFlags, lpOverlapped)
+}
+
+proc_noprologue
+
+proc COMIface.openA c uses pbx psi, this, lpStr
+	@sarg @arg2
+	virtObj .this:arg COMIface at pbx from @arg1
+	@call [CreateFileA]([lpStr], GENERIC_READ or GENERIC_WRITE, NULL, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)
+	xor edx, edx
+	cmp pax, INVALID_HANDLE_VALUE
+	cmove pax, pdx
+	mov [.this.handle], pax
+	.return: ret
+endp
+
+proc COMIface.read c, this, lpBuf, cBytes, lpOverlapped
+	virtObj .this:arg COMIface at pcx from @arg1
+	@sarg @arg4
+	@call [ReadFile]([.this.handle], @arg2, @arg3, addr lpOverlapped, @arg4)
+	mov pax, [lpOverlapped]
+	ret
+endp
+
+proc COMIface.write c, this, lpBuf, cBytes, lpOverlapped
+	virtObj .this:arg COMIface at pcx from @arg1
+	@sarg @arg4
+	@call [WriteFile]([.this.handle], @arg2, @arg3, addr lpOverlapped, @arg4)
+	mov pax, [lpOverlapped]
+	ret
+endp
+
+proc COMIface.getReadedCount c, this, lpOverlapped
+	virtObj .this:arg COMIface at pcx from @arg1
+	@call [GetOverlappedResult]([.this.handle], @arg2, addr lpOverlapped, 0)
+	mov pax, [lpOverlapped]
+	ret
+endp
+
+proc_resprologue

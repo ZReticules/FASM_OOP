@@ -2,25 +2,25 @@
 
 	include "control_specialfields.inc"
 
-	struct DLG_CONTROL_SPECTIAL_DATA
-		baseRect		RECT ?, ?, ?, ?
+	struct ScaleMode
+		x 	db ?
+		y 	db ?
+		rx 	db ?
+		ry 	db ? 
+	ends
+
+	struct DLG_CONTROL_SERVICE_DATA
+		baseRect		RECT
 		lpEvents		dptr ?
 		lpNotifications	dptr ?
 		lpHooks 		dptr ?
+		scaleMode		ScaleMode
 	ends
 
-	struct CONTROL
-		hWnd			dptr ?
-		ID				dw ?
-		sData 			DLG_CONTROL_SPECTIAL_DATA
+	struct CONTROL WINAPI_WINDOW
+		ID				dd ?
+		sData 			DLG_CONTROL_SERVICE_DATA
 		
-		getTextLen 		dm DIALOGFORM.getTextLen:inline
-		getText 		dm DIALOGFORM.getText:inline
-		setText 		dm DIALOGFORM.setText:inline
-		setEnabled		dm DIALOGFORM.setEnabled:inline
-		setVisible		dm DIALOGFORM.setVisible:inline
-		setFocus		dm DIALOGFORM.setFocus:inline
-		getString		dm DIALOGFORM.getString
 		hideCur 		dm this:inline
 		setTheme 		dm this:inline
 		getClientSize	dm this:inline

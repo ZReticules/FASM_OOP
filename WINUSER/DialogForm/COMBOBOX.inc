@@ -1,9 +1,11 @@
 @module COMBOBOX
 
 	struct COMBOBOX CONTROL
-		cEdit 			EDIT
-		cListBox		LISTBOX
-
+		struct 
+			cEdit 			EDIT
+			cListBox		LISTBOX
+		ends
+		
 		addItem 		dm this:inline
 		delItem  		dm this:inline
 		getCount  		dm this:inline
@@ -16,6 +18,7 @@
 		findStartWith	dm this:inline
 		getItemTextLen	dm this:inline
 		getItemText		dm this:inline
+		getItemString	dm this
 
 		; setItemText		dm this
 		initSubControl	dm this

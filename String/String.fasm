@@ -11,12 +11,19 @@ macro String.print this, fp=[stdout]{
 }
 
 macro String.getLpChars this{
-    local _this
+    local _this, check_dx
     inlineObj _this, this, pcx
     lea pax, [_this + String.__chars]
-    movbe edx, [_this + String.__size]
-    cmp edx, pointer.size
-        cmova pax, [_this + String.__lpChars]
+
+    reg_in_addr check_dx, dx, _this
+    if ~check_dx
+        movbe edx, [_this + String.__size]
+        cmp edx, String.SHORT_STRING_LEN
+    else
+        movbe ecx, [_this + String.__size]
+        cmp ecx, String.SHORT_STRING_LEN
+    end if
+    cmova pax, [_this + String.__lpChars]
 }
 
 ; returns pointer to string data
@@ -51,7 +58,7 @@ macro String.realloc this, size, minify=0{
 ; proc String_getLpChars c, this
 ;     @larg pcx, @arg1
 ;     lea pax, [pcx + String.__chars]
-;     cmp [pcx + String.__size], pointer.size
+;     cmp [pcx + String.__size], String.SHORT_STRING_LEN
 ;     cmovae pax, [pcx + String.__lpChars]
 ;     ret
 ; endp
@@ -68,7 +75,7 @@ proc String.make c uses pbx, this, size
     virtObj .this:arg String at pbx from @arg1
     @larg pdx, @arg2
     mov [.this.len], 0
-    cmp edx, pointer.size
+    cmp edx, String.SHORT_STRING_LEN
         jg .real_alloc
     mov [.this.__size], DW_BE_PSIZE
     ret
@@ -89,10 +96,10 @@ proc String.reallocParam c uses pbx, this, size, minify
             cmp eax, edx
                 jae .return
     end_switch
-    cmp edx, pointer.size
+    cmp edx, String.SHORT_STRING_LEN
     seta al
     movbe ecx, [.this.__size]
-    cmp ecx, pointer.size
+    cmp ecx, String.SHORT_STRING_LEN
     seta cl
     and ecx, 0x1
     and eax, 0x1
@@ -123,9 +130,9 @@ proc String.reallocParam c uses pbx, this, size, minify
         mov pdx, pointer[pax]
         ; and pdx, not (0xFF shl (pointer.size) * 8)
         mov [.this.__lpChars], pdx
-        cmp [.this.len], pointer.size
+        cmp [.this.len], String.SHORT_STRING_LEN
         jb .no_resize
-            mov [.this.len], pointer.size
+            mov [.this.len], String.SHORT_STRING_LEN
         .no_resize:
         @call CNV::free(pax)
         ret
@@ -151,7 +158,7 @@ proc String.unmake c, this
     mov [.this.len], 0
     movbe edx, [.this.__size]
     mov [.this.__size], DW_BE_PSIZE
-    cmp edx, pointer.size
+    cmp edx, String.SHORT_STRING_LEN
     jbe .no_free
         @call CNV::free(pax)
     .no_free:
@@ -420,7 +427,7 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
     @larg psi, @arg2
     virtObj .this:arg String at pbx from @arg1 
     locals 
-        buf String pointer.size - 1, 0, 0
+        buf String 0, 0, 0
         result String
     endl
     movbe edx, [.this.__size]

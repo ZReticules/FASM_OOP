@@ -52,8 +52,8 @@ define SYMBOL_CHARSET 		2
 define TURKISH_CHARSET 		162
 define VIETNAMESE_CHARSET 	163
 
-struct DLG_SERVICEDATA
-	baseRect				RECT ?, ?, ?, ?
+struct DLG_SERVICE_DATA
+	baseRect			RECT ?, ?, ?, ?
 	lpEvents 			dptr ?
 	lpClOffsets			dptr ?
 	lpHooks				dptr ?
@@ -61,28 +61,29 @@ struct DLG_SERVICEDATA
 	; lpClNotifications 	dptr ?
 ends
 
-struct DIALOGFORM
+include "WINUSER\WINAPI_WINDOW.inc"
+
+struct DIALOGFORM WINAPI_WINDOW
 	const _x 				= 0
 	const _y				= 0
 	const _cx 				= 100
 	const _cy 				= 50
-	const _pointsize 		= 0
+	const _pointsize 		= 10
 	const _weight   		= FW_DONTCARE
 	const _italic  			= 0
 	const _charset			= DEFAULT_CHARSET
-	const _font  			equ "MS Shell Dlg"
+	const _font 			equ "Segoe UI Variable"
 
-	hWnd 					dptr ?
-	idCount 				dw ?
-	sData 					DLG_SERVICEDATA
-	bgColorBrush 			dptr ?
+	idCount 				dd ?
+	sData 					DLG_SERVICE_DATA
+	; bgColorBrush 			dptr ?
 	hDialogTemplate 		dptr ?
 	; lpDialogFunc 			dptr ?
-	hTheme 					dptr ?
+	; hTheme 					dptr ?
 	__close 				dptr ?
 
-	setBgColor				dm this
-	unsetBgColor			dm this
+	; setBgColor				dm this
+	; unsetBgColor			dm this
 	setCaptionColor			dm this
 	setTextColor			dm this
 	setBorderColor			dm this
@@ -90,18 +91,11 @@ struct DIALOGFORM
 	dispatchMessages		dm this
 	startNM					dm this
 	scaleChilds				dm this
-	getString				dm this
+	__scaleChildRects		dm this
 	
 	start 					dm this:inline
-	setText 				dm this:inline
-	getTextLen 				dm this:inline
-	getText 				dm this:inline
 	close 					dm this:inline
 	setIcon 				dm this:inline
-	setEnabled				dm this:inline
-	setVisible				dm this:inline
-	setFocus				dm this:inline
-	invalidate 				dm this:inline
 
 	; getClientSize			dm this:inline
 	; getWindowSize 			dm this:inline
@@ -115,8 +109,8 @@ struct params
 ends
 
 macro dForm formInfo&{
-	local anon
-	make@form anon, formInfo
+	local ..anon
+	make@form ..anon, formInfo
 }
 
 struc dForm formInfo&{
@@ -132,7 +126,7 @@ macro make@form name, formInfo&{
 				formType\#.controls_offsets,\
 				formType\#.hooks\
 			>, \
-			NULL, formType\#_DlgTemplate, \
+			formType\#_DlgTemplate, \
 			NONE, NONE, _initvals
 	rept 0\{\}match formType, formInfo\{
 		name formInfo NONE, \
@@ -143,13 +137,25 @@ macro make@form name, formInfo&{
 				formType\#.controls_offsets,\
 				formType\#.hooks\
 			>, \
-			NULL, formType\#_DlgTemplate, \
+			formType\#_DlgTemplate, \
 			NONE, NONE
 	\}
 }
 
-include "WINUSER\DIALOGFORM\DialogForm.asm"
+EScaleMode enum \
+	simple,\
+	saveStart,\
+	saveEnd,\
+	saveCenter,\
+	saveSizeLeft,\	; _c[x/y]_sticker only
+	saveSizeRight,\	; _[x/y]_sticker only
+	centerScale,\	; _c[x/y]_sticker only
+				\	; only if _[x/y]_sticker = 0
+				\	; align control at center in autoscale
+	ignore=255
+
 include "WINUSER\DIALOGFORM\CONTROL.inc"
+include "WINUSER\DIALOGFORM\DialogForm.asm"
 include "WINUSER\DIALOGFORM\DefaultEvents.asm"
 include "WINUSER\DIALOGFORM\MsgLoopProc.fasm"
 
@@ -234,7 +240,6 @@ macro ShblDialog_Mem formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAP
 	\}
 	@const_align equ 4
 	formType#_DlgTemplate @const const_mem
-	; display formType#_DlgTemplate mod 4
 	restore @const_align
 	purge const_mem 
 }
@@ -318,139 +323,11 @@ macro ShblDialog_Mem_Ex formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_
 			\\\}
 			dw 0 ;extraCount
 			align 4
-			; db (4-($ mod 4)) dup(0) 	; выравнивание
 		\\}
 		formType#.cdit = controlCounter
 	\}
 	@const_align equ 4
 	formType#_DlgTemplate @const const_mem
-	; display formType#_DlgTemplate mod 4
 	restore @const_align
 	purge const_mem 
 }
-
-; macro ShblDialog_Proc_old formType{
-
-; 	proc_noprologue
-
-; 	proc formType#_DialogProc uses pbx, hwndDlg, uMsg, wParam, lParam
-; 		virtObj .this:arg formType at pbx
-; 		@sarg @arg1, @arg2, @arg3, @arg4
-; 		xor eax, eax
-; 		cmp @arg2, WM_INITDIALOG
-; 			je .initEvent
-; 		@call [GetWindowPtrA]([hwndDlg], GWL_USERDATA)
-; 		mov pbx, pax
-; 		xor eax, eax
-; 		mov pdx, [uMsg]
-; 		mov pcx, [wParam]
-; 		irpv evnt, formType#@EventStack\{
-; 			match =.this.WM_INITDIALOG, .this.\#evnt\\{
-; 				rept 0\\{
-; 			\\}
-; 			rept 1\\{
-; 				cmp edx, evnt
-; 					je .eventHandler_\#evnt
-; 			\\}
-; 		\}
-; 		cmp edx, WM_COMMAND
-; 			je .commandEventsChecker
-; 		xor eax, eax
-; 		.return: ret
-
-; 		.initEvent:
-; 			@larg pcx, @arg1, \
-; 				pbx, @arg4
-; 			mov [.this.hWnd], pcx
-; 			@call [SetWindowPtrA]([hwndDlg], GWL_USERDATA, [lParam])
-; 			if formType#.cdit > 0
-; 				locals 
-; 					SavePsi	 	dptr ?
-; 					SavePdi 	dptr ?
-; 				endl
-; 				mov [SavePsi], psi
-; 				mov [SavePdi], pdi
-; 				mov pdi, formType#.cdit
-; 				.init_control_loop:
-; 					mov psi, [.controlsOffsets + (pdi - 1) * pointer.size]
-; 					virtObj .cntrl:arg CONTROL at psi from addr psi + pbx
-; 					mov [.cntrl.ID], di
-; 					@call [GetDlgItem]([.this.hWnd], edi)
-; 					mov [.cntrl.hWnd], pax
-; 					@call [SetWindowPtrA]([.cntrl.hWnd], GWL_USERDATA, psi)
-; 					@call [GetWindowRect]([.cntrl.hWnd], addr .cntrl.baseRect)
-; 					@call [MapWindowPoints](NULL, [.this.hWnd], addr .cntrl.baseRect.left, 2)
-; 					mov eax, [.cntrl.baseRect.left]
-; 					sub [.cntrl.baseRect.right], eax
-; 					mov eax, [.cntrl.baseRect.top]
-; 					sub [.cntrl.baseRect.bottom], eax
-; 				dec pdi
-; 				jnz .init_control_loop
-; 				mov psi, [SavePsi]
-; 				mov pdi, [SavePdi]
-; 			end if
-; 			@call CNV:fill(addr .this.baseRect, .DialogRect, sizeof.RECT)
-; 			@call [MapDialogRect]([hwndDlg], addr .this.baseRect)
-; 			if defined .this.WM_INITDIALOG
-; 				@call [.this.WM_INITDIALOG](addr .this, addr hwndDlg)
-; 			else
-; 				xor eax, eax
-; 			end if
-; 			jmp .return
-
-; 			.DialogRect RECT 0, 0, formType#._cx, formType#._cy
-
-; 			.controlsOffsets:
-; 				irpv cntrl, formType#@ControlStack\{
-; 					dptr formType#.\#cntrl
-; 				\}
-
-; 		irpv evnt, formType#@EventStack\{
-; 			match =.this.WM_INITDIALOG, .this.\#evnt\\{
-; 			rept 0\\{\\}rept 1\\{
-; 				.eventHandler_\#evnt:
-; 					@call [.this.\#evnt](addr .this, addr hwndDlg)
-; 					jmp .return
-; 			\\}
-; 		\}
-
-; 		.commandEventsChecker:
-; 			irpv cntrl, formType#@ControlStack\{
-; 				match TName, cntrl\#.Type\\{
-; 					\\local events_count, events_counter
-; 					events_counter = 0
-
-; 					if events_count > 1
-; 						cmp cx, formType#.\#cntrl\#._id
-; 						jne .nextCntrl\#cntrl
-; 					end if
-
-; 					irpv evnt, TName\\#@EventStack\\\{
-; 						cmp ecx, evnt shl 16 + formType#.\#cntrl\#._id
-; 							je .controlEventHandler_\#cntrl\\\#evnt
-; 						events_counter = events_counter + 1
-; 					\\\}
-; 					events_count = events_counter
-
-; 					if events_count > 1
-; 						.nextCntrl\#cntrl:
-; 					end if
-; 				\\}
-; 			\}
-; 			jmp .return
-
-; 			irpv cntrl, formType#@ControlStack\{
-; 				match TName, cntrl\#.Type\\{
-; 					irpv evnt, TName\\#@EventStack\\\{
-; 						.controlEventHandler_\#cntrl\\\#evnt:
-; 						; int3
-; 							@call [.this.\#cntrl\#.\\\#evnt](addr .this, addr hwndDlg, addr .this.\#cntrl)
-; 							jmp .return
-; 					\\\}
-; 				\\}
-; 			\}
-
-; 	endp
-	
-; 	proc_resprologue
-; }

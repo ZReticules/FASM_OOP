@@ -61,6 +61,125 @@ macro proc_resprologue{
 	restore close@proc 
 }
 
+macro va_list@load counter, ax_destroyed, ax_restored, ax_need_save, size@param, type@param, param{
+	if type@param eq addr
+		repeat 1
+			if param eqtype 0
+				if param relativeto 0
+					mov dword[va@list + counter], param
+					break
+				end if
+				if param relativeto eax & param - eax relativeto 0 & param - eax = 0
+					if ax_destroyed & ~(ax_restored = 1)
+						mov eax, [psp - 4]
+						ax_restored = 1
+					end if
+					mov dword[va@list + counter], eax
+					break
+				end if
+				irp reg, ecx, edx, ebx, esp, ebp, esi, edi \{
+
+				if param relativeto reg & param - reg relativeto 0 & param - reg = 0
+					mov dword[va@list + counter], reg
+					break
+				end if
+
+				\}
+			end if
+			if param eqtype eax
+				if param eq eax & ax_destroyed & ~(ax_restored = 1)
+					mov eax, [psp - 4]
+					ax_restored = 1
+				end if
+				mov dword[va@list + counter], param
+				break
+			end if
+			reg_in_addr check_reg, ax, param
+			if check_reg & ax_destroyed & ~(ax_restored = 1)
+				mov eax, [psp - 4]
+				ax_restored = 0
+			else if ax_need_save & ~ax_destroyed
+				mov [psp - 4], eax
+			end if
+			ax_destroyed = 1
+			lea eax,[param]
+			mov dword[va@list + counter], eax
+		end repeat
+	else if type@param eq sep_qword
+		match _high:_low, param\{
+			if (_high eq eax | _low eq eax) & ax_destroyed & ~(ax_restored = 1)
+				mov eax, [psp - 4]
+				ax_restored = 1
+			end if
+			mov dword[va@list + counter], _low
+			mov dword[va@list + counter + 4], _high
+		\}
+	else if param eqtype [0] | param eqtype byte [0]
+		if size@param = 8
+			movq xmm0, qword param
+			movq qword[va@list + counter], xmm0
+		else 
+			match any1[addr], any1 param\{
+				reg_in_addr check_reg, ax, addr
+				if check_reg & ax_destroyed & ~(ax_restored = 1)
+					mov eax, [psp - 4]
+					ax_restored = 0
+				else if ax_need_save & ~ax_destroyed
+					mov [psp - 4], eax
+				end if
+				ax_destroyed = 1
+			\}
+			if size@param = 4
+				mov eax,param
+				mov dword[va@list + counter],eax
+			else if size@param <> 0
+				if ~(param eq al|param eq ax)
+					movzx eax,param
+				end if
+				mov dword[va@list + counter], eax
+			end if
+		end if
+	else if param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7>
+		if size@param = 4
+			movd dword[va@list + counter],param
+		else if size@param = 8
+			movq dword[va@list + counter],param
+		end if
+	else
+		if size@param = 4
+			if param eq eax & ax_destroyed & ~(ax_restored = 1)
+				mov eax, [psp - 4]
+				ax_restored = 1
+			end if
+			mov dword[va@list + counter],param
+		else if size@param = 8
+			if param eqtype 0
+				mov dword[va@list + counter + 4], (param) shr 32
+				mov dword[va@list + counter], (param) and 0FFFFFFFFh
+			else
+				virtual at $
+					origin = $
+					dq param
+					load opcode qword from origin
+				end virtual
+				mov dword[va@list + counter + 4], (opcode) shr 32
+				mov dword[va@list + counter], (opcode) and 0FFFFFFFFh
+			end if
+		else
+			if (param eq ax | param eq al | param eq ah) & ax_destroyed & ~(ax_restored = 1)
+				mov eax, [psp - 4]
+				ax_restored = 1
+			end if
+			if size@param = 2
+				mov word[va@list + counter], param
+			else
+				mov byte[va@list + counter], param
+			end if
+		end if
+	end if
+
+}
+
 macro base@call clean_stack, action, proc, [arg]{
 	common 
 	local stackspace,..argscount,counter, args@count
@@ -72,7 +191,7 @@ macro base@call clean_stack, action, proc, [arg]{
 	end if
 	match any, arg\{
 
-		local ax_destroyed, ax_restored, ..ax_save, ax_need_save, check_reg
+		local ax_destroyed, ax_restored, ax_need_save, check_reg, opcode,origin
 		ax_destroyed = 0
 		ax_restored = 2
 
@@ -81,8 +200,12 @@ macro base@call clean_stack, action, proc, [arg]{
 		define type@param
 		define definition@param arg
 		param@parser type@param, definition@param
+		match =va_list|_va_list|param, type@param|va@list|definition@param\\{
+			va_list@handler ax_destroyed, ax_restored, ax_need_save, param
+			type@param equ addr
+			define definition@param _va_list
+		\\}
 		match param,definition@param\\{ 
-			local opcode,origin
 			size@param = 4
 			if param eq NONE
 				size@param = 0
@@ -144,53 +267,48 @@ macro base@call clean_stack, action, proc, [arg]{
 
 			if defined current@frame
 				if type@param eq addr
-					if param eqtype 0
-						if param relativeto 0
-							mov dword[esp+(..argscount-counter)*4], param
+					repeat 1
+						if param eqtype 0
+							if param relativeto 0
+								mov dword[esp+(..argscount-counter)*4], param
+								break
+							end if
+							if param relativeto eax & param - eax relativeto 0 & param - eax = 0
+								if ax_destroyed & ~(ax_restored = 1)
+									mov eax, [psp - 4]
+									ax_restored = 1
+								end if
+								mov dword[esp+(..argscount-counter)*4], eax
+								break
+							end if
+							irp reg, ecx, edx, ebx, esp, ebp, esi, edi \\\{
 
-						else if param relativeto eax & param - eax relativeto 0 & param - eax = 0
-							if ax_destroyed & ~(ax_restored = 1)
-								mov eax, [esp - 4]
+							if param relativeto reg & param - reg relativeto 0 & param - reg = 0
+								mov dword[esp+(..argscount-counter)*4], reg
+								break
+							end if
+
+							\\\}
+						end if
+						if param eqtype eax
+							if param eq eax & ax_destroyed & ~(ax_restored = 1)
+								mov eax, [psp - 4]
 								ax_restored = 1
 							end if
-							mov dword[esp+(..argscount-counter)*4], eax
-
-						irp reg, ecx, edx, ebx, esp, ebp, esi, edi \\\{
-
-						else if param relativeto reg & param - reg relativeto 0 & param - reg = 0
-							mov dword[esp+(..argscount-counter)*4], reg
-
-						\\\}
-						else
-							reg_in_addr check_reg, ax, param
-							if check_reg & ax_destroyed & ~(ax_restored = 1)
-								mov eax, [esp - 4]
-								ax_restored = 0
-							else if ax_need_save & ~ax_destroyed
-								mov [esp - 4], eax
-							end if
-							ax_destroyed = 1
-							lea eax,[param]
-							mov [esp+(..argscount-counter)*4], eax
+							mov dword[esp+(..argscount-counter)*4], param
+							break
 						end if
-					else if param eqtype eax
-						if param eq eax & ax_destroyed & ~(ax_restored = 1)
-							mov eax, [esp - 4]
-							ax_restored = 1
-						end if
-						mov dword[esp+(..argscount-counter)*4], param
-					else
 						reg_in_addr check_reg, ax, param
 						if check_reg & ax_destroyed & ~(ax_restored = 1)
-							mov eax, [esp - 4]
+							mov eax, [psp - 4]
 							ax_restored = 0
 						else if ax_need_save & ~ax_destroyed
-							mov [esp - 4], eax
+							mov [psp - 4], eax
 						end if
 						ax_destroyed = 1
 						lea eax,[param]
-						mov [esp+(..argscount-counter)*4], eax
-					end if
+						mov dword[esp+(..argscount-counter)*4], eax
+					end repeat
 				else if type@param eq sep_qword
 					match _high:_low, param\\\{
 						if (_high eq eax | _low eq eax) & ax_destroyed & ~(ax_restored = 1)

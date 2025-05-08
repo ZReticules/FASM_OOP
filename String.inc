@@ -5,10 +5,12 @@
 	include "ParsedDouble.inc"
 
 	struct String
+		const SHORT_STRING_LEN = 24
+
 	    len     dd ?
 	    union
 	        __lpChars   dptr ?
-	        __chars     db pointer.size dup(?)
+	        __chars     db String.SHORT_STRING_LEN dup(?)
 	    ends
 	    __size  dd ?					;Big Endian
 
@@ -47,14 +49,14 @@
     	\}
 	ends
 
-	struct Wstring
-	    len     dd ?
-	    union
-	        __lpChars   dptr ?
-	        __chars     dw (pointer.size / 2) dup(?)
-	    ends
-	    __size  dd ?					;Big Endian
-    ends
+	; struct Wstring
+	;     len     dd ?
+	;     union
+	;         __lpChars   dptr ?
+	;         __chars     dw (pointer.size / 2) dup(?)
+	;     ends
+	;     __size  dd ?					;Big Endian
+    ; ends
 
 	include "String\String.fasm"
 

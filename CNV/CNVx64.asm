@@ -93,7 +93,7 @@ proc CNV.BMPToFile, hBmp, lpFname, bitCount
 	@call [WriteFile]([fHandle], addr bmInfo, sizeof.BITMAPINFO, NULL, NULL)
 	@call [WriteFile]([fHandle], [lpBmBits], [bmInfo.bmiHeader.biSizeImage], NULL, NULL)
 	@call [CloseHandle]([fHandle])
-	@jret CNV:free([lpBmBits])
+	@jret CNV::free([lpBmBits])
 endp
 
 proc CNV.ui64div c, result, dividend, divisor

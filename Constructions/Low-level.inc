@@ -68,6 +68,7 @@
 
 	macro @init_bss{
 		match =@init_bss, @init_bss\{
+			align 64
 			bss_start:
 				rb bss@count
 			define @init_bss
@@ -79,11 +80,13 @@
 		@init_bss
 	}
 
+	@bss_align equ 1
 	macro @bss [args]{
 		common
 		local ..start, ..end
 		virtual at bss_start + bss_count
 			..start = $
+			align @bss_align
 			forward
 			match name Type, args\{
 				name = $
@@ -100,6 +103,7 @@
 		local ..start, ..end
 		virtual at bss_start + bss_count
 			..start:
+			align @bss_align
 			forward
 			args
 			common

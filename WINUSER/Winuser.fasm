@@ -3,7 +3,8 @@ importlib kernel32,\
 
 importlib gdi32,\
 	BitBlt,\
-	CreateRectRgn
+	CreateRectRgn,\
+	GetStockObject
 
 define MAX_PATH 260
 
@@ -118,6 +119,8 @@ proc WND.repaintWindow c, hWnd, hDC, lpRect, hBrush
 	@call gf->createObjects(\
 		<_BMP: [hDC], [bmpSize.x], [bmpSize.y]>, \
 	)
+	@call [GetStockObject](WHITE_BRUSH)
+	@call gf->fillRect([lpRect], pax)
 	@call [SendMessageA]([hWnd], WM_PRINT, [gf.hDC], PRF_CLIENT)
 	@call gf->selectObject([hBrush], Graphics.Brush)
 	@call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], PATINVERT)
@@ -129,9 +132,48 @@ proc WND.repaintWindow c, hWnd, hDC, lpRect, hBrush
 	; local hBmp:POINTER
 	; @call gf->freeObject(Graphics.BMP)
 	; mov [hBmp], pax
-	; @call CNV:BMP2File(pax, "lol.bmp")
+	; @call CNV::BMP2File(pax, "lol.bmp")
 	; @call [DeleteObject]([hBmp])
 
 	@call gf->destroy()
 	ret
 endp
+
+; proc WND.repaintWindowWithBack c, hWnd, hDC, lpRect, hBrush, hBackBrush
+; 	@sarg @arg1, @arg2, @arg3, @arg4
+; 	locals
+; 		bmpSize POINT
+; 		gf 		Graphics
+; 	endl
+; 	@call gf->createCompatible([hDC])
+; 	mov pcx, [lpRect]
+; 	mov eax, [pcx + RECT.right]
+; 	sub eax, [pcx + RECT.left]
+; 	mov [bmpSize.x], eax
+; 	mov eax, [pcx + RECT.bottom]
+; 	sub eax, [pcx + RECT.top]
+; 	mov [bmpSize.y], eax
+	
+; 	; @call [CreateRectRgn]([pcx + RECT.left], [pcx + RECT.top], [pcx + RECT.right], [pcx + RECT.bottom])
+; 	; @call gf->selectObject(pax, Graphics.Rgn)
+; 	@call gf->createObjects(\
+; 		<_BMP: [hDC], [bmpSize.x], [bmpSize.y]>, \
+; 	)
+; 	@call gf->fillRect([lpRect], [hBackBrush])
+; 	@call [SendMessageA]([hWnd], WM_PRINT, [gf.hDC], PRF_CLIENT)
+; 	@call gf->selectObject([hBrush], Graphics.Brush)
+; 	@call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], PATINVERT)
+; 	@call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], DSTINVERT)
+; 	@call gf->freeObject(Graphics.Brush)
+; 	@call [BitBlt]([hDC], 0, 0, [bmpSize.x], [bmpSize.y], \
+; 		[gf.hDC], 0, 0, SRCCOPY)
+	
+; 	; local hBmp:POINTER
+; 	; @call gf->freeObject(Graphics.BMP)
+; 	; mov [hBmp], pax
+; 	; @call CNV::BMP2File(pax, "lol.bmp")
+; 	; @call [DeleteObject]([hBmp])
+
+; 	@call gf->destroy()
+; 	ret
+; endp
