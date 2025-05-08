@@ -217,9 +217,9 @@ macro endp {
 	endp
 }
 
-include_once "TOOLS\FASM_OOP\FASM_OOP.inc"
-include_once "TOOLS\importlib.inc"
-include_once "TOOLS\TLS.inc"
+include_once "FASM_OOP\FASM_OOP.inc"
+include_once "importlib.inc"
+include_once "TLS.inc"
 
 include "cstr\cstr.inc"
 
@@ -230,4 +230,4 @@ macro @arch_include fname, ext=".asm"{
 		\\}
 	\}
 }
-include "TOOLS\CNV\CNV.inc"
+include "CNV\CNV.inc"
