@@ -217,9 +217,9 @@ macro endp {
 	endp
 }
 
-include_once "FASM_OOP\FASM_OOP.inc"
-include_once "importlib.inc"
-include_once "TLS.inc"
+include "FASM_OOP\FASM_OOP.inc"
+include "importlib.inc"
+include "TLS.inc"
 
 include "cstr\cstr.inc"
 
