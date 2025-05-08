@@ -1,4 +1,4 @@
 @module ColorsHook
-	include "TOOLS\Hook.inc"
+	include "..\..\Hook.inc"
 	include "ColorsHook.fasm"
 @endm
