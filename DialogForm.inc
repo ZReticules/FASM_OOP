@@ -314,7 +314,7 @@ macro ShblDialog_Mem_Ex formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_
 				else if TName\\\#.CType eq "ScrollBar"
 					dw 0xFFFF, 0x0083
 				else if TName\\\#.CType eq "ComboBox"
-					dw 0xFFFF, 0x0083
+					dw 0xFFFF, 0x0085
 				else
 					du TName\\\#.CType
 					dw 00h
