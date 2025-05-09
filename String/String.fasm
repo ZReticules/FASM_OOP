@@ -17,10 +17,12 @@ macro String.getLpChars this{
 
     reg_in_addr check_dx, dx, _this
     if ~check_dx
-        movbe edx, [_this + String.__size]
+        mov edx, [_this + String.__size]
+        bswap edx
         cmp edx, String.SHORT_STRING_LEN
     else
-        movbe ecx, [_this + String.__size]
+        mov ecx, [_this + String.__size]
+        bswap ecx
         cmp ecx, String.SHORT_STRING_LEN
     end if
     cmova pax, [_this + String.__lpChars]
@@ -81,7 +83,9 @@ proc String.make c uses pbx, this, size
     ret
 
     .real_alloc:
-        movbe [.this.__size], edx
+        bswap edx
+        mov [.this.__size], edx
+        bswap edx
         @call CNV::alloc(addr edx + 1)
         mov [.this.__lpChars], pax
         ret
@@ -92,13 +96,15 @@ proc String.reallocParam c uses pbx, this, size, minify
     @larg pdx, @arg2
     switch @arg3
         case 0
-            movbe eax, [.this.__size]
+            mov eax, [.this.__size]
+            bswap eax
             cmp eax, edx
                 jae .return
     end_switch
     cmp edx, String.SHORT_STRING_LEN
     seta al
-    movbe ecx, [.this.__size]
+    mov ecx, [.this.__size]
+    bswap ecx
     cmp ecx, String.SHORT_STRING_LEN
     seta cl
     and ecx, 0x1
@@ -117,7 +123,9 @@ proc String.reallocParam c uses pbx, this, size, minify
         ret
 
     .dest_low:
-        movbe [.this.__size], edx
+        bswap edx
+        mov [.this.__size], edx
+        bswap edx
         @call CNV::alloc(addr edx + 1)
         mov pdx, [.this.__lpChars]
         mov pointer[pax], pdx
@@ -138,7 +146,9 @@ proc String.reallocParam c uses pbx, this, size, minify
         ret
 
     .no_low:
-        movbe [.this.__size], edx
+        bswap edx
+        mov [.this.__size], edx
+        bswap edx
         cmp [.this.len], edx
         jb .no_cut
             mov [.this.len], edx
@@ -156,7 +166,8 @@ proc String.unmake c, this
     xor pax, pax
     xchg pax, [.this.__lpChars]
     mov [.this.len], 0
-    movbe edx, [.this.__size]
+    mov edx, [.this.__size]
+    bswap edx
     mov [.this.__size], DW_BE_PSIZE
     cmp edx, String.SHORT_STRING_LEN
     jbe .no_free
@@ -178,7 +189,8 @@ proc String.fromChars c uses pbx psi pdi, this, lpChars, bCount
             jz .zero_bytes
         mov [bCount], pax
     .no_asciiz:
-    movbe edx, [.this.__size]
+    mov edx, [.this.__size]
+    bswap edx
     cmp eax, edx
     jbe .no_realloc
         @call .this->realloc([bCount])
@@ -212,7 +224,8 @@ proc String.addChars c uses pbx psi pdi, this, lpChars, bCount
         mov [bCount], pax
     .no_asciiz:
     add eax, [.this.len]
-    movbe edx, [.this.__size]
+    mov edx, [.this.__size]
+    bswap edx
     cmp eax, edx
     jbe .no_realloc
         @call .this->realloc(addr eax + 1)
@@ -297,7 +310,8 @@ proc String.fromChar c uses pdi, this, bVal, bCount
     virtObj .this:arg String at pdi from @arg1
     @sarg @arg2, @arg3
     @larg pax, @arg3
-    movbe edx, [.this.__size]
+    mov edx, [.this.__size]
+    bswap edx
     cmp edx, eax
     jae .no_realloc
         @call .this->realloc(pax)
@@ -322,7 +336,8 @@ proc String.addChar c uses pdi, this, bVal, bCount
     @sarg @arg2, @arg3
     @larg pax, @arg3
     add eax, [.this.len]
-    movbe edx, [.this.__size]
+    mov edx, [.this.__size]
+    bswap edx
     cmp edx, eax
     jae .no_realloc
         @call .this->realloc(pax)
@@ -345,7 +360,8 @@ proc String.fromInt c uses pbx psi, this, num, radix, isSigned
     virtObj .this:arg String at pbx from @arg1
 
     and psi, 1
-    movbe edx, [.this.__size]
+    mov edx, [.this.__size]
+    bswap edx
     cmp edx, 66
     jae .no_realloc
         @call .this->realloc(65)
@@ -364,7 +380,8 @@ proc String.addInt c uses pbx psi, this, num, radix, isSigned
 
     mov eax, [.this.len]
     add eax, 66
-    movbe edx, [.this.__size]
+    mov edx, [.this.__size]
+    bswap edx
     cmp eax, edx
     jbe .no_realloc
         @call .this->realloc(pax)
@@ -387,7 +404,8 @@ proc String.fromInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
     virtObj .this:arg String at pbx from @arg1
 
     and psi, 1
-    movbe edx, [.this.__size]
+    mov edx, [.this.__size]
+    bswap edx
     cmp edx, 66
     jae .no_realloc
         @call .this->realloc(65)
@@ -406,7 +424,8 @@ proc String.addInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
 
     mov eax, [.this.len]
     add eax, 66
-    movbe edx, [.this.__size]
+    mov edx, [.this.__size]
+    bswap edx
     cmp eax, edx
     jbe .no_realloc
         @call .this->realloc(pax)
@@ -430,7 +449,8 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
         buf String 0, 0, 0
         result String
     endl
-    movbe edx, [.this.__size]
+    mov edx, [.this.__size]
+    bswap edx
     @call result->make(edx)
     @call buf->make(256)
     xor pbp, pbp
@@ -807,7 +827,8 @@ proc String.streamRead c uses pbx psi pdi, this, fp, delimiter:DWORD, delimiter_
             end_switch
             mov byte[pdi + psi], al
             inc psi
-        movbe edx, [.this.__size]
+        mov edx, [.this.__size]
+        bswap edx
         cmp esi, edx
         jl .read_chars
         @call .this->realloc(addr pdx + .len_buf)

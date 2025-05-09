@@ -8,7 +8,7 @@ importlib gdi32,\
     GetCharWidth32A
 
 @const_align equ 16
-MapDialog.shiftMap @const dd 2, 3, 2, 3
+; MapDialog.shiftMap @const dd 2, 3, 2, 3
 MapDialog.addMap @const dd 2, 4, 2, 4
 ; MapDialog.andMask @const dd 11b, 111b, 11b, 111b
 ; MapDialog.shiftMap2 @const dd 1, 2, 1, 2
@@ -45,8 +45,13 @@ macro MapDialog.mapRect this, lpRect{
     punpcklqdq xmm1, xmm1                ; xmmN[127:64]=xmmN[63:0]
     pmulld xmm0, xmm1
     paddd xmm0, [MapDialog.addMap]
-    vpsrlvd xmm0, xmm0, [MapDialog.shiftMap]
+    ; pshufd xmm0, xmm0, 
+    ; vpsrlvd xmm0, xmm0, [MapDialog.shiftMap]
     movups xword[_rect], xmm0
+    shr [_rect + RECT.left], 1
+    shr [_rect + RECT.top], 2
+    shr [_rect + RECT.right], 1
+    shr [_rect + RECT.bottom], 2
 }
 
 ; proc MapDialog.mapRect, hwndDlg, lpRect
