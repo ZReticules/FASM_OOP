@@ -1,7 +1,7 @@
 macro LISTBOX.addItem this, lpCstr{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTBOX.hWnd], LB_ADDSTRING, NULL, "ASCII")
+	@call [SendMessageA]([_this + LISTBOX.hWnd], LB_ADDSTRING, NULL, lpCstr)
 }
 
 macro LISTBOX.deleteItem this, index{
