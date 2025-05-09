@@ -33,10 +33,6 @@
 		const CType equ "Button"
 	ends
 
-	struct LISTBOX CONTROL
-		const CType equ "Listbox"
-	ends
-
 	struct TABCONTROL CONTROL
 		const CType equ "SysTabControl32"
 	ends
@@ -49,6 +45,7 @@
 
 	include "STATIC.inc"
 	include "EDIT.inc"
+	include "LISTBOX.inc"
 	include "COMBOBOX.inc"
 
 @endm
