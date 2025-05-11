@@ -13,7 +13,7 @@ macro LISTBOX.deleteItem this, index{
 macro LISTBOX.getCount this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTBOX.hWnd], LB_GETCOUNT, index, NULL)
+	@call [SendMessageA]([_this + LISTBOX.hWnd], LB_GETCOUNT, NULL, NULL)
 }
 
 macro LISTBOX.getSelected this{

@@ -100,8 +100,8 @@ proc COMInfo.getPortNameChars c uses pbx psi pdi, this, strLp, size
 endp
 
 proc COMInfo.getPortNameString c uses pbx psi pdi, _this, lpString
-	@virtObj this:arg COMInfo at pbx from @arg1
-	@virtObj strDest:arg String at pdi from @arg2
+	virtObj .this:arg COMInfo at pbx from @arg1
+	virtObj .strDest:arg String at pdi from @arg2
 	
 	hDeviceKey_r equ psi
 	locals
@@ -109,7 +109,7 @@ proc COMInfo.getPortNameString c uses pbx psi pdi, _this, lpString
 		dwType dd ?
 	endl
 
-	@call [SetupDiOpenDevRegKey]([this.hDevInfoSet], addr this.devInfo,\
+	@call [SetupDiOpenDevRegKey]([.this.hDevInfoSet], addr .this.devInfo,\
             DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_QUERY_VALUE)
 	test eax, eax
 	mov hDeviceKey_r, pax
@@ -117,7 +117,7 @@ proc COMInfo.getPortNameString c uses pbx psi pdi, _this, lpString
 		jz .return
 	@call [RegQueryValueExA](hDeviceKey_r, "PortName", NULL,\
 			addr dwType, NULL, addr dwDataSize)
-	@call strDest->realloc([dwDataSize])->getLpChars()
+	@call .strDest->realloc([dwDataSize])->getLpChars()
 	@call [RegQueryValueExA](hDeviceKey_r, "PortName", NULL,\
 			addr dwType, pax, addr dwDataSize)
 
@@ -164,22 +164,22 @@ proc COMInfo.getPortInfoChars c uses psi pdi, this, strLp, maxLen, typeInfo
 endp
 
 proc COMInfo.getPortInfoString c uses psi pdi, _this, lpString, typeInfo
-	@virtObj this:arg COMInfo at psi from @arg1
-	@virtObj string:arg String at pdi from @arg2
+	virtObj .this:arg COMInfo at psi from @arg1
+	virtObj .string:arg String at pdi from @arg2
 	@sarg @arg3
 
 	locals
 		dwDataSize 	dd ?
 		dwType 		dd ?
 	endl
-	@call [SetupDiGetDeviceRegistryPropertyA]([this.hDevInfoSet], addr this.devInfo,\
+	@call [SetupDiGetDeviceRegistryPropertyA]([.this.hDevInfoSet], addr .this.devInfo,\
 	 		@arg3, addr dwType, NULL, 0, addr dwDataSize)
-	@call string->realloc([dwDataSize])->getLpChars()
-	@call [SetupDiGetDeviceRegistryPropertyA]([this.hDevInfoSet], addr this.devInfo,\
+	@call .string->realloc([dwDataSize])->getLpChars()
+	@call [SetupDiGetDeviceRegistryPropertyA]([.this.hDevInfoSet], addr .this.devInfo,\
 	 		[typeInfo], addr dwType, pax, [dwDataSize], addr dwDataSize)
 	mov eax, [dwDataSize]
 	dec eax
-	mov [string.len], eax
+	mov [.string.len], eax
 	.return: ret
 endp
 

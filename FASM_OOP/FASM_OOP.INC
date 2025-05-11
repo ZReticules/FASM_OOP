@@ -281,7 +281,7 @@ macro def@fields@virt name, def, [val]{
 	\}
 	all@vars equ all@vars name
    	forward
-	local ..var,..tmp
+	local ..var
 	..var def val
    	common
 	match first rest, ..var, \{ 
