@@ -797,18 +797,19 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
         .errors @const dptr .nan, .inf
 endp
 
-proc String.streamRead c uses pbx psi pdi, this, fp, delimiter:DWORD, delimiter_callback, eof_callback, lParam
+proc String.streamRead c uses pbx psi pdi pbp, this, fp, delimiter:DWORD, delimiter_callback, eof_callback, lParam
     .len_buf = 4096
     @sarg @arg2, @arg3, @arg4
+    @larg pbp, @arg2
     virtObj .this:arg String at pbx from @arg1
-    local callback:POINTER, saveAx:DWORD
+    local saveAx:DWORD
 
     xor psi, psi
     .string_realloc:
         @call .this->getLpChars()
         mov pdi, pax
         .read_chars:
-            @call c [fgetc]([fp])
+            @call c [fgetc](pbp)
             switch eax
                 case -1, 0x1A, [delimiter]
                     mov [saveAx], eax
@@ -818,6 +819,7 @@ proc String.streamRead c uses pbx psi pdi, this, fp, delimiter:DWORD, delimiter_
                     cmp eax, 0x1A
                     sete al
                     cmp [delimiter_callback + pax * pointer.size], NULL
+                        cmove eax, [saveAx]
                         je end_case
 
                     mov byte[pdi + psi], 0
