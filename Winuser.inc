@@ -1,4 +1,6 @@
 @module Winuser
+	
+	include "String.inc"
 
 
 	; NM_OUTOFMEMORY     	= (NM_FIRST-1)
@@ -136,10 +138,12 @@
 		killTimer				dm this:inline
 		taskDlg 				dm this:inline
 		deleteStockIcon			dm this:inline
+		dragFilesCount			dm this:inline
 
 		repaintWindow			dm this
 		; repaintWindowWithBack	dm this
 		getStockIcon			dm this
+		dragFileNameString		dm this
 		
 		const darkThemeColor 	equ 0x333333
 		const darkThemeCFD		equ L "DarkMode_CFD"

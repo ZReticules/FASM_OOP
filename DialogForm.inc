@@ -1,5 +1,4 @@
 include "WINUSER\DialogForm\dialogform_specialfields.inc"
-include "String.inc"
 
 match =x64, __architecture{
 	SetWindowPtrA fix SetWindowLongPtrA

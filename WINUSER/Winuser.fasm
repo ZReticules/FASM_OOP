@@ -5,6 +5,8 @@ importlib gdi32,\
 	BitBlt,\
 	CreateRectRgn,\
 	GetStockObject
+importlib shell32,\
+	DragQueryFileA
 
 define MAX_PATH 260
 
@@ -138,6 +140,22 @@ proc WND.repaintWindow c, hWnd, hDC, lpRect, hBrush
 	@call gf->destroy()
 	ret
 endp
+
+proc WND.dragFileNameString c uses pbx, lpString, hDrop, dragIndex
+	virtObj .strDest:arg String at pbx from @arg1
+	@sarg @arg2, @arg3
+	local fSize:POINTER
+	@call [fSize] = [DragQueryFileA]([hDrop], @arg3, NULL, 0)
+	@call .strDest->realloc([fSize])->getLpChars()
+	mov pdx, [fSize]
+	inc pdx
+	@call [DragQueryFileA]([hDrop], [dragIndex], pax, pdx)
+	ret
+endp
+
+macro WND.dragFilesCount hDrop{
+	@call [DragQueryFileA](hDrop, 0xFFFFFFFF, NULL, 0)
+}
 
 ; proc WND.repaintWindowWithBack c, hWnd, hDC, lpRect, hBrush, hBackBrush
 ; 	@sarg @arg1, @arg2, @arg3, @arg4

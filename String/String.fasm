@@ -10,6 +10,11 @@ macro String.print this, fp=[stdout]{
     @call c [fputs](pax, fp)
 }
 
+macro String.println this, fp=[stdout]{
+    @call String::getLpChars(this)
+    @call c [puts](pax)
+}
+
 macro String.getLpChars this{
     local _this, check_dx
     inlineObj _this, this, pcx
