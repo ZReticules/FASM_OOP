@@ -261,6 +261,7 @@
 				endl
 			\\}
 		\}
+		common
 		macro ret operand\{
 			match any, operand\\{
 				ret operand
@@ -271,6 +272,7 @@
 						@call del->unmake()	
 					\\\\}
 				\\\}
+				ret
 			\\}
 		\}
 	}

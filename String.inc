@@ -15,6 +15,7 @@
 	    __size  dd ?					;Big Endian
 
 	    print       dm this:inline		;()
+	    println     dm this:inline		;()
 	    getLpChars  dm this:inline		;()
 	    flush       dm this:inline		;()
 	    input       dm this:inline		;()
@@ -36,6 +37,7 @@
 	    slice       	dm this			;(indexFrom,indexTo) 
 	    sprintf     	dm this			;(fstr, ...)
 	    streamRead		dm this			;(fp, delimiter, delimiter_callback, eof_callback, lParam)
+	    								;delimiter_callback(lpStrilgLine, lParam)
 	    read 			dm this			;(fstream)
 	    parseInt		dm this			;(radix)
 

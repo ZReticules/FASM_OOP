@@ -71,6 +71,8 @@ macro WINAPI_WINDOW.setRedraw this, needRedraw{
 	@call [SendMessageA]([_this + WINAPI_WINDOW.hWnd], WM_SETREDRAW, needRedraw, NULL)
 }
 
+proc_noprologue
+
 proc WINAPI_WINDOW.getString c uses pbx pdi, this, lpString
 	; int3
 	@sarg @arg2
@@ -95,3 +97,5 @@ proc WINAPI_WINDOW.setString c uses pbx pdi, this, lpString
 	@call [SetWindowTextA]([.this.hWnd], pax)
 	ret
 endp
+
+proc_resprologue

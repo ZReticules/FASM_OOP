@@ -150,6 +150,7 @@ proc WND.dragFileNameString c uses pbx, lpString, hDrop, dragIndex
 	mov pdx, [fSize]
 	inc pdx
 	@call [DragQueryFileA]([hDrop], [dragIndex], pax, pdx)
+	mov [.strDest.len], eax
 	ret
 endp
 
