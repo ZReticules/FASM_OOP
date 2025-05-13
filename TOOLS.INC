@@ -35,16 +35,28 @@ define UINT64_MAX 	0FFFFFFFFFFFFFFFFh
 ; va_list@counter equ
 ; va_list@count equ
 
-
-macro deflocal@proc name,def,[val] { 
-	common
-	match vars, all@vars \{ 
-		all@vars equ all@vars, 
-	\}
-	all@vars equ all@vars name
-   	forward
+purge deflocal@proc
+macro deflocal@proc name,def, val& { 
+	; common
+	; match vars, all@vars \{ 
+	; 	all@vars equ all@vars, 
+	; \}
+	all@vars equ name
+	; match any, all@vars\{
+	; 	display \`any
+	; \}
+	; display `name, 0Ah
+   	; forward
 	local ..var,..tmp
+	; display `..var, 0Ah
+	
 	..var def val
+	; match all,all@vars \{
+	; 	; \reverse 
+	; 	display \`all, 0Ah
+	; 	; restore all
+	; 	; restore all@vars 
+	; \}
 	match =?, val \{ 
 		..tmp equ 
 	\}
@@ -65,8 +77,9 @@ macro deflocal@proc name,def,[val] {
 		initlocal@proc ..var,def value
 		virtual at tmp
 	\}
-   	common
+   	; common
 	match first rest, ..var, \{ 
+		; display `..var, 0Ah
 		name equ first 
 	\} 
 }
@@ -103,7 +116,7 @@ macro define@proc name,statement{
 	parmbytes = $-(parmbase@proc)
 	end virtual
 	name # % = parmbytes/pointer.size
-	all@vars equ
+	; all@vars equ
 	current = 0
 	macro locals \{ 
 		virtual at localbase@proc+current
@@ -208,13 +221,30 @@ macro define@proc name,statement{
 	locals 
 		va_list rb va_list_count
 	endl
+	; match all,all@vars \{
+	; 	; \reverse 
+	; 	display \`all, 0Ah
+	; 	; restore all
+	; 	; restore all@vars 
+	; \}
 	va@list equ va_list
 }
 
 macro endp {
 	va_list@count = va_list@counter
 	restore va@list, va_list@counter, va_list@count
-	endp
+ 	purge ret,locals,endl
+	finish@proc
+	purge finish@proc
+	restore regs@proc
+	match all,args@proc \{ restore all \}
+	restore args@proc
+	irpv all,all@vars \{
+		\reverse 
+		; display \`all, 0Ah
+		\restore all
+		\restore all@vars 
+	\}
 }
 
 include "FASM_OOP\FASM_OOP.inc"

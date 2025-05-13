@@ -224,7 +224,7 @@ FILL_SAVE_DI 	= 2
 FILL_FORCEALIGN_SRC		= 4
 FILL_FORCEALIGN_DST		= 8
 FILL_FORCEALIGN_BOTH	= FILL_FORCEALIGN_SRC or FILL_FORCEALIGN_DST
-
+e = CNV.__fill
 proc CNV.__fill c uses pdi psi, dst, src, size
 	@larg pdi, @arg1, psi, @arg2, pcx, @arg3
 	rep movsb

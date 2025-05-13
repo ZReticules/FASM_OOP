@@ -75,14 +75,14 @@ macro COMBOBOX.getItemText this, idItem, lpString{
 proc_noprologue
 
 proc COMBOBOX.getItemString c uses pbx pdi psi, _this, idItem, lpString
-	@virtObj this:arg COMBOBOX at pbx from @arg1
+	virtObj .this:arg COMBOBOX at pbx from @arg1
 	@larg psi, @arg2
-	@virtObj strDest:arg String at pdi from @arg3
+	virtObj .strDest:arg String at pdi from @arg3
 
-	@call [SendMessageA]([this.hWnd], CB_GETLBTEXTLEN, psi, NULL)
-	mov [strDest.len], eax
-	@call strDest->realloc(addr pax + 1)->getLpChars()
-	@call [SendMessageA]([this.hWnd], CB_GETLBTEXT, psi, pax)
+	@call [SendMessageA]([.this.hWnd], CB_GETLBTEXTLEN, psi, NULL)
+	mov [.strDest.len], eax
+	@call .strDest->realloc(addr pax + 1)->getLpChars()
+	@call [SendMessageA]([.this.hWnd], CB_GETLBTEXT, psi, pax)
 	ret
 endp
 

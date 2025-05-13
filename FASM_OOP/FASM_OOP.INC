@@ -261,33 +261,49 @@ macro virtObj args&{
 	\}
 }
 
-macro def@fields@virt name, def, [val]{
-	; match any, name\{
-	; 	display \`any, 0Ah
-	; \}
-	; match =all@vars, all@vars\{
-	; 	match vars, all@vars \\{ 
-	; 		all@vars equ all@vars, 
-	; 	\\}
-	; 	all@vars equ all@vars name
-	; \}
-	; local ..var,..tmp
-	; display `..var, " ", `name, " ", `def, 0Ah
-	; ..var def val
-	; name equ ..var
-	common
-	match vars, all@vars \{ 
-		all@vars equ all@vars, 
+macro def_def@fields@virt{
+	macro def@fields@virt sub_struct, base_addr, obj_name, struct_name, [name, type, def]\{
+		\common
+		match =1, sub_struct\\{ rept 0\\{\\} rept 1\\{
+			; display \`obj_name, ' ', \`struct_name, 0Ah
+			; match vars, all@vars \\\{ 
+			; 	all@vars equ all@vars, 
+			; \\\}
+			all@vars equ obj_name, obj_name\#.Type, obj_name\#.size, obj_name\#.Table
+			obj_name\#.Type equ sub_struct
+			; define obj_name\#.TypeName  \`struct_name
+			obj_name\#.size equ (sizeof.\#struct_name)
+			obj_name\#.Table equ struct_name\#.Table
+			obj_name equ base_addr
+		\\}
+		\forward
+		match any, name\\{
+		; match =substruct, struct_name\\\{
+		; 	display name, type, def
+		; \\\}
+			; match fname, struct_name\#.\#name\\\{
+			; 	display 09h, \\\`fname, " ", \`type, 0Ah
+			; \\\}
+			match =fields@\#type, fields@\#type\\\{
+				; match vars, all@vars \\\\{ 
+				; 	all@vars equ all@vars, 
+				; \\\\}
+				all@vars equ obj_name\#.\#name
+				obj_name\#.\#name equ base_addr + struct_name\#.\#name
+			rept 0\\\{\\\} match any, fields@\#type\\\{
+				\def_def@fields@virt
+				def@fields@virt type, base_addr, obj_name\#.\#name, struct_name\#.\#name, any
+				; display any
+			\\\}
+		rept 0\\{\\} match =,any, def\\{
+			\def_def@fields@virt
+			; display \`type, 0Ah
+			def@fields@virt 1, base_addr, obj_name, struct_name, any
+		\\}
 	\}
-	all@vars equ all@vars name
-   	forward
-	local ..var
-	..var def val
-   	common
-	match first rest, ..var, \{ 
-		name equ first 
-	\} 
 }
+
+def_def@fields@virt
 
 macro @virtObj [argums]{
 	common
@@ -306,48 +322,25 @@ macro @virtObj [argums]{
 		define argums_statement any
 	\}
 	match name:=arg type, argums_statement\{
+		name\#.Lp equ register
 		nameof equ name
 		typeof equ type
 		match =1|reg, type\#@Virtual|register\\{
 			restore register
-			register equ reg - pointer.size
+			register equ reg + pointer.size
 		\\}
 		restore argums_statement
 		define argums_statement
 	\}
 	match name type, argums_statement\{
-		; display \`name
+		name\#.Lp equ register
 		nameof equ name
 		typeof equ type
 	\}
 	match reg|name|type, register|nameof|typeof\{
-		; match vars, all@vars \\{ 
-		; 	all@vars equ all@vars, 
-		; \\}
-		; all@vars equ all@vars name
-		macro label def \\{ 
-			match . type, def> \\\{ 
-				def@fields@virt .,label,<type 
-			\\\} 
+		match any, fields@\#type\\{
+			def@fields@virt type, reg, name, type, any
 		\\}
-		irp def, db, du, dw, dp, dd, dt, dq \\{
-			struc def val& \\\{ 
-				def@fields@virt ., def, val 
-			\\\}
-		\\}
-		irp def, rb, rw, rp, rd, rt, rq\\{
-			struc def cnt& \\\{ 
-				def@fields@virt ., def cnt, 
-			\\\}
-		\\}
-		virtual at reg
-			forward
-			name type
-			common
-		end virtual
-		purge label
-		restruc db,du,dw,dp,dd,dt,dq
-		restruc rb,rw,rp,rd,rt,rq
 		match =addr any, source\\{
 			if ~reg eq any
 				if any eqtype 0 & any relativeto 0
@@ -363,6 +356,109 @@ macro @virtObj [argums]{
 		\\}
 	\}
 }
+
+; macro def@fields@virt name, def, [val]{
+; 	; match any, name\{
+; 	; 	display \`any, 0Ah
+; 	; \}
+; 	; match =all@vars, all@vars\{
+; 	; 	match vars, all@vars \\{ 
+; 	; 		all@vars equ all@vars, 
+; 	; 	\\}
+; 	; 	all@vars equ all@vars name
+; 	; \}
+; 	; local ..var,..tmp
+; 	; display `..var, " ", `name, " ", `def, 0Ah
+; 	; ..var def val
+; 	; name equ ..var
+; 	common
+; 	; match vars, all@vars \{ 
+; 	; 	_all@vars equ _all@vars, 
+; 	; \}
+; 	all@vars equ name
+;    	forward
+; 	local ..var
+; 	..var def val
+;    	common
+; 	match first rest, ..var, \{ 
+; 		name equ first 
+; 	\} 
+; }
+
+; macro @virtObj [argums]{
+; 	common
+; 	local register, typeof, nameof, argums_statement, source
+; 	source equ
+; 	register equ pcx
+; 	define argums_statement argums
+; 	match any =from srcval, argums_statement\{
+; 		source equ srcval
+; 		restore argums_statement
+; 		define argums_statement any
+; 	\}
+; 	match any =at reg, argums_statement\{
+; 		register equ reg
+; 		restore argums_statement
+; 		define argums_statement any
+; 	\}
+; 	match name:=arg type, argums_statement\{
+; 		nameof equ name
+; 		typeof equ type
+; 		match =1|reg, type\#@Virtual|register\\{
+; 			restore register
+; 			register equ reg - pointer.size
+; 		\\}
+; 		restore argums_statement
+; 		define argums_statement
+; 	\}
+; 	match name type, argums_statement\{
+; 		; display \`name
+; 		nameof equ name
+; 		typeof equ type
+; 	\}
+; 	match reg|name|type, register|nameof|typeof\{
+; 		; match vars, all@vars \\{ 
+; 		; 	all@vars equ all@vars, 
+; 		; \\}
+; 		; all@vars equ all@vars name
+; 		macro label def \\{ 
+; 			match . type, def> \\\{ 
+; 				def@fields@virt .,label,<type 
+; 			\\\} 
+; 		\\}
+; 		irp def, db, du, dw, dp, dd, dt, dq \\{
+; 			struc def val& \\\{ 
+; 				def@fields@virt ., def, val 
+; 			\\\}
+; 		\\}
+; 		irp def, rb, rw, rp, rd, rt, rq\\{
+; 			struc def cnt& \\\{ 
+; 				def@fields@virt ., def cnt, 
+; 			\\\}
+; 		\\}
+; 		virtual at reg
+; 			forward
+; 			name type
+; 			common
+; 		end virtual
+; 		purge label
+; 		restruc db,du,dw,dp,dd,dt,dq
+; 		restruc rb,rw,rp,rd,rt,rq
+; 		match =addr any, source\\{
+; 			if ~reg eq any
+; 				if any eqtype 0 & any relativeto 0
+; 					mov reg, any
+; 				else
+; 					lea reg, [any]
+; 				end if
+; 			end if
+; 		rept 0\\{\\} match any, source\\{
+; 			if ~source eq reg
+; 				mov reg, source
+; 			end if
+; 		\\}
+; 	\}
+; }
 
 macro @init_liters{
 	match =@init_liters, @init_liters\{
