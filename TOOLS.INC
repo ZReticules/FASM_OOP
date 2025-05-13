@@ -240,9 +240,9 @@ macro endp {
 	match all,args@proc \{ restore all \}
 	restore args@proc
 	irpv all,all@vars \{
-		\reverse 
-		; display \`all, 0Ah
+		\common 
 		\restore all
+		\reverse 
 		\restore all@vars 
 	\}
 }
