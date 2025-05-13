@@ -215,7 +215,7 @@
 			store byte byte_val at switch@lastcode + %-1
 		end repeat
 		end_case:
-		restore switch@lastcode, switch@last, switched@last, switch_megalabel@last, switch@datalen
+		restore switch@lastcode, switch@last, switched@last, switch_megalabel@last, switch@datalen, case@default
 		restore end_case, start_case
 	}
 
