@@ -99,6 +99,7 @@ macro @init_tls{
 			\\}
 			false_TLS._exit:
 			irpv mac, TLS_Marcoses_end\\{
+				\\reverse
 				match macr, mac\\\{
 					macr
 				\\\}
@@ -122,7 +123,6 @@ macro @init_tls{
 						; match name, \\\`mac\\\{display name\\\}
 					\\}
 
-				@call c [puts]("TLS start")
 				if false_TLS._exit <> false_TLS._end
 					jmp TLS.startAndEndInit.return
 				end if

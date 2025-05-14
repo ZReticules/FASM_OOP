@@ -627,7 +627,7 @@ macro @oopcall proc,[arg]{
 								mov rax, [psp - 8]
 								ax_restored = 1
 							end if
-							mov qword[rsp + (..argscount - counter) * 8], eax
+							mov qword[rsp + (..argscount - counter) * 8], pax
 							break
 						end if
 						irp reg, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 \\{
