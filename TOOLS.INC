@@ -11,17 +11,15 @@ match =x64, __architecture{
 	macro thiscall args&\{
 		@oopcall args
 	\}
-	purge defargs@proc
-	purge endp
 }
 
 match =x86, __architecture{
 	include "win32ax.inc"
 	purge stdcall, stdcall
 	purge ccall, ccall
-	purge defargs@proc
-	purge endp
 }
+purge defargs@proc
+purge endp
 
 define INT_MIN 	80000000h
 define INT_MAX 	7FFFFFFFh
@@ -94,20 +92,34 @@ macro define@proc name,statement{
    	va_list@count equ va_list_count
 	
 	name:
-	match =stdcall args, statement \{ params equ args
-	             flag = 11b \}
-	match =stdcall, statement \{ params equ
-	        flag = 11b \}
-	match =c args, statement \{ params equ args
-	            flag = 10001b \}
-	match =c, statement \{ params equ
-	       flag = 10001b \}
-	match =params, params \{ params equ statement
-	         flag = 0 \}
-	match =uses reglist=,args, params \{ regs equ reglist
-	           params equ args \}
-	match =regs =uses reglist, regs params \{ regs equ reglist
-	                params equ \}
+	match =stdcall args, statement \{ 
+		params equ args
+		flag = 11b 
+	\}
+	match =stdcall, statement \{ 
+		params equ
+	    flag = 11b 
+    \}
+	match =c args, statement \{ 
+		params equ args
+	    flag = 10001b 
+    \}
+	match =c, statement \{ 
+		params equ
+	    flag = 10001b 
+    \}
+	match =params, params \{ 
+		params equ statement
+	    flag = 0 
+    \}
+	match =uses reglist=,args, params \{ 
+		regs equ reglist
+	    params equ args 
+    \}
+	match =regs =uses reglist, regs params \{ 
+		regs equ reglist
+	    params equ 
+    \}
 	match =regs, regs \{ regs equ \}
 	match prologue:reglist, prologue@proc:<regs> \{ prologue name,flag,parmbytes,localbytes,reglist \}
 	virtual at parmbase@proc

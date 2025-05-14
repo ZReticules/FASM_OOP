@@ -102,12 +102,8 @@ macro @init_tls{
 			proc_noprologue
 			proc TLS._init, handle, reason, reserved
 				@sarg @arg1, @arg2
-				cmp @arg2, TLS_THREAD_ATTACH
+				cmp @arg2, DLL_PROCESS_ATTACH
 				jne TLS._init.no_start_tls
-					cmp [TLS._init.idProcess], 0
-						jne TLS._init.return
-					@call [GetCurrentThreadId]()
-					mov [TLS._init.idProcess], pax
 					irpv mac, TLS_Marcoses\\{
 						match macr, mac\\\{
 							macr
@@ -115,16 +111,14 @@ macro @init_tls{
 						; match name, \\\`mac\\\{display name\\\}
 					\\}
 
+				@call c [puts]("TLS start")
 				if false_TLS._exit <> false_TLS._end
 					jmp TLS._init.return
 				end if
 				TLS._init.no_start_tls:
 				if false_TLS._exit <> false_TLS._end
-					cmp @arg2, TLS_THREAD_DETACH
+					cmp @arg2, DLL_PROCESS_DETACH
 					jne TLS._init.return
-						@call [GetCurrentThreadId]()
-						cmp [TLS._init.idProcess], pax
-							jne TLS._init.return
 						irpv mac, TLS_Marcoses_end\\{
 							\\reverse
 							match macr, mac\\\{
@@ -134,7 +128,6 @@ macro @init_tls{
 						\\}
 				end if
 				TLS._init.return: ret
-				TLS._init.idProcess dptr 0
 			endp
 			proc_resprologue
 			TLS_AddCallback TLS._init
