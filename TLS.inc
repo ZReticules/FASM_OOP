@@ -9,10 +9,15 @@ ends
 
 Has_Tls = 0
 
+virtual at 0
+	TLS_Callbacks::
+end virtual
+
 macro TLS_AddCallback [args]{
-	TLS_Callbacks equ args
-	Has_Tls = args
 	common
+	virtual TLS_Callbacks
+		dptr args
+	end virtual
 	Has_Tls = 1
 }
 
@@ -23,8 +28,10 @@ importlib kernel32,\
 	TlsGetValue,\
 	TlsSetValue
 
-TLS_THREAD_ATTACH equ 1
-TLS_THREAD_DETACH equ 3
+TLS_PROCESS_DETACH 	= DLL_PROCESS_DETACH
+TLS_PROCESS_ATTACH 	= DLL_PROCESS_ATTACH
+TLS_THREAD_ATTACH 	= DLL_THREAD_ATTACH
+TLS_THREAD_DETACH 	= DLL_THREAD_DETACH
 ; example
 
 ; if used CNV._heap
@@ -75,9 +82,13 @@ macro @at_end [args]{
 
 ; TLS_AddMacro CNV._initHeap
 
+if false_TLS._size
+	TLS_AddCallback TLS.startAndEndInit
+end if
+
 macro @init_tls{
 	match =@init_tls, @init_tls\{
-		local ._start, ._end, ._size, TLS._init, _used
+		local ._start, ._end, ._size, _used
 		virtual at $
 			proc false_TLS.init, handle, reason, reserved
 			false_TLS._start:
@@ -100,10 +111,10 @@ macro @init_tls{
 		end virtual
 		if false_TLS._size
 			proc_noprologue
-			proc TLS._init, handle, reason, reserved
+			proc TLS.startAndEndInit, handle, reason, reserved
 				@sarg @arg1, @arg2
-				cmp @arg2, DLL_PROCESS_ATTACH
-				jne TLS._init.no_start_tls
+				cmp @arg2, TLS_PROCESS_ATTACH
+				jne TLS.startAndEndInit.no_start_tls
 					irpv mac, TLS_Marcoses\\{
 						match macr, mac\\\{
 							macr
@@ -111,13 +122,14 @@ macro @init_tls{
 						; match name, \\\`mac\\\{display name\\\}
 					\\}
 
+				@call c [puts]("TLS start")
 				if false_TLS._exit <> false_TLS._end
-					jmp TLS._init.return
+					jmp TLS.startAndEndInit.return
 				end if
-				TLS._init.no_start_tls:
+				TLS.startAndEndInit.no_start_tls:
 				if false_TLS._exit <> false_TLS._end
-					cmp @arg2, DLL_PROCESS_DETACH
-					jne TLS._init.return
+					cmp @arg2, TLS_PROCESS_DETACH
+					jne TLS.startAndEndInit.return
 						irpv mac, TLS_Marcoses_end\\{
 							\\reverse
 							match macr, mac\\\{
@@ -126,10 +138,9 @@ macro @init_tls{
 							; match name, \\\`mac\\\{display name\\\}
 						\\}
 				end if
-				TLS._init.return: ret
+				TLS.startAndEndInit.return: ret
 			endp
 			proc_resprologue
-			TLS_AddCallback TLS._init
 		end if
 		if Has_Tls
 		; display "lol"
@@ -139,11 +150,14 @@ macro @init_tls{
 				_TLS_DIR _IMAGE_TLS_DIRECTORY 0, 0, tls_index, tls_callbacks, 0, 0
 				tls_index   	dptr 0
 				tls_callbacks:	
-					irpv thiscallback, TLS_Callbacks\\{
-						if defined thiscallback
-							dptr thiscallback
-						end if
-					\\}
+					local byte_count, _callback
+					virtual TLS_Callbacks
+						byte_count = $
+					end virtual
+					repeat byte_count / pointer.size
+						load _callback pointer from TLS_Callbacks: (% - 1) * pointer.size
+						dptr _callback
+					end repeat
 					dptr 0
 			end data
 		end if
