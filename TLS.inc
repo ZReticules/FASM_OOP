@@ -111,7 +111,6 @@ macro @init_tls{
 						; match name, \\\`mac\\\{display name\\\}
 					\\}
 
-				@call c [puts]("TLS start")
 				if false_TLS._exit <> false_TLS._end
 					jmp TLS._init.return
 				end if
