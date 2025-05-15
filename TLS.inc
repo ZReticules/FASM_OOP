@@ -82,13 +82,13 @@ macro @at_end [args]{
 
 ; TLS_AddMacro CNV._initHeap
 
-if false_TLS._size
-	TLS_AddCallback TLS.startAndEndInit
+if false_TLS._initSize | false_TLS._exit <> false_TLS._end
+	TLS_AddCallback TLS.startInit
 end if
 
 macro @init_tls{
 	match =@init_tls, @init_tls\{
-		local ._start, ._end, ._size, _used
+		local _used
 		virtual at $
 			proc false_TLS.init, handle, reason, reserved
 			false_TLS._start:
@@ -108,40 +108,67 @@ macro @init_tls{
 			false_TLS._end:
 			endp
 			_used = false_TLS.init
-			false_TLS._size = false_TLS._start - false_TLS._end
+			false_TLS._initSize = false_TLS._start - false_TLS._exit
 		end virtual
-		if false_TLS._size
-			proc_noprologue
-			proc TLS.startAndEndInit, handle, reason, reserved
+		
+		proc_noprologue
+		if false_TLS._exit <> false_TLS._end
+			align 8
+			ThreadCount dptr 0
+		end if
+		if false_TLS._initSize | false_TLS._exit <> false_TLS._end
+			proc TLS.startInit, handle, reason, reserved
+
 				@sarg @arg1, @arg2
+				if false_TLS._exit <> false_TLS._end
+					switch @arg2
+						case TLS_THREAD_DETACH
+							lock dec [ThreadCount]
+							jmp end_case
+						case TLS_THREAD_ATTACH
+							lock inc [ThreadCount]
+					end_switch
+				end if
 				cmp @arg2, TLS_PROCESS_ATTACH
-				jne TLS.startAndEndInit.no_start_tls
+				jne TLS.startInit.return
+					if false_TLS._exit <> false_TLS._end
+						lock inc [ThreadCount]
+					end if
 					irpv mac, TLS_Marcoses\\{
 						match macr, mac\\\{
 							macr
 						\\\}
 						; match name, \\\`mac\\\{display name\\\}
 					\\}
-
-				if false_TLS._exit <> false_TLS._end
-					jmp TLS.startAndEndInit.return
-				end if
-				TLS.startAndEndInit.no_start_tls:
-				if false_TLS._exit <> false_TLS._end
-					cmp @arg2, TLS_PROCESS_DETACH
-					jne TLS.startAndEndInit.return
-						irpv mac, TLS_Marcoses_end\\{
-							\\reverse
-							match macr, mac\\\{
-								macr
-							\\\}
-							; match name, \\\`mac\\\{display name\\\}
-						\\}
-				end if
-				TLS.startAndEndInit.return: ret
+				TLS.startInit.return: ret
 			endp
-			proc_resprologue
 		end if
+		if false_TLS._exit <> false_TLS._end
+			proc TLS.exitInit, handle, reason, reserved
+				@sarg @arg1, @arg2
+				
+				cmp @arg2, TLS_PROCESS_DETACH
+					je TLS.exitInit.do_exit
+				cmp @arg2, TLS_THREAD_DETACH
+					jne TLS.exitInit.return
+				cmp [ThreadCount], 0
+					je TLS.exitInit.do_exit
+				ret
+				TLS.exitInit.do_exit:
+
+					irpv mac, TLS_Marcoses_end\\{
+						\\reverse
+						match macr, mac\\\{
+							macr
+						\\\}
+						; match name, \\\`mac\\\{display name\\\}
+					\\}
+				TLS.exitInit.return: ret
+			endp
+			TLS_AddCallback TLS.exitInit
+		end if
+		
+		proc_resprologue
 		if Has_Tls
 		; display "lol"
 			; section ".tls" readable writeable
