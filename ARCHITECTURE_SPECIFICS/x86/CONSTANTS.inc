@@ -8,6 +8,8 @@ POINTER fix DWORD
 
 pointer.size fix 4
 
+pointer.shift fix 2
+
 pax fix eax
 pbx fix ebx
 pcx fix ecx

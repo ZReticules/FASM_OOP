@@ -8,6 +8,8 @@ POINTER fix QWORD
 
 pointer.size fix 8
 
+pointer.shift fix 3
+
 pax fix rax
 pbx fix rbx
 pcx fix rcx
