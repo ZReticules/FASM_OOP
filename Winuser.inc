@@ -139,6 +139,7 @@
 		taskDlg 				dm this:inline
 		deleteStockIcon			dm this:inline
 		dragFilesCount			dm this:inline
+		isThemeLight			dm this
 
 		repaintWindow			dm this
 		; repaintWindowWithBack	dm this

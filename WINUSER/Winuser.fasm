@@ -23,6 +23,8 @@ macro WND.moduleInit{
 
 TLS_AddMacro WND.moduleInit
 
+proc_noprologue
+
 macro WND.msgBox lpText*, lpCaption=NULL, [args]{
 	common
 	local a, _lpCaption
@@ -157,6 +159,26 @@ endp
 macro WND.dragFilesCount hDrop{
 	@call [DragQueryFileA](hDrop, 0xFFFFFFFF, NULL, 0)
 }
+
+
+proc WND.isThemeLight c
+	local keyVal:DWORD
+	@call [RegGetValueA](\
+		HKEY_CURRENT_USER,\ 
+		<const db "Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", 0>,\
+		<const db "AppsUseLightTheme", 0>,\
+		0x18,\
+		NULL,\
+		addr keyVal,\
+		va_list 4\
+	)
+	mov eax, [keyVal]
+	bswap eax
+	and eax, 1
+	ret
+endp
+
+proc_resprologue
 
 ; proc WND.repaintWindowWithBack c, hWnd, hDC, lpRect, hBrush, hBackBrush
 ; 	@sarg @arg1, @arg2, @arg3, @arg4
