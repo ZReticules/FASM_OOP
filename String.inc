@@ -1,5 +1,6 @@
 @module String
 
+	include "cstdio.inc"
 	include "String\fstr.inc"
 	include "String\fstr.fasm"
 	include "ParsedDouble.inc"
