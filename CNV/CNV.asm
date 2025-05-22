@@ -231,7 +231,7 @@ proc CNV.__fill c uses pdi psi, dst, src, size
 	ret
 endp 
 
-macro CNV.fill dest*, src*, size*, flags{
+macro CNV.fill dest*, src*, size*, flags=0{
 	local repeats, rem, _src, _dest, matched, ..src, ..dest
 	if size eqtype 0 & size relativeto 0
 		repeats = (size) / 32
