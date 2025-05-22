@@ -1,0 +1,141 @@
+if used Exception.used
+	Exception.used = 0
+	VEHStorage dptr ?
+end if
+
+macro MakeVEHStorage{
+	if used Exception.used
+		@call [VEHStorage] = [TlsAlloc]()
+	end if
+	; @call CNV::alloc(8 + sizeof.ExceptionSaveStruct * 2)
+	; mov dword[pax], sizeof.ExceptionSaveStruct * 2
+	; mov dword[pax + 4], 0
+	; @call [TlsSetValue]([VEHStorage], pax)
+}
+
+macro UnmakeVEHStorage{
+	if used Exception.used
+		@call [TlsFree]([VEHStorage])
+	end if
+}
+
+macro Exception.getExceptionInfo{
+	@call [TlsGetValue]([VEHStorage])
+	mov edx, dword[pax + 4]
+	lea pax, [8 + pax + pdx - sizeof.ExceptionSaveStruct + ExceptionSaveStruct.exceptInfo]
+}
+
+struct ExceptionSaveStruct
+	sp 			dptr ?
+	bp 			dptr ?
+	handler 	dptr ?
+	exceptInfo 	EXCEPTION_RECORD
+ends
+
+@at_start MakeVEHStorage
+@at_end UnmakeVEHStorage
+; VEH_STACK_BASE_SIZE = 
+
+proc_noprologue
+
+proc AllocVEHStack, handle, reason, reserved
+	switch @arg2
+		case TLS_THREAD_ATTACH, TLS_PROCESS_ATTACH
+			@call CNV::alloc(8 + sizeof.ExceptionSaveStruct * 2)
+			mov dword[pax], sizeof.ExceptionSaveStruct * 2
+			mov dword[pax + 4], 0
+			@call [TlsSetValue]([VEHStorage], pax)
+			jmp end_case
+		case TLS_THREAD_DETACH, TLS_PROCESS_DETACH
+			@call [TlsGetValue]([VEHStorage])
+			@call CNV::free(pax)
+	end_switch
+	ret
+endp
+
+if used Exception.used
+	TLS_AddCallback AllocVEHStack
+end if
+
+proc Except.ErrorHandler uses pdi psi, lpEP
+	virtObj .pointers EXCEPTION_POINTERS at pdi from @arg1
+	@call [TlsGetValue]([VEHStorage])
+	test eax, eax
+		jz .set_error_mode	
+	cmp dword[pax + 4], 0
+		je .set_error_mode
+
+	match =x64, __architecture{
+		virtObj .ctx CONTEXT64 at pdx from [.pointers.ContextRecord]
+	}
+	match =x86, __architecture{
+		virtObj .ctx CONTEXT32 at pdx from [.pointers.ContextRecord]
+	}
+	virtObj .record EXCEPTION_RECORD at psi from [.pointers.ExceptionRecord]
+	
+	mov pdi, pax
+	mov eax, [pdi + 4]
+	virtObj .ess ExceptionSaveStruct at pdi from addr 8 + pdi + pax - sizeof.ExceptionSaveStruct
+	movptr xmm0, [.ess.sp]
+	movptr xmm1, [.ess.bp]
+	movptr xmm2, [.ess.handler]
+	; movd xmm3, [.record.ExceptionCode]
+	; movptr xmm4, [.record.ExceptionAddress]
+	lea pdi, [.ess.exceptInfo]
+	
+	match =x64, __architecture{
+		movptr [.ctx.Rsp], xmm0
+		movptr [.ctx.Rbp], xmm1
+		movptr [.ctx.Rip], xmm2
+		; movptr [.ctx.Rcx], xmm3
+		; movptr [.ctx.Rdx], xmm4
+		mov [.ctx.Rax], rdi
+	}
+	match =x86, __architecture{
+		movptr [.ctx.Esp], xmm0
+		movptr [.ctx.Ebp], xmm1
+		movptr [.ctx.Eip], xmm2
+		; movptr [.ctx.Ecx], xmm3
+		; movptr [.ctx.Edx], xmm4
+		mov [.ctx.Eax], edi
+	}
+
+	; lea psi, [.record]
+	mov ecx, sizeof.EXCEPTION_RECORD - sizeof.EXCEPTION_RECORD.ExceptionInformation
+	mov eax, [psi + EXCEPTION_RECORD.NumberParameters]
+	
+	shl eax, pointer.shift
+	
+	add ecx, eax
+	rep movsb
+	
+	mov eax, -1
+	ret
+
+	.set_error_mode:
+		@call [SetThreadErrorMode](1, NULL)
+		mov eax, -1
+		ret
+endp
+
+proc Except.SaveStack uses pdi, lpHandler, savedPbp, savedPsp
+	@sarg @arg1, @arg2, @arg3
+	@call pdi = [TlsGetValue]([VEHStorage])
+	mov eax, dword[pdi]
+	cmp eax, dword[pdi + 4]
+	ja .no_realloc
+		@call pdi = CNV::realloc(pdi, addr 8 + pax + sizeof.ExceptionSaveStruct * 2)
+		@call [TlsSetValue]([VEHStorage], pdi)
+	.no_realloc:
+	mov eax, dword[pdi + 4]
+	mov pdx, [savedPsp]
+	mov pointer[pdi + 8 + pax + ExceptionSaveStruct.sp], pdx
+	mov pdx, [savedPbp]
+	mov pointer[pdi + 8 + pax + ExceptionSaveStruct.bp], pdx
+	mov pdx, [lpHandler]
+	mov pointer[pdi + 8 + pax + ExceptionSaveStruct.handler], pdx
+	add dword[pdi + 4], sizeof.ExceptionSaveStruct
+	ret
+endp
+
+proc_resprologue
