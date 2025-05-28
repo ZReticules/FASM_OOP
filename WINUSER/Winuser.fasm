@@ -1,12 +1,13 @@
 importlib kernel32,\
 	GetModuleHandleA
-
 importlib gdi32,\
 	BitBlt,\
 	CreateRectRgn,\
 	GetStockObject
 importlib shell32,\
 	DragQueryFileA
+importlib advapi32,\
+	RegGetValueA
 
 define MAX_PATH 260
 
