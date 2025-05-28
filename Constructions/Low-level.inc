@@ -53,7 +53,7 @@
 		purge initlocal@proc
 	}
 
-; postpone controller
+; postpone controller(to make shure that all will initialize in reverse)
 	
 	; total_postpone equ
 	postpone{
@@ -63,53 +63,11 @@
 		\}
 	}
 
-; zero-initialize allocation
-	bss_count = 0
+; high-level macro initializators
 
-	macro @init_bss{
-		match =@init_bss, @init_bss\{
-			align 64
-			bss_start:
-				rb bss@count
-			define @init_bss
-		\}
-	}
+	total_postpone equ @init_bss
 
-	postpone{
-		bss@count = bss_count 
-		@init_bss
-	}
+	total_postpone equ postpone@statics
 
-	@bss_align equ 1
-	macro @bss [args]{
-		common
-		local ..start, ..end
-		virtual at bss_start + bss_count
-			..start = $
-			align @bss_align
-			forward
-			match name Type, args\{
-				name = $
-				Type
-			\}
-			common
-			..end = $
-		end virtual
-		bss_count = bss_count + (..end-..start)
-	}
-
-	macro @bss_alloc [args]{
-		common
-		local ..start, ..end
-		virtual at bss_start + bss_count
-			..start:
-			align @bss_align
-			forward
-			args
-			common
-			..end:
-		end virtual
-		bss_count = bss_count + (..end-..start)
-
-	}
+	total_postpone equ @postpone_consts
 
