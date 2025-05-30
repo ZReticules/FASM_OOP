@@ -58,6 +58,8 @@ struct DLG_SERVICE_DATA
 	lpHooks				dptr ?
 	; lpClEvents 			dptr ?
 	; lpClNotifications 	dptr ?
+	mapDialog 			MapDialog
+	defaultSize			SIZE
 ends
 
 include "WINUSER\WINAPI_WINDOW.inc"

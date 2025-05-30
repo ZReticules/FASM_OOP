@@ -145,28 +145,32 @@ proc DLG.initEvent c uses pbx psi pdi pbp, hwndDlg, lParam
 		@call [SetWindowSubclass]([.form.hWnd], DLG.hooksMainChecker, -1, addr .form)
 	.no_main_hook:
 
-	with mapDialog:MapDialog([.form.hWnd])
-		@call mapDialog->mapRect(addr .form.sData.baseRect)
-	    cmp [.form.idCount], 0
-	    je .no_childs
-			mov edi, [.form.idCount]
-			.init_control_loop:
-				mov psi, [pbp + (pdi - 1) * pointer.size]
-				virtObj .cntrl:arg CONTROL at psi from addr .form + psi 
-				mov [.cntrl.ID], edi
-				@call [GetDlgItem]([.form.hWnd], edi)
-				mov [.cntrl.hWnd], pax
-				@call [SetWindowPtrA]([.cntrl.hWnd], GWL_USERDATA, addr .cntrl)
-				@call mapDialog->mapRect(addr .cntrl.sData.baseRect)
-				cmp [.cntrl.sData.lpHooks], NULL
-				je .no_hook
-					@call [SetWindowSubclass]([.cntrl.hWnd], DLG.hookEventsChecker, -1, addr .form)
-				.no_hook:
-			dec pdi
-			jnz .init_control_loop
-			@call .form->__scaleChildRects()
-		.no_childs:
-	end_with
+	; with mapDialog:MapDialog([.form.hWnd])
+	@call .form.sData.mapDialog->make([.form.hWnd])
+	@call .form.sData.mapDialog->mapRect(addr .form.sData.baseRect)
+    cmp [.form.idCount], 0
+    je .no_childs
+		mov edi, [.form.idCount]
+		.init_control_loop:
+			mov psi, [pbp + (pdi - 1) * pointer.size]
+			virtObj .cntrl:arg CONTROL at psi from addr .form + psi 
+			mov [.cntrl.ID], edi
+			@call [GetDlgItem]([.form.hWnd], edi)
+			mov [.cntrl.hWnd], pax
+			@call [SetWindowPtrA]([.cntrl.hWnd], GWL_USERDATA, addr .cntrl)
+			@call .form.sData.mapDialog->mapRect(addr .cntrl.sData.baseRect)
+			cmp [.cntrl.sData.lpHooks], NULL
+			je .no_hook
+				@call [SetWindowSubclass]([.cntrl.hWnd], DLG.hookEventsChecker, -1, addr .form)
+			.no_hook:
+		dec pdi
+		jnz .init_control_loop
+
+		local sizesRect:RECT
+		@call [GetClientRect]([.form.hWnd], addr sizesRect)
+		@call CNV::fill(addr .form.sData.defaultSize, addr sizesRect.right, sizeof.POINT)
+		@call .form->scaleChilds()
+	.no_childs:
 	.return: ret
 endp
 

@@ -20,6 +20,7 @@ struct MapDialog
 	make 		dm this
 	unmake 		dm this:inline
 	mapRect		dm this:inline
+    mapPoint    dm this:inline
 ends
 
 proc MapDialog.make c uses pbx, this, hWnd
@@ -52,6 +53,19 @@ macro MapDialog.mapRect this, lpRect{
     shr [_rect + RECT.top], 2
     shr [_rect + RECT.right], 1
     shr [_rect + RECT.bottom], 2
+}
+
+macro MapDialog.mapPoint this, lpPoint{
+    local _this, _rect
+    inlineObj _this, this, pdx
+    inlineObj _point, lpPoint, pcx
+    movq xmm0, qword[_point]
+    movq xmm1, qword[_this + MapDialog._size]
+    pmulld xmm0, xmm1
+    paddd xmm0, [MapDialog.addMap]
+    movq qword[_point], xmm0
+    shr [_point + POINT.x], 1
+    shr [_point + POINT.y], 2
 }
 
 ; proc MapDialog.mapRect, hwndDlg, lpRect
