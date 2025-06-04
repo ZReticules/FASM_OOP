@@ -266,32 +266,51 @@
 				endl
 			\\}
 		\}
-		common
-		macro ret operand\{
-			match any, operand\\{
-				ret operand
-			rept 0\\{\\} rept 1\\{
-				irpv all_with, last@with\\\{
-					\\\reverse
-					irpv del, all_with\\\#dels\\\\{
-						@call del->unmake()	
-					\\\\}
-				\\\}
-				ret
-			\\}
-		\}
+		; common
+		; macro ret operand\{
+		; 	match any, operand\\{
+		; 		ret operand
+		; 	rept 0\\{\\} rept 1\\{
+		; 		irpv all_with, last@with\\\{
+		; 			\\\reverse
+		; 			irpv del, all_with\\\#dels\\\\{
+		; 				@call del->unmake()	
+		; 			\\\\}
+		; 		\\\}
+		; 		ret
+		; 	\\}
+		; \}
 	}
 
-	macro end_with{
+	macro end_with {
 		break_with:
 		restore break_with
-		purge ret
+		; purge ret
 		match last_with, last@width\{
 			irpv del, last_with\#dels\\{
 				@call del->unmake()	
 			\\}
 		\}
 		restore last@width
+	}
+
+	; to unmake all layers of with
+	macro exit_with {
+		irpv all_with, last@with\{
+			\reverse
+			irpv del, all_with\#dels\\{
+				@call del->unmake()	
+			\\}
+		\}
+	}
+
+	; to unmake corrent layer of with
+	macro broke_with {
+		match this_with, last@with\{
+			irpv del, this_with\#dels\\{
+				@call del->unmake()	
+			\\}
+		\}
 	}
 
 ; typedef

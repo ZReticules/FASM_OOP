@@ -99,6 +99,8 @@ endp
 proc String.reallocParam c uses pbx, this, size, minify
     virtObj .this:arg String at pbx from @arg1
     @larg pdx, @arg2
+    local memBuf:POINTER
+    
     switch @arg3
         case 0
             mov eax, [.this.__size]
@@ -131,23 +133,22 @@ proc String.reallocParam c uses pbx, this, size, minify
         bswap edx
         mov [.this.__size], edx
         bswap edx
-        @call CNV::alloc(addr edx + 1)
-        mov pdx, [.this.__lpChars]
-        mov pointer[pax], pdx
+        @call [memBuf] = CNV::alloc(addr edx + 1)
+        @call CNV::fill(pax, addr .this.__lpChars, String.SHORT_STRING_LEN)
+        mov pax, [memBuf]
         mov [.this.__lpChars], pax
         .return: ret
 
     .src_low:
         mov [.this.__size], DW_BE_PSIZE
         mov pax, [.this.__lpChars]
-        mov pdx, pointer[pax]
-        ; and pdx, not (0xFF shl (pointer.size) * 8)
-        mov [.this.__lpChars], pdx
+        mov [memBuf], pax
+        @call CNV::fill(addr .this.__lpChars, pax, String.SHORT_STRING_LEN)
         cmp [.this.len], String.SHORT_STRING_LEN
         jb .no_resize
             mov [.this.len], String.SHORT_STRING_LEN
         .no_resize:
-        @call CNV::free(pax)
+        @call CNV::free([memBuf])
         ret
 
     .no_low:
@@ -508,7 +509,8 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
         sub psi, pdi
         test psi, psi
         jz .no_bytes
-            @call result->addChars(pdi, psi)
+            @call result->addChars(pdi, psi);->print()
+            ; @call c [puts]("")
         .no_bytes:
         @call buf->flush()
         movzx eax, byte[pdi + psi + 1]
@@ -561,7 +563,10 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
             .no_reverse:
             @call result->addChar(+" ", [width])
         .after_correct:
-        @call result->addString(addr buf)
+        ; @call buf->getLpChars()
+        ; @call c [printf]("%d:%s\n", [buf.len], pax)
+        @call result->addString(addr buf);->print()
+        ; @call c [puts]("")
         add psi, pdi
         mov pdi, psi
         jmp .loop1

@@ -486,7 +486,7 @@
 								\\\}
 								; display real_addr_reloc
 								; %display_num (addr_smb - (real_addr_reloc + 4)), 16
-								store dword (addr_smb - (real_addr_reloc + 4)) and 0FFFFFFFFh + value_reloc at obj_section:real_addr_reloc
+								store dword (addr_smb - (real_addr_reloc + 4) + value_reloc) and 0FFFFFFFFh at obj_section:real_addr_reloc
 							else if type_reloc >= IMAGE_REL_AMD64_REL32_1 & type_reloc <= IMAGE_REL_AMD64_REL32_5
 								store (addr_smb and 0FFFFFFFFh) - (real_addr_reloc + 4 + (type_reloc - IMAGE_REL_AMD64_REL32_1)) at last_section:real_addr_reloc
 								match , IOBJ_DBG IOBJ_DBG_SHOW_RELOCS\\\{
