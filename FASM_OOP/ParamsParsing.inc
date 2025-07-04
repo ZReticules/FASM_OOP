@@ -1,3 +1,37 @@
+macro @fillGPR reg*, src*{
+	local matched, definition, type
+	define type
+	define definition src
+	param@parser type, definition
+	match =addr, type\{
+		if ~any eq reg
+			lea reg, [definition]
+		end if
+		define matched
+	\}
+	match =sep_qword|high:low, type|definition\{
+		mov dword[psp - 8], low
+		mov dword[psp - 4], high
+		mov reg, qword[psp - 8]
+		define matched
+	\}
+	match any[addr], _ definition\{
+		mov reg, definition
+		define matched
+	\}
+	match =matched, matched\{
+		if definition in <XMM_REGS>
+			movptr reg, definition
+		else if ~src eq reg
+			if definition eqtype 0 & definition relativeto 0
+				mov reg, definition
+			else
+				lea reg, [definition]
+			end if
+		end if
+	\}
+}
+
 macro va_list@handler ax_destroyed, ax_restored, ax_need_save, [arg]{
 	common
 	local opcode, origin, counter
@@ -26,7 +60,7 @@ macro va_list@handler ax_destroyed, ax_restored, ax_need_save, [arg]{
 					size@param = 1
 				end if 
 			\\}
-		else if ~ param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7>
+		else if ~ param in <XMM_REGS>
 			virtual
 				match =x86, __architecture\\{
 					use64
@@ -187,35 +221,42 @@ macro define@call{
 		define argums args
 		dest equ
 		match dst == any, argums\\{
-			restore dest
+			; restore dest
 			dest equ dst
-			restore argums
+			; restore argums
 			define argums any
 		\\}
 		match conv, __std_call\\{
 			call_conv equ conv
 		\\}
 		match obj->proc(_argums, argums\\{
-			restore call_conv
+			; restore call_conv
 			match conv, __obj_call\\\{
 				call_conv equ conv
 			\\\}
 			local _obj
 			define _obj obj
-			match _call_conv _obj_, _obj\\\{
-				define _obj _obj_
-				call_conv equ _call_conv
-			\\\}
 			match any1 )->any2, (_argums\\\{
 				@call obj->proc any1)
 				@call obj->any2
-				restore _obj
+				; restore _obj
 				define _obj
-				restore argums
+				; restore argums
 				define argums
+			\\\} 
+			match _call_conv _obj_, _obj\\\{
+				define _obj _obj_
+				; call_conv equ _call_conv
 			\\\}
 			match _obj_, _obj\\\{
 				match MethTable ObjType, _obj_\\\#.Table _obj_\\\#.Type\\\\{
+
+					match _call_conv _obj_, obj\\\\\{
+						call_conv equ _call_conv
+					rept 0\\\\\{\\\\\} match _call_conv, proc\\#.Conv\\\\#ObjType \\\\\{
+						; display \\\\\`_call_conv
+						call_conv equ _call_conv
+					\\\\\}
 					argums equ MethTable\\\\#.\\#proc, addr _obj_
 					match any), _argums \\\\\{
 						argums equ argums, any
@@ -245,20 +286,19 @@ macro define@call{
 			\\\}
 		\\}
 		match _Struct::proc(_argums, argums\\{
-			restore call_conv
-			match conv, __obj_call\\\{
-				call_conv equ conv
-			\\\}
+			; restore call_conv
 			local __Struct
 			define __Struct _Struct
 			match _call_conv _Struct_, _Struct\\\{
 				define __Struct _Struct_
 				call_conv equ _call_conv
+			rept 0\\\{\\\} match _call_conv, proc\\#.Conv\\#_Struct \\\{
+				call_conv equ _call_conv
 			\\\}
 			match _Struct_, __Struct\\\{
 				argums equ _Struct_\\\#.Table\\\#.\\#proc
 				match =virtual, proc\\#.Type\\\#_Struct_\\\\{
-					argums equ dword[argums]
+					argums equ call_conv pointer[argums]
 				\\\\}
 				match any), _argums \\\\{
 					argums equ argums, any
@@ -304,7 +344,7 @@ macro define@call{
 			restore __argscount__
 		\\}
 		match any, dest\\{
-			mov dest, pax
+			fill@dest_proc any
 		\\}
 	\}
 }

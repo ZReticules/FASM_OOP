@@ -12,20 +12,21 @@
    7. [Константные поля структур](#const)
 2. [DIALOGFORM](#dialogform)
    1. [Макросы control и @control](#control)
-   2. [Макрос ShblDialog](#shbldialog)
+   2. [Макрос ShblDialog_Mem](#shbldialog)
 
 ## 1. FASM_OOP<a name="FASM_OOP"></a>  
 Реализует принципы ООП на макросах FASM. Реализованы следующие возможности(на данный момент):  
 ### 1.1. Создание методов<a name="methods"></a>
 Методы бывают:
 - Статические(функции, на уровне препроцессора привязанные к структуре);  
-- Виртуальные(хранятся в таблице виртуальных методов, создаваемой автоматически);  
+- Виртуальные(хранятся в таблице виртуальных методов, но структура или один из предков должен наследоваться от @interface);  
 - Инлайн(макросы, на уровне препроцессора привязанные к структуре).    
 На данный момент допустимы следующие варианты синтаксиса обьявления методов:
 ```nasm  
-struct point2
+struct point2 @interface
 	x 		dd ?
 	y 		dd ?
+
 	print		dm point2_print:static	;статический метод print с процедурой-обработчиком point2_print
 	print		dm point2_print			;статический метод print с процедурой-обработчиком point2_print
 	print		dm point2_print:virtual	;виртуальный метод print с процедурой-обработчиком point2_print
@@ -42,7 +43,7 @@ _**Важно! Если у структуры или ее предка имее�
 struct point3 point2
     z dd ?
     print override point3_print	;переопределяет унаследованный метод print для структуры point3. Тип метода остается прежним
-    print override this:inline	;перегрузка унаследованного метода print и смена типа метода.
+    print override this:inline	;перегрузка унаследованного метода print и смена типа метода
 ends
 ```
 При перегрузке допустимо менять только типы static и inline. Не допускается смена типа виртуальных методов.  
@@ -171,60 +172,90 @@ ends
    Расширяет возможности FASM_OOP для создания диалоговых окон на основе шаблона в памяти(Windows). Пример программы с использованием и пояснениями:     
 ```nasm
 
-format pe64 GUI
+define PROGRAM_TYPE GUI 6.0  		; тип программы - GUI
+
+include "TOOLS\x86.inc"				; архитектура x86
+include "TOOLS\STDHEAD.inc"		; стандартный заголовок программы
+include "encoding\win1251.inc"
+include "TOOLS\TOOLS.INC"
+include "TOOLS\cstdio.inc"
+include "TOOLS\Winuser.inc"
+include "TOOLS\DialogForm.inc"
+include "TOOLS\String.inc"			; стандартный класс строк
 
 entry main
 
-section ".code" readable writeable executable
-include "TOOLS\x64\TOOLS.INC"
-include_once "encoding\Win1251.inc"
-include_once "TOOLS\x64\WINUSER\Winuser.inc
+proc_noprologue
 
-struct button BUTTON
-   BN_CLICKED event button_Clicked 					; создание события BN_CLICKED c обработчиком button_Clicked. Создаваемые таким образом события представляют собой калбеки, что позволяет перехватывать их в рантайме
+struct PushButton BUTTON 	; наследование от базовой структуры BUTTON
+    BN_CLICKED event ? 		; создание события BN_CLICKED c обработчиком button_Clicked. Создаваемые таким образом события представляют собой калбеки, что позволяет перехватывать их в рантайме
 ends
 
-struct dForm1 DIALOGFORM
-	const _x 				= 0 						;положение окна по горизонтали
-	const _y 				= 0 						;положение окна по вертикали
-	const _cx 				= 500						;ширина окна
-	const _cy 				= 350						;высота окна
-	WM_INITDIALOG event form_Init						;событие инициализации окна
-	control static1 STATIC, NONE,\ 						;устаревший макрос создания элемента управления
-		"Нажми кнопку", (dForm1._cx-50)/2, 0, 50, 12
-	@control button1 button,\							;новый макрос создания элемента управления
-		_text: "Кнопка",\ 
-		_x: dForm1.static1._x,\							;обращение к значению координат элемента управления static1
-		_y: 12,\
-		_cx: 50,\
-		_cy: 12,\
-		_style: WS_VISIBLE or BS_DEFPUSHBUTTON
+struct MainForm DIALOGFORM
+    const _cy = 35
+    WM_INITDIALOG event form_Init
+    $layout _cx: MainForm._cx,\					; использование собственного языка разметки
+            _cy: MainForm._cy,\
+            _position: absolute,\
+            _orientation: vertical,\
+            _align: start
+        $control EDIT,\ 
+            _name: edIn,\
+            _text: "",\ 
+            _style: WS_VISIBLE or ES_AUTOHSCROLL or WS_TABSTOP
+        $control PushButton,\
+            _text: "Подтвердить",\ 
+            _style: WS_VISIBLE or BS_DEFPUSHBUTTON or WS_TABSTOP,\
+            _initvals: PushButton_Clicked
+    $endl
+    @on_scaling										; скейлинг окна, в целом так же защищает от расползания формы
 ends
 
-proc button_Clicked, formLp, paramsLp, controlLp
-	virtObj .form:arg dForm1
-	@call WND::msgBox("Привет, мир!", "Приветствие", MB_OK, [.form.hWnd])
-	ret
+proc form_Init uses pbx, lpForm, lpParams, lpEventData
+    @virtObj form:arg MainForm at pbx from @arg1
+    @call form->setCornerType(DWMWCP.DONOTROUND)
+    @call form.edIn->setPlaceholder(L "Введите что-то")
+    mov eax, esp
+    ret
 endp
 
-proc form_Init, formLp, paramsLp
-	virtObj .form:arg dForm1
-	@call WND::msgBox("Форма запущена!", "Приветствие", MB_OK, [.form.hWnd])
-	ret
+proc PushButton_Clicked uses pbx, lpForm, lpParams, lpControl, lpEventData
+    @virtObj form:arg MainForm at pbx from @arg1
+    with <string1:String(0)>, <string:String(0)>
+        in_str @const db "Вы ввели: "
+        @call string1->fromChars(in_str, in_str.len)
+        @call form.edIn->getString(addr string)
+        @call string1->addString(addr string)->getLpChars()
+        @call WND::msgBox(pax, "Пользовательский ввод", MB_OK, [form.hWnd])
+    end_with
+    ret
 endp
 
-ShblDialog dForm1, "DialogForm"						;макрос для генерации шаблона формы и ее процедуры-обработчика
+; макрос для генерации шаблона формы в памяти
+ShblDialog_Mem MainForm, "DialogForm",  WS_VISIBLE or WS_SYSMENU or WS_MINIMIZEBOX or DS_CENTER or DS_SETFONT
 
-myForm form dForm1									;макрос form для заполнения некоторых полей обьекта структуры нужными значениями
+myForm dForm MainForm 	;макрос dForm для заполнения некоторых полей обьекта структуры нужными значениями
 
 proc main
-	@call myForm->startNM(NULL)     				;основной цикл с немодальным окном
-	.msgLoop:
-		@call myForm->dispatchMessages()
-	test eax, eax
-	jnz .msgLoop
-	ret
+    @call myForm->startNM(NULL)     				;основной цикл с немодальным окном
+    .msgLoop:
+        @call myForm->dispatchMessages()
+    test eax, eax
+    jnz .msgLoop
+    @call [ExitProcess](0)
 endp
+
+data resource
+    directory     RT_MANIFEST, manifests
+
+    resource manifests,\ 
+           1, LANG_ENGLISH or SUBLANG_DEFAULT, manifest
+
+    resdata manifest
+        file "TOOLS\manifest.xml"
+    endres
+end data
+
 ```
 Данный пример создает форму с одним лейблом и одной кнопкой. При запуске приложения выскакивает мессенджбокс об успешном создании формы, а при нажатии на кнопку - приветствие.  
 ### 2.1. Макросы control и @control<a name="control"></a>  
@@ -240,5 +271,5 @@ _style - стили элемента управления(по умолчани�
 _style_ex -расширенные стили элемента управления(по умолчанию NULL)
 ```
 Как обращаться к этим параметрам из других элементов управления показано в примере. Создаваемые поля являются константами этапа компиляции. Так же для упрощения разметки автоматически генерируются поля `_rx` и `_ry` - координаты края элемента управления по соответствующим осям. Макрос control получает параметры напрямую в указанном по списку порядке. Макрос @control более удобен и читабелен, так как позволяет назначать значения поименно в любом порядке.  
-### 2.2. Макрос ShblDialog<a name="shbldialog"></a>  
+### 2.2. Макрос ShblDialog_Mem<a name="shbldialog"></a>  
 Данный макрос создает шаблон диалогового окна. Он принимает три аргумента - текст формы(по умолчанию пустая строка), стили формы(по умолчанию WS_VISIBLE or WS_CAPTION or WS_SYSMENU or WS_MINIMIZEBOX or WS_MAXIMIZEBOX or DS_CENTER) и расширенные стили формы(по умолчанию NULL).

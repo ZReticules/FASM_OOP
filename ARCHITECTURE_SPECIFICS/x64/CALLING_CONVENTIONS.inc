@@ -802,3 +802,100 @@ macro @jret argums&{
 	end if
 	restore current@frame
 }
+
+macro fill@dest_proc dest{
+	local type, definition, size_param
+	local origin, opcode
+	define definition dest
+	param@parser type, definition
+	size_param = 4
+
+	if type eq double | type eq qword | type eq sep_qword
+		size_param = 8
+	else if definition eqtype byte 0 | definition eqtype byte 0f | definition eqtype byte [0]
+		match prefix value, definition\{ 
+			if prefix eq qword
+				size_param = 8
+			else if prefix eq dword
+				size_param = 4
+			else if prefix eq word
+				size_param = 2
+			else if prefix eq byte
+				size_param = 1
+			end if 
+		\}
+	else if ~ definition in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
+		virtual
+			origin = $	
+			if type eq qword
+				inc qword definition
+			else
+				inc definition
+			end if
+			load opcode byte from origin
+			if opcode = 67h | opcode = 41h
+				load opcode byte from origin + 1
+			end if
+			if opcode and 0F8h = 48h
+				size_param = 8
+			else if opcode = 66h
+				size_param = 2
+			else if opcode = 0FFh
+				size_param = 4
+			else
+				size_param = 1
+			end if
+		end virtual
+	end if
+
+	if type eq sep_qword
+		match _high:_low, definition\{
+			if ~_low eq eax
+				mov _low, eax
+			end if
+			rol rax, 32
+			if ~_high eq eax
+				mov _high, eax
+				rol rax, 32
+			end if
+		\}
+	else if definition eqtype [0] | definition eqtype byte [0]
+		if size_param = 8
+			if type eq double
+				fld qword definition
+			else
+				mov definition, rax
+			end if
+		else if size_param = 4
+			if type eq float
+				fld definition
+			else
+				mov definition, eax
+			end if
+		else if size_param = 2
+			mov definition, ax
+		else if size_param = 1
+			mov definition, al
+		end if
+	else if definition in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
+		if size_param = 4
+			if type eq float
+				if ~definition eq xmm0
+					movd definition, xmm0
+				end if
+			else
+				movd definition, eax
+			end if
+		else if size_param = 8
+			if type eq double
+				if ~definition eq xmm0
+					movq definition, xmm0
+				end if
+			else
+				movq definition, rax
+			end if
+		end if
+	else
+		mov definition, rax
+	end if
+}

@@ -160,8 +160,9 @@ proc CNV.ui64div c uses pbx, result:POINTER, dividend:QWORD, divisor:QWORD
 		ret
 
 	.lazy_ret:
-		mov dword[.result.result], 0
-		mov dword[.result.result + 4], 0
+		movq [.result.reminder], xmm1
+		pxor xmm0, xmm0
+		movq [.result.result], xmm0
 		; lea eax, [.result]
 		ret
 
@@ -305,43 +306,68 @@ proc CNV.i64ToStr c, lpStr, num:QWORD, radix
 	ret
 endp
 
+proc CNV.ui64mul c, a:QWORD, b:QWORD
+	locals 
+		buf rq 4
+		dest dq ?, ?
+	endl
+	movq xmm1, [b]
+	movq xmm0, [a]
+
+	pshufd xmm0, xmm0, 01000100b
+	vpmovzxdq ymm0, xmm0
+	pshufd xmm1, xmm1, 01010000b
+	vpmovzxdq ymm1, xmm1
+	vpmuludq ymm0, ymm0, ymm1
+	vmovups yword[buf], ymm0
+	
+	movq [dest], xmm0
+	
+	mov eax, dword[buf + 8]
+	mov edx, dword[buf + 12]
+	add dword[dest + 4], eax
+	adc dword[dest + 8], edx
+	adc dword[dest + 12], 0
+
+	mov eax, dword[buf + 16]
+	mov edx, dword[buf + 20]
+	add dword[dest + 4], eax
+	adc dword[dest + 8], edx
+	adc dword[dest + 12], 0
+	
+	vextractf128 xmm0, ymm0, 1
+	psrldq xmm0, 8
+	pslldq xmm0, 8
+	movups xmm1, xword[dest]
+	paddq xmm0, xmm1
+	movd eax, xmm0
+	psrldq xmm0, 4
+	movd edx, xmm0
+	ret
+endp
+
+proc CNV.ui64pow c uses pbx, num:QWORD, exp:DWORD
+	; @sarg @arg1, @arg2
+	local result:dq 1, xmm0_save:QWORD
+
+	mov ebx, [exp]
+	movq xmm0, [num]
+	.pow_loop:
+		test ebx, 1
+		jz .no_mul
+			movq [xmm0_save], xmm0
+			@call [result] = CNV::ui64mul([result], qword xmm0)
+			movq xmm0, [xmm0_save]
+		.no_mul:
+		@call qword xmm0 = CNV::ui64mul(qword xmm0, qword xmm0)
+		shr ebx, 1
+	test ebx, ebx
+	jnz .pow_loop
+	mov eax, dword[result]
+	mov edx, dword[result + 4]
+	ret
+endp
+
 if used CMV.i32ToStr
 	CMV.i32ToStr = CNV.intToStr
 end if
-
-; int64 x int64 multiply
-	; locals 
-	; 	db ?
-	; 	buf rq 4
-	; 	dest dq ?, ?
-	; endl
-
-	; movq xmm1, [b]
-	; movq xmm0, [a]
-
-	; pshufd xmm0, xmm0, 01000100b
-	; vpmovzxdq ymm0, xmm0
-	; pshufd xmm1, xmm1, 01010000b
-	; vpmovzxdq ymm1, xmm1
-	; vpmuludq ymm0, ymm0, ymm1
-	; vmovups yword[buf], ymm0
-	
-	; movq [dest], xmm0
-	
-	; mov eax, dword[buf + 8]
-	; mov edx, dword[buf + 12]
-	; add dword[dest + 4], eax
-	; adc dword[dest + 8], edx
-	; adc dword[dest + 12], 0
-
-	; mov eax, dword[buf + 16]
-	; mov edx, dword[buf + 20]
-	; add dword[dest + 4], eax
-	; adc dword[dest + 8], edx
-	; adc dword[dest + 12], 0
-	
-	; vextractf128 xmm0, ymm0, 1
-	; psrldq xmm0, 8
-	; pslldq xmm0, 8
-	; movups xmm1, xword[dest]
-	; paddq xmm0, xmm1

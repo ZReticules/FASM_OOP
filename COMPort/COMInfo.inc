@@ -69,13 +69,6 @@
 	define DEVICE_NOTIFY_SERVICE_HANDLE			0x00000001
 	define DEVICE_NOTIFY_ALL_INTERFACE_CLASSES	0x00000004
 
-	struct GUID
-		Data1 dd ?
-		Data2 dw ?
-		Data3 dw ?
-		Data4 db 8 dup (?);
-	ends
-
 	struct SP_DEVINFO_DATA 
 	    cbSize 		dd sizeof.SP_DEVINFO_DATA;
 	    ClassGuid 	GUID

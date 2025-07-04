@@ -82,53 +82,6 @@ macro ends@handler{
 				ends@macros name
 			\\\}
 		\\}
-		; restruc dm  								;уаляем определения макросов для методов
-		; restruc override								;переопределения методов
-		; restruc const  									;и создания констант
-		; name\#@Virtual equ 0						;по умолчанию считаем, что таблица виртуальных методов не нужна
-		; MStruct@GenMethods name		;при генерации определим так ли это
-		; ; restore oldstruct@action		
-		; ;здесь происходит переопределение стандартных
-		; ;создаваемых struct макросов
-		; match =1, name\#@Virtual\\{
-		; 	sizeof.\#name = sizeof.\#name + pointer.size
-		; 	; vtable equ dd name\#.Table				;если нужно создать указатель на таблице виртуальных методов, добавляем константу
-		; \\}
-		; struc name args&\\{
-		; 	\\common
-		; 	.Table equ name\\#\\\.Table				;прикрепляем таблицу статически
-		; 	.Lp equ .								;каждому обьекту создаем точку начала
-		; 	match =1, name\#@Virtual \\\{					;проверяем, нужно ли создать VTable для константы
-		; 		restore .Lp
-		; 		.Lp equ .VTable
-		; 	\\\}
-        ;     match , @struct \\\{ 
-        ;         define field@struct .,name,<args> 
-        ;     \\\}
-        ;     match no, @struct \\\{ 
-		; 		match =1, name\#@Virtual \\\\{					;проверяем, нужно ли создать VTable
-		; 			.VTable dptr name\#.Table
-		; 		\\\\}
-		; 		. name args
-        ;     \\\}
-		; 	.Type equ \name
-		; 	.TypeName equ \`name
-		; 	.size = sizeof.\#name
-		; \\}
-		; macro name args&\\{						;если имени у обьекта нет, то стандартный обработчик
-		; 	\\common
-        ;     match , @struct \\\{ 
-        ;     	\\\local anonymous
-        ;         define field@struct anonymous,name,<args> 
-        ;     \\\}
-        ;     match no, @struct \\\{ 
-		; 		match =1, name\#@Virtual\\\\{
-		; 			dptr name\#.Table
-		; 		\\\\}
-		; 		name args
-        ;     \\\}
-		; \\}
-		; \\}
 		restore struct@lastname
 	\}
 }
@@ -146,6 +99,11 @@ macro ends{
 	\}
 }
 
+struct @interface
+	const __interface equ 1
+	VTable dptr ?
+ends
+
 macro fillParam reg*, src*{
 	local matched
 	match =addr _src, src\{
@@ -154,11 +112,7 @@ macro fillParam reg*, src*{
 		end if
 		define matched
 	\}
-	match =[any=], src\{
-		mov reg, src
-		define matched
-	\}
-	match any1=[any2=], src\{
+	match any[addr], _ src\{
 		mov reg, src
 		define matched
 	\}
@@ -219,22 +173,22 @@ macro virtObj args&{
 	args_statement equ args
 	match any =from srcval, args_statement\{
 		source equ srcval
-		restore args_statement
+		; restore args_statement
 		args_statement equ any
 	\}
 	match any =at reg, args_statement\{
 		register equ reg
-		restore args_statement
+		; restore args_statement
 		args_statement equ any
 	\}
 	match name:=arg type, args_statement\{
 		nameof equ name
 		typeof equ type
-		match =1|reg, type\#@Virtual|register\\{
-			restore register
-			register equ reg - pointer.size
-		\\}
-		restore args_statement
+		; match =1|reg, type\#@Virtual|register\\{
+		; 	restore register
+		; 	register equ reg - pointer.size
+		; \\}
+		; restore args_statement
 		args_statement equ
 	\}
 	match name type, args_statement\{
@@ -393,22 +347,22 @@ macro @virtObj [argums]{
 	define argums_statement argums
 	match any =from srcval, argums_statement\{
 		source equ srcval
-		restore argums_statement
+		; restore argums_statement
 		define argums_statement any
 	\}
 	match any =at reg, argums_statement\{
 		register equ reg
-		restore argums_statement
+		; restore argums_statement
 		define argums_statement any
 	\}
 	match name:=arg type, argums_statement\{
 		nameof equ name
 		typeof equ type
-		match =1|reg, type\#@Virtual|register\\{
-			restore register
-			register equ reg - pointer.size
-		\\}
-		restore argums_statement
+		; match =1|reg, type\#@Virtual|register\\{
+		; 	restore register
+		; 	register equ reg - pointer.size
+		; \\}
+		; restore argums_statement
 		define argums_statement
 	\}
 	match name type, argums_statement\{
@@ -470,6 +424,7 @@ macro @init_liters{
 		define @init_liters
 	\}
 }
+
 total_postpone equ @init_liters
 
 ; macro initials at_base { 

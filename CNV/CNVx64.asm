@@ -1,5 +1,3 @@
-; proc_noprologue
-
 ; proc CNV.parseCMD uses rbx, argvLp:qword
 ; 	; local lpargmem:QWORD
 ; 	mov [argvLp], rcx
@@ -116,6 +114,23 @@ proc i32ToStr, lpStr, num, radix
 	jmp intToStr
 endp
 
+macro CNV.ui64mul a, b{
+	@fillGPR pdx, b
+	@fillGPR pax, a
+	mul pdx
+}
+
+macro CNV.ui64div result, dividend, divisor{
+	@fillGPR r8, divisor
+	@fillGPR rdx, dividend
+	@fillGPR rcx, result
+	xor rax, rax
+	xchg rax, rdx
+	div r8
+	mov [rcx + Divq.reminder], rdx
+	mov [rcx + Divq.result], rax
+}
+
 if used CNV.ui64ToStr 
 	CNV.ui64ToStr = CNV.uintToStr
 end if
@@ -128,4 +143,6 @@ if used CNV.ui64sqrt
 	CNV.ui64sqrt = CNV.ui32sqrt
 end if
 
-; proc_resprologue
+if used CNV.ui64pow
+	CNV.ui64pow = CNV.ui32pow
+end if

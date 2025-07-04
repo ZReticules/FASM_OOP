@@ -1,5 +1,8 @@
 macro MStruct@GenMethods name{						;макрос для генерации методов
 	name#.Table:
+	match =1, name#.@imported\{
+		virtual at name#.Table
+	\}
 	irpv MethName, name#@MStack\{									;перебираем стек методов
 		match =static, MethName\#.Type#name\\{					;если метод статический - устаналвиаем числовую переменную
 			if used name#.Table.\\#MethName								;проверяем, что метод хоть раз был вызван
@@ -14,6 +17,9 @@ macro MStruct@GenMethods name{						;макрос для генерации ме
 			name#@Virtual equ 1							;поле с указателем на таблицу виртуальных методов
 		\\}
 	\}
+	match =1, name#.@imported\{
+		end virtual
+	\}
 }
 
 macro specialfields_define_default name{										;создаем макросы, которые позволят нам определять и
@@ -21,14 +27,21 @@ macro specialfields_define_default name{										;создаем макросы
 	name#.used = 1
 	struc dm val\{
 		\local matched
-		name#@MStack equ . 								;загружаем на вершину константы-стека новый метод
-		match _val:type, val\\{							;для виртуальных методов(и возможно дальнейшего расширения)
+		define __value val
+		name#@MStack equ . 								;загружаем на вершину константы-стека новый 
+		match _val/conv, __value\\{
+			.Conv#name equ conv
+			define __value _val
+		rept 0\\{ \\} match conv, __obj_call\\{
+			.Conv#name equ conv
+		\\}
+		match _val:type, __value\\{							;для виртуальных методов(и возможно дальнейшего расширения)
 			.Value#name equ _val							;сразу закрепляем за ним значение(обработчик)
-			.Type#name equ type							;и тип - пока что только виртуальные
+			.Type#name equ type							;и тип - пока что только виртуальные и инлайн методы
 			define matched
 		\\}
-		match =matched, matched\\{							;если тип не указан явно
-			.Value#name equ val							;значит статический
+		match =matched|_val, matched|__value\\{							;если тип не указан явно
+			.Value#name equ _val							;значит статический
 			.Type#name equ static
 		\\}
 		match =this, .Value#name\\{						;если значение обработчика - this, то это значит
@@ -42,6 +55,12 @@ macro specialfields_define_default name{										;создаем макросы
 			match =MethName, .\\\{						;находим метод, имя которого совпадает с переопределяемым
 				\\\local _newVal
 				_newVal equ NewVal
+				match _val/conv, _newVal\\\\{
+					.Conv#name equ conv
+					define _newVal _val
+				rept 0\\\\{ \\\\} match conv, __obj_call\\\\{
+					.Conv#name equ conv
+				\\\\}
 				match _val:type, _newVal\\\\{
 					_newVal equ _val
 					.Type#name equ type
@@ -80,7 +99,7 @@ macro specialfields_define_default name{										;создаем макросы
 
 macro secialfields_inherit_default parent, name{
 	irpv ParentMethod, parent#@MStack\{				;загружаем потомку методы родителя
-		ParentMethod dm ParentMethod\#.Value#parent:ParentMethod\#.Type#parent
+		ParentMethod dm ParentMethod\#.Value#parent:ParentMethod\#.Type#parent/ParentMethod\#.Conv#parent
 	\}
 	irpv ParentConst, parent#@ConStack\{
 		const ParentConst parent#.\#ParentConst\#@Type parent#.\#ParentConst\#@Value
@@ -112,11 +131,16 @@ macro specialfields_ends_default name{
         match , @struct \\{ 
             define field@struct .,name,<args> 
         \\}
-        match no, @struct \\{ 
-			match =1, name#@Virtual \\\{					;проверяем, нужно ли создать VTable
-				.VTable dptr name#.Table
+        match no, @struct \\{
+			match =name#.__interface, name#.__interface \\\{					;проверяем, нужно ли создать VTable
+				. name args
+			rept 0\\\{\\\}rept 1\\\{
+				match any, args\\\\{
+					. name name#.Table, args 
+				rept 0\\\\{\\\\}rept 1\\\\{
+					. name name#.Table
+				\\\\}
 			\\\}
-			. name args
         \\}
 		.Type equ name
 		.TypeName equ `name
@@ -131,10 +155,15 @@ macro specialfields_ends_default name{
             define field@struct anonymous,name,<args> 
         \\}
         match no, @struct \\{ 
-			match =1, name#@Virtual\\\{
-				dptr name#.Table
+			match =name#.__interface, name#.__interface \\\{					;проверяем, нужно ли создать VTable
+				name args
+			rept 0\\\{\\\} rept 1\\\{
+				match any, args\\\\{
+					name name#.Table, args 
+				rept 0\\\\{\\\\} rept 1\\\\{
+					name name#.Table
+				\\\\}
 			\\\}
-			name args
         \\}
 	\}
 }

@@ -447,9 +447,364 @@ proc String.addInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
     .funcs dptr CNV.ui64ToStr, CNV.i64ToStr
 endp
 
-proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
-    @sarg @arg1, @arg2, @arg3, @arg4
-    @larg psi, @arg2
+; proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
+;     @sarg @arg1, @arg2, @arg3, @arg4
+;     @larg psi, @arg2
+;     virtObj .this:arg String at pbx from @arg1 
+;     locals 
+;         buf String 0, 0, 0
+;         result String
+;     endl
+;     mov edx, [.this.__size]
+;     bswap edx
+;     @call result->make(edx)
+;     @call buf->make(256)
+;     xor pbp, pbp
+;     mov pdi, psi
+;     .loop1:
+;         ; mov eax, [result.len]
+;         movzx eax, byte[psi]
+;         cmp eax, "%"
+;             je .fmt
+;         inc psi
+;     cmp al, 0
+;     jne .loop1
+;     sub psi, pdi
+;     dec psi
+;     @call result->addChars(pdi, psi)
+;     @call .this->unmake()
+;     @call buf->unmake()
+;     @call CNV::fill(addr .this, addr result, sizeof.String, FILL_NO_SAVE)
+;     ret
+
+;     .types:
+;         dptr .character
+;         dptr .decimal
+;         dptr .unsigned
+;         dptr .hex
+;         dptr .oct
+;         dptr .asciiz
+;         dptr .String
+;         dptr .float
+;         dptr .float
+;         dptr ?
+;         dptr ?
+;         dptr ?
+;         dptr ?
+;         dptr ?
+;         dptr ?
+;         dptr .percent
+
+;     .fmt:
+;         locals
+;             flags       dd 0x0040
+;             width       dd -1
+;             precision   dd -1
+;             uns_base    dd ?
+;             numeric_len dd ?
+;             numeric_buf db 64 dup(?)
+;             pDouble     ParsedDouble
+;         endl
+
+;         sub psi, pdi
+;         test psi, psi
+;         jz .no_bytes
+;             @call result->addChars(pdi, psi);->print()
+;             ; @call c [puts]("")
+;         .no_bytes:
+;         @call buf->flush()
+;         movzx eax, byte[pdi + psi + 1]
+;         add pdi, 2
+;         ; mov ecx, eax          ; ecx - type
+;         ; and ecx, 0xF
+;         test eax, FSTR_HAS_FLAGS
+;         jz .no_flags
+;             movzx edx, byte[pdi + psi]
+;             mov [flags], edx
+;             inc pdi
+;         .no_flags:
+;         test eax, FSTR_HAS_WIDTH
+;         jz .no_width
+;             mov edx, [pdi + psi]
+;             lea pcx, [pbp + pointer.size]
+;             cmp edx, -2
+;             cmove edx, dword[vargs + pbp]
+;             cmove ebp, ecx
+;             mov [width], edx
+;             add pdi, 4
+;         .no_width:
+;         test eax, FSTR_HAS_PRECISION
+;         jz .no_precision
+;             mov edx, [pdi + psi]
+;             lea pcx, [pbp + pointer.size]
+;             cmp edx, -2
+;             cmove edx, dword[vargs + pbp]
+;             cmove ebp, ecx
+;             mov [precision], edx
+;             add pdi, 4
+;         .no_precision:
+;         and eax, 0xF
+;         jmp pointer[.types + eax * pointer.size]
+
+;     .end_fmt:
+;         cmp [width], -1
+;         je .after_correct
+;         mov eax, [buf.len]
+;         cmp [width], eax
+;         jb .after_correct
+;             sub [width], eax
+;             test [flags], FSTR_MINUS_FLAG
+;             jz .no_reverse
+;                 @call result->addString(addr buf)
+;                 @call result->addChar(+" ", [width])
+;                 add psi, pdi
+;                 mov pdi, psi
+;                 jmp .loop1
+;             .no_reverse:
+;             @call result->addChar(+" ", [width])
+;         .after_correct:
+;         ; @call buf->getLpChars()
+;         ; @call c [printf]("%d:%s\n", [buf.len], pax)
+;         @call result->addString(addr buf);->print()
+;         ; @call c [puts]("")
+;         add psi, pdi
+;         mov pdi, psi
+;         jmp .loop1
+
+
+;     .character:
+;         cmp [precision], -1
+;         jne .no_char_precision
+;             mov [precision], 1
+;         .no_char_precision:
+;         @call buf->fromChar([vargs + pbp], [precision])
+;         add pbp, pointer.size
+;         jmp .end_fmt
+
+;     .decimal:
+;         mov eax, [flags]
+;         and eax, FSTR_SIZE
+;         switch [flags]
+;             case FSTR_SIZE_QWORD
+;                 test dword[vargs + pbp + 4], 80000000h
+;                 match =x86, __architecture{
+;                         jz .no_dec_neg
+;                     @call buf->fromChar(+"-", 1)
+;                     neg [vargs + pbp]
+;                     adc [vargs + pbp + 4], 0
+;                     neg [vargs + pbp + 4]
+;                     jmp .check_precision
+;                 }
+;                 match =x64, __architecture{
+;                     jmp end_case
+;                 }
+;             case FSTR_SIZE_BYTE
+;                 test dword[vargs + pbp], 80h
+;                 jmp end_case
+;             case FSTR_SIZE_WORD
+;                 test dword[vargs + pbp], 8000h
+;                 jmp end_case
+;             case_default
+;                 test dword[vargs + pbp], 80000000h
+;         end_switch
+;         jz .no_dec_neg
+;             @call buf->fromChar(+"-", 1)
+;             neg [vargs + pbp]
+;             jmp .check_precision
+;         .no_dec_neg:
+;             xor edx, edx
+;             mov eax, "+"
+;             test [flags], FSTR_PLUS_FLAG
+;             cmovnz edx, eax
+;             mov eax, " "
+;             test [flags], FSTR_SPACE_FLAG
+;             cmovnz edx, eax
+;             test edx, edx
+;             jz .no_dec_start
+;                 @call buf->fromChar(edx, 1)
+;             .no_dec_start:
+;         .check_precision:
+;         ; @call CNV::uintToStr(addr numeric_buf, [vargs + pbp], 10)
+
+;         mov [uns_base], 10
+;         jmp .unumeric
+
+;     .unsigned:
+;         mov [uns_base], 10
+;         jmp .unumeric
+
+;     .hex:
+;         mov [uns_base], 16
+;         jmp .unumeric
+
+;     .oct:
+;         mov [uns_base], 8
+;         ; jmp .unumeric
+
+;     .unumeric:
+;         mov eax, [flags]
+;         and eax, FSTR_SIZE
+;         switch [flags]
+;             match =x86, __architecture{
+;                 case FSTR_SIZE_QWORD
+;                     @call CNV::ui64ToStr(addr numeric_buf, qword[vargs + pbp], [uns_base])
+;                     add pbp, 8
+;                     jmp .check_precision_unumeric
+;             }
+;             case FSTR_SIZE_BYTE
+;                 movzx pax, byte[vargs + pbp]
+;                 add pbp, pointer.size
+;                 jmp end_case
+;             case FSTR_SIZE_WORD
+;                 movzx pax, word[vargs + pbp]
+;                 add pbp, pointer.size
+;                 jmp end_case
+;             case_default
+;                 mov pax, pointer[vargs + pbp]
+;                 add pbp, pointer.size
+;         end_switch
+;         @call CNV::uintToStr(addr numeric_buf, pax, [uns_base])
+
+;         .check_precision_unumeric:
+;         cmp [precision], -1
+;         je .no_uns_precision
+;         cmp eax, [precision]
+;         ja .no_uns_precision
+;             mov [numeric_len], eax
+;             sub [precision], eax
+;             @call buf->addChar(+"0", [precision])
+;             mov eax, [numeric_len]
+;         .no_uns_precision:
+
+;         @call buf->addChars(addr numeric_buf, eax)
+;         jmp .end_fmt
+
+;     .asciiz:
+;         ; mov eax, -1
+
+;         ; cmp eax, -1
+;         ; je .no_asciiz_precision
+;         @call CNV::strlen([vargs + pbp])
+;         cmp eax, [precision]
+;             cmova eax, [precision]
+;         ; .no_asciiz_precision:
+;         @call buf->fromChars([vargs + pbp], eax)
+;         add pbp, pointer.size
+;         jmp .end_fmt
+
+;     .String:
+;         ; mov eax, [precision]
+;         cmp [precision], -1
+;         je .no_string_precision
+;         mov pax, [vargs + pbp]
+;         mov ecx, [pax + String.len]
+;         cmp ecx, [precision]
+;         jbe .no_string_precision
+;             @call String::getLpChars([vargs + pbp])
+;             mov pdx, pax
+;             @call buf->fromChars(pdx, [precision])
+;             add pbp, pointer.size
+;             jmp .end_fmt
+;         .no_string_precision:
+
+;         @call buf->fromString([vargs + pbp])
+;         add pbp, pointer.size
+;         jmp .end_fmt
+
+;     .percent:
+;         @call buf->fromChar(+"%", 1)
+;         jmp .end_fmt
+
+;     .float:
+;         virtual at uns_base
+;             .normalization dd ?
+;         end virtual
+;         mov edx, 6
+;         mov ecx, 1
+;         sub eax, 7
+;         test eax, eax
+;             cmovnz edx, ecx
+;         mov [.normalization], edx
+;         mov eax, [flags]
+;         and eax, FSTR_SIZE
+;         switch [flags]
+;             case FSTR_SIZE_WORD
+;                 test dword[vargs + pbp], 0x8000
+;                 lahf
+;                 and dword[vargs + pbp], 0x7FFF
+;                 vcvtph2ps xmm0, qword[vargs + pbp]
+;                 cvtss2sd xmm0, xmm0
+;                 add pbp, pointer.size
+;                 jmp end_case
+;             case FSTR_SIZE_QWORD
+;                 test dword[vargs + pbp + 4], 0x80000000
+;                 lahf
+;                 and dword[vargs + pbp + 4], 0x7FFFFFFF
+;                 movq xmm0, qword[vargs + pbp]
+;                 add pbp, 8
+;                 jmp end_case
+;             case_default
+;                 test dword[vargs + pbp], 0x80000000
+;                 lahf
+;                 and dword[vargs + pbp], 0x7FFFFFFF
+;                 cvtss2sd xmm0, dword[vargs + pbp]
+;                 add pbp, pointer.size
+;         end_switch
+;         movq qword[numeric_buf], xmm0
+;         sahf
+;         jz .no_float_neg
+;             @call buf->fromChar(+"-", 1)
+;             jmp .check_precision_float
+;         .no_float_neg:
+;             xor edx, edx
+;             mov eax, "+"
+;             test [flags], FSTR_PLUS_FLAG
+;             cmovnz edx, eax
+;             mov eax, " "
+;             test [flags], FSTR_SPACE_FLAG
+;             cmovnz edx, eax
+;             test edx, edx
+;             jz .no_float_start
+;                 @call buf->fromChar(edx, 1)
+;             .no_float_start:
+;         .check_precision_float:
+;         mov edx, 5
+;         mov eax, [precision]
+;         cmp [precision], -1
+;         cmove eax, edx
+;         @call pDouble->parseDouble(double [numeric_buf], eax, [.normalization])
+;         movq xmm0, [pDouble.fracVal]
+;         movsx eax, [pDouble.sign]
+;         cmp eax, 0
+;         jl .error_num
+;             @call buf->addInt64([pDouble.intVal], 10, 0)
+;             movq xmm0, [pDouble.fracVal]
+;             ptest xmm0, xmm0
+;             jz @f
+;                 @call buf->addChar(+".", 1)->addChar(+"0", [pDouble.order])->addInt64([pDouble.fracVal], 10, 0)
+;             @@:
+;             cmp [pDouble.expVal], 0
+;             je @f
+;                 @call buf->addChar(+"e", 1)
+;                 movsx pax, [pDouble.expVal]
+;                 @call buf->addInt(pax, 10, 1)
+;             @@:
+;             jmp .end_fmt
+;         .error_num:
+;         ; mov pax, _inf
+;         shr pax, 1
+;         and pax, 1
+;         @call buf->addChars(pointer[.errors + pax * pointer.size], 3)
+;         jmp .end_fmt
+
+;         .inf @const db "inf"
+;         .nan @const db "NaN"
+;         .errors @const dptr .nan, .inf
+; endp
+
+proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
+    @sarg @arg1, @arg2, @arg3
+    @larg psi, @arg2, pbp, @arg3
     virtObj .this:arg String at pbx from @arg1 
     locals 
         buf String 0, 0, 0
@@ -459,7 +814,6 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
     bswap edx
     @call result->make(edx)
     @call buf->make(256)
-    xor pbp, pbp
     mov pdi, psi
     .loop1:
         ; mov eax, [result.len]
@@ -528,7 +882,7 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
             mov edx, [pdi + psi]
             lea pcx, [pbp + pointer.size]
             cmp edx, -2
-            cmove edx, dword[vargs + pbp]
+            cmove edx, dword[pbp]
             cmove ebp, ecx
             mov [width], edx
             add pdi, 4
@@ -538,7 +892,7 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
             mov edx, [pdi + psi]
             lea pcx, [pbp + pointer.size]
             cmp edx, -2
-            cmove edx, dword[vargs + pbp]
+            cmove edx, dword[pbp]
             cmove ebp, ecx
             mov [precision], edx
             add pdi, 4
@@ -577,7 +931,7 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
         jne .no_char_precision
             mov [precision], 1
         .no_char_precision:
-        @call buf->fromChar([vargs + pbp], [precision])
+        @call buf->fromChar(pointer[pbp], [precision])
         add pbp, pointer.size
         jmp .end_fmt
 
@@ -586,30 +940,30 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
         and eax, FSTR_SIZE
         switch [flags]
             case FSTR_SIZE_QWORD
-                test dword[vargs + pbp + 4], 80000000h
+                test dword[pbp + 4], 80000000h
                 match =x86, __architecture{
                         jz .no_dec_neg
                     @call buf->fromChar(+"-", 1)
-                    neg [vargs + pbp]
-                    adc [vargs + pbp + 4], 0
-                    neg [vargs + pbp + 4]
+                    neg pointer[pbp]
+                    adc pointer[pbp + 4], 0
+                    neg pointer[pbp + 4]
                     jmp .check_precision
                 }
                 match =x64, __architecture{
                     jmp end_case
                 }
             case FSTR_SIZE_BYTE
-                test dword[vargs + pbp], 80h
+                test dword[pbp], 80h
                 jmp end_case
             case FSTR_SIZE_WORD
-                test dword[vargs + pbp], 8000h
+                test dword[pbp], 8000h
                 jmp end_case
             case_default
-                test dword[vargs + pbp], 80000000h
+                test dword[pbp], 80000000h
         end_switch
         jz .no_dec_neg
             @call buf->fromChar(+"-", 1)
-            neg [vargs + pbp]
+            neg pointer[pbp]
             jmp .check_precision
         .no_dec_neg:
             xor edx, edx
@@ -624,7 +978,7 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
                 @call buf->fromChar(edx, 1)
             .no_dec_start:
         .check_precision:
-        ; @call CNV::uintToStr(addr numeric_buf, [vargs + pbp], 10)
+        ; @call CNV::uintToStr(addr numeric_buf, [pbp], 10)
 
         mov [uns_base], 10
         jmp .unumeric
@@ -647,20 +1001,20 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
         switch [flags]
             match =x86, __architecture{
                 case FSTR_SIZE_QWORD
-                    @call CNV::ui64ToStr(addr numeric_buf, qword[vargs + pbp], [uns_base])
+                    @call CNV::ui64ToStr(addr numeric_buf, qword[pbp], [uns_base])
                     add pbp, 8
                     jmp .check_precision_unumeric
             }
             case FSTR_SIZE_BYTE
-                movzx pax, byte[vargs + pbp]
+                movzx pax, byte[pbp]
                 add pbp, pointer.size
                 jmp end_case
             case FSTR_SIZE_WORD
-                movzx pax, word[vargs + pbp]
+                movzx pax, word[pbp]
                 add pbp, pointer.size
                 jmp end_case
             case_default
-                mov pax, pointer[vargs + pbp]
+                mov pax, pointer[pbp]
                 add pbp, pointer.size
         end_switch
         @call CNV::uintToStr(addr numeric_buf, pax, [uns_base])
@@ -684,11 +1038,11 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
 
         ; cmp eax, -1
         ; je .no_asciiz_precision
-        @call CNV::strlen([vargs + pbp])
+        @call CNV::strlen(pointer[pbp])
         cmp eax, [precision]
             cmova eax, [precision]
         ; .no_asciiz_precision:
-        @call buf->fromChars([vargs + pbp], eax)
+        @call buf->fromChars(pointer[pbp], eax)
         add pbp, pointer.size
         jmp .end_fmt
 
@@ -696,18 +1050,18 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
         ; mov eax, [precision]
         cmp [precision], -1
         je .no_string_precision
-        mov pax, [vargs + pbp]
+        mov pax, [pbp]
         mov ecx, [pax + String.len]
         cmp ecx, [precision]
         jbe .no_string_precision
-            @call String::getLpChars([vargs + pbp])
+            @call String::getLpChars(pointer[pbp])
             mov pdx, pax
             @call buf->fromChars(pdx, [precision])
             add pbp, pointer.size
             jmp .end_fmt
         .no_string_precision:
 
-        @call buf->fromString([vargs + pbp])
+        @call buf->fromString(pointer[pbp])
         add pbp, pointer.size
         jmp .end_fmt
 
@@ -729,25 +1083,25 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
         and eax, FSTR_SIZE
         switch [flags]
             case FSTR_SIZE_WORD
-                test dword[vargs + pbp], 0x8000
+                test dword[pbp], 0x8000
                 lahf
-                and dword[vargs + pbp], 0x7FFF
-                vcvtph2ps xmm0, qword[vargs + pbp]
+                and dword[pbp], 0x7FFF
+                vcvtph2ps xmm0, qword[pbp]
                 cvtss2sd xmm0, xmm0
                 add pbp, pointer.size
                 jmp end_case
             case FSTR_SIZE_QWORD
-                test dword[vargs + pbp + 4], 0x80000000
+                test dword[pbp + 4], 0x80000000
                 lahf
-                and dword[vargs + pbp + 4], 0x7FFFFFFF
-                movq xmm0, qword[vargs + pbp]
+                and dword[pbp + 4], 0x7FFFFFFF
+                movq xmm0, qword[pbp]
                 add pbp, 8
                 jmp end_case
             case_default
-                test dword[vargs + pbp], 0x80000000
+                test dword[pbp], 0x80000000
                 lahf
-                and dword[vargs + pbp], 0x7FFFFFFF
-                cvtss2sd xmm0, dword[vargs + pbp]
+                and dword[pbp], 0x7FFFFFFF
+                cvtss2sd xmm0, dword[pbp]
                 add pbp, pointer.size
         end_switch
         movq qword[numeric_buf], xmm0
@@ -777,6 +1131,22 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
         movsx eax, [pDouble.sign]
         cmp eax, 0
         jl .error_num
+            cmp [.normalization], 1
+            jne .no_exp_key
+            cmp dword[pDouble.intVal + 4], 0
+            jne .no_exp_key
+            cmp dword[pDouble.intVal], 0
+            jne .no_exp_key
+                @call [numeric_len] = CNV::ui64ToStr(addr numeric_buf, [pDouble.fracVal], 10)
+                @call CNV::ui64pow(qword 10, addr pax - 1)
+                ; int3
+                @call CNV::ui64div(addr pDouble, [pDouble.fracVal], qword_result)
+                @call CNV::ui64ToStr(addr numeric_buf, [pDouble.fracVal], 10)
+                inc eax
+                sub eax, [numeric_len]
+                sub [pDouble.order], eax
+                dec [pDouble.expVal]
+            .no_exp_key:
             @call buf->addInt64([pDouble.intVal], 10, 0)
             movq xmm0, [pDouble.fracVal]
             ptest xmm0, xmm0
@@ -800,6 +1170,12 @@ proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
         .inf @const db "inf"
         .nan @const db "NaN"
         .errors @const dptr .nan, .inf
+endp
+
+proc String.sprintf c, this, fmtstr, va_args, arg4
+    @sarg @arg3, @arg4
+    @call c String.vsprintf(@arg1, @arg2, addr va_args)
+    ret
 endp
 
 proc String.streamRead c uses pbx psi pdi pbp, this, fp, delimiter:DWORD, delimiter_callback, eof_callback, lParam

@@ -143,7 +143,7 @@ macro va_list@load counter, ax_destroyed, ax_restored, ax_need_save, size@param,
 		if size@param = 4
 			movd dword[va@list + counter],param
 		else if size@param = 8
-			movq dword[va@list + counter],param
+			movq qword[va@list + counter],param
 		end if
 	else
 		if size@param = 4
@@ -436,13 +436,14 @@ macro base@call clean_stack, action, proc, [arg]{
 					if size@param = 4
 						push param
 					else if size@param = 8
-						if param >= 0
-							push param shr 32
-							push param and 0FFFFFFFFh
-						else 
-							push 0FFFFFFFFh
-							push param
-						end if
+						\\local hparam, lparam
+						virtual at 0
+							dq param
+							load lparam dword from 0
+							load hparam dword from 4
+						end virtual
+						push hparam
+						push lparam
 					end if
 				end if
 			end if
@@ -502,4 +503,108 @@ macro stdcall args&{
 
 macro ccall args&{ 
 	base@call ~defined current@frame, +, args
+}
+
+macro fill@dest_proc dest{
+	local type, definition, size_param
+	local origin, opcode
+	define definition dest
+	param@parser type, definition
+	size_param = 4
+
+	if type eq double | type eq qword | type eq sep_qword
+		size_param = 8
+	else if definition eqtype byte 0 | definition eqtype byte 0f | definition eqtype byte [0]
+		match prefix value, definition\{ 
+			if prefix eq qword
+				size_param = 8
+			else if prefix eq dword
+				size_param = 4
+			else if prefix eq word
+				size_param = 2
+			else if prefix eq byte
+				size_param = 1
+			end if 
+		\}
+	else if ~ definition in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7>
+		virtual
+			use64
+			origin = $	
+			if type eq qword
+				inc qword definition
+			else
+				inc definition
+			end if
+			load opcode byte from origin
+			if opcode = 67h | opcode = 41h
+				load opcode byte from origin + 1
+			end if
+			if opcode and 0F8h = 48h
+				size_param = 8
+			else if opcode = 66h
+				size_param = 2
+			else if opcode = 0FFh
+				size_param = 4
+			else
+				size_param = 1
+			end if
+			use32
+		end virtual
+	end if
+	
+	if type eq sep_qword
+		match _high:_low, definition\{
+			if _high eq eax and _low eq edx
+				xchg eax, edx 
+			else 
+				if ~_high eq edx
+					mov _high, edx
+				end if
+				if ~_low eq eax
+					mov _low, eax
+				end if
+			end if
+		\}
+	else if definition eqtype [0] | definition eqtype byte [0]
+		if size_param = 8
+			if type eq double
+				fld qword definition
+			else
+				match any[addr], _ definition\{
+					mov dword[addr], eax
+					mov dword[addr + 4], edx
+				\}
+			end if
+		else if size_param = 4
+			if type eq float
+				fld definition
+			else
+				mov definition, eax
+			end if
+		else if size_param = 2
+			mov definition, ax
+		else if size_param = 1
+			mov definition, al
+		end if
+	else if definition in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7>
+		if size_param = 4
+			if type eq float
+				fld dword[esp - 4]
+				movd definition, [esp - 4]
+			else
+				movd definition, eax
+			end if
+		else if size_param = 8
+			if type eq double
+				fld qword[esp - 8]
+				movq definition, [esp - 8]
+			else
+				mov dword[esp - 8], eax
+				mov dword[esp - 4], edx
+				movq definition, qword[esp - 8]
+			end if
+		end if
+	else
+		mov definition, eax
+	end if
 }

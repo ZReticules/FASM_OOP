@@ -36,6 +36,7 @@
 	    fromInt     	dm this			;(num, radix, isSigned)
 	    addInt      	dm this
 	    slice       	dm this			;(indexFrom,indexTo) 
+	    vsprintf 		dm this			;(fstr, va_list)
 	    sprintf     	dm this			;(fstr, ...)
 	    streamRead		dm this			;(fp, delimiter, delimiter_callback, eof_callback, lParam)
 	    								;cdecl delimiter_callback(lpStrilgLine, lParam)
@@ -53,10 +54,12 @@
 	ends
 
 	; struct Wstring
+	; 	const SHORT_WSTRING_LEN = 12
+
 	;     len     dd ?
 	;     union
-	;         __lpChars   dptr ?
-	;         __chars     dw (pointer.size / 2) dup(?)
+	;         __lpWChars   dptr ?
+	;         __wchars     dw SHORT_WSTRING_LEN dup(?)
 	;     ends
 	;     __size  dd ?					;Big Endian
     ; ends

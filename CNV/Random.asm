@@ -1,4 +1,6 @@
-macro Random.new this, seed{
+proc_noprologue
+
+macro Random.make this, seed{
 	inlineObj _this, this, pcx
 	local ..this, ._this
 	virtObj ._this dptr ? at _this
@@ -72,7 +74,40 @@ macro Random.next this, min, max{
 	\}
 }
 
-macro Random64.new this, seed{
+macro Random.unmake this{}
+
+; uint32_t xorshift32 ( struct xorshift32_state * state ) {  
+; 	uint32_t x = state -> a ; 
+; 	x ^= x << 13 ; 
+; 	x ^= x >> 17 ; 
+; 	x ^= x << 5 ; 
+; 	return state -> a = x ; 
+; }  
+
+proc Random.__next c, this:POINTER, min:DWORD, max:DWORD
+	virtObj .this:arg Random from @arg1
+	@sarg @arg2
+	mov eax, [.this.__seed]
+	mov edx, eax
+	shl eax, 13
+	xor eax, edx
+	mov edx, eax
+	shr eax, 17
+	xor eax, edx
+	mov edx, eax
+	shl eax, 5
+	xor eax, edx
+	mov [.this.__seed], eax
+	mov pcx, @arg3
+	sub ecx, [min]
+	xor edx, edx
+	div ecx
+	mov eax, [min]
+	add eax, edx
+	ret
+endp
+
+macro Random64.make this, seed{
 	inlineObj _this, this, pcx
 	local ..this, ._this, ..seed, lseed, hseed
 	virtObj ._this dptr ? at _this
@@ -166,7 +201,7 @@ macro Random64.next this, min, max{
 	\}
 }
 
-proc_noprologue
+macro Random64.unmake this{}
 
 match =x64, __architecture{
 	proc Random64.__next, this, min, max
@@ -213,36 +248,5 @@ match =x86, __architecture{
 		ret
 	endp
 }
-
-; uint32_t xorshift32 ( struct xorshift32_state * state ) {  
-; 	uint32_t x = state -> a ; 
-; 	x ^= x << 13 ; 
-; 	x ^= x >> 17 ; 
-; 	x ^= x << 5 ; 
-; 	return state -> a = x ; 
-; }  
-
-proc Random.__next c, this:POINTER, min:DWORD, max:DWORD
-	virtObj .this:arg Random from @arg1
-	@sarg @arg2
-	mov eax, [.this.__seed]
-	mov edx, eax
-	shl eax, 13
-	xor eax, edx
-	mov edx, eax
-	shr eax, 17
-	xor eax, edx
-	mov edx, eax
-	shl eax, 5
-	xor eax, edx
-	mov [.this.__seed], eax
-	mov pcx, @arg3
-	sub ecx, [min]
-	xor edx, edx
-	div ecx
-	mov eax, [min]
-	add eax, edx
-	ret
-endp
 
 proc_resprologue
