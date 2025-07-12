@@ -207,54 +207,53 @@ macro base@call clean_stack, action, proc, [arg]{
 		\\}
 		match param,definition@param\\{ 
 			size@param = 4
-			if param eq NONE
-				size@param = 0
-				if type@param eq double | type@param eq qword
-					counter = counter + 1
-				end if
-			else if type@param eq double | type@param eq qword | type@param eq sep_qword
+			if type@param eq double | type@param eq qword | type@param eq sep_qword
 				size@param = 8
 				counter = counter + 1
-			else if param eqtype 0 | param eqtype 0f | type@param eq addr | type@param eq float
-				size@param = 4
-			else if param eqtype byte 0 | param eqtype byte 0f | param eqtype byte [0]
-				match prefix value,definition@param\\\{ 
-					if prefix eq qword
-						size@param = 8
-						counter = counter + 1
-					else if prefix eq dword
-						size@param = 4
-					else if prefix eq word
-						size@param = 2
-					else if prefix eq byte
-						size@param = 1
-					end if 
-				\\\}
-			else if ~ param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7>
-				virtual
-					use64
-					origin = $	
-					if type@param eq qword
-						inc qword param
-					else
-						inc param
-					end if
-					load opcode byte from origin
-					if opcode = 67h | opcode = 41h
-						load opcode byte from origin+1
-					end if
-					if opcode and 0F8h = 48h
-						size@param = 8
-						counter = counter + 1
-					else if opcode = 66h
-						size@param = 2
-					else if opcode = 0FFh
-						size@param = 4
-					else
-						size@param = 1
-					end if
-					use32
-				end virtual
+			else if type@param eq addr | type@param eq float
+				size@param = 4 
+			else
+				if param eqtype 0 | param eqtype 0f
+					size@param = 4
+				else if param eqtype byte 0 | param eqtype byte 0f | param eqtype byte [0]
+					match prefix value,definition@param\\\{ 
+						if prefix eq qword
+							size@param = 8
+							counter = counter + 1
+						else if prefix eq dword
+							size@param = 4
+						else if prefix eq word
+							size@param = 2
+						else if prefix eq byte
+							size@param = 1
+						end if 
+					\\\}
+				else if ~ param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7>
+					virtual
+						use64
+						origin = $	
+						if type@param eq qword
+							inc qword param
+						else
+							inc param
+						end if
+						load opcode byte from origin
+						if opcode = 67h | opcode = 41h
+							load opcode byte from origin+1
+						end if
+						if opcode and 0F8h = 48h
+							size@param = 8
+							counter = counter + 1
+						else if opcode = 66h
+							size@param = 2
+						else if opcode = 0FFh
+							size@param = 4
+						else
+							size@param = 1
+						end if
+						use32
+					end virtual
+				end if
 			end if
 			; else if param in <eax, ebx, ecx, edx, ebp, esp, edi, esi>
 			; 	size@param = 4
@@ -446,6 +445,10 @@ macro base@call clean_stack, action, proc, [arg]{
 						push lparam
 					end if
 				end if
+			end if
+		rept 0\\{ \\} rept 1\\{
+			if type@param eq double | type@param eq qword
+				counter = counter + 1
 			end if
 		\\}
 		args@count equ args@count+1

@@ -195,7 +195,8 @@ proc DIALOGFORM.ScaleChildsEnumProc uses pbx psi, hWnd, lParam
 	
 	local retFromScale:POINTER, preparedRect:RECT
 
-	@call [GetWindowPtrA]([hWnd], GWL_USERDATA)
+	; @call [GetWindowPtrA]([hWnd], GWL_USERDATA)
+	@call DLG::getPtr([hWnd])
 	test eax, eax
 		jz .return
 	

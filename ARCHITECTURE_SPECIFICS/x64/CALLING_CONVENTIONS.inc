@@ -180,52 +180,51 @@ macro @oopcall proc,[arg]{
 	match param,definition@param\{ 
 		local opcode,origin
 		size@param = 0
-		if param eq NONE
-			size@param = 0
-		else if type@param eq sep_qword
+		if type@param eq sep_qword
 			size@param = 8
-		else if param eqtype 0 | param eqtype 0f | type@param eq addr
-			if type@param eq float
-				size@param = 4
-			else
+		else if type@param eq addr | type@param eq float
+			size@param = 4
+		else
+			if param eqtype 0 | param eqtype 0f
 				size@param = 8
+			else if param eqtype byte 0 | param eqtype byte 0f
+				match prefix value,definition@param\\{ 
+					if prefix eq qword | prefix eq double
+						size@param = 8
+					else if prefix eq dword | prefix eq float
+						size@param = 4
+					else if prefix eq word
+						size@param = 2
+					else if prefix eq byte
+						size@param = 1
+					end if 
+				\\}
+			else if ~ param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
+				virtual
+					; display type@param
+					origin = $	
+					if type@param eq qword
+						inc qword param
+					else
+						inc param
+					end if
+					load opcode byte from origin
+					if opcode = 67h | opcode = 41h
+						load opcode byte from origin+1
+					end if
+					if opcode and 0F8h = 48h
+						size@param = 8
+					else if opcode = 66h
+						size@param = 2
+					else if opcode = 0FFh
+						size@param = 4
+					else
+						size@param = 1
+					end if
+				end virtual
 			end if
-		else if param eqtype byte 0 | param eqtype byte 0f
-			match prefix value,definition@param\\{ 
-				if prefix eq qword | prefix eq double
-					size@param = 8
-				else if prefix eq dword | prefix eq float
-					size@param = 4
-				else if prefix eq word
-					size@param = 2
-				else if prefix eq byte
-					size@param = 1
-				end if 
-			\\}
-		else if ~ param in <xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7,xmm8,xmm9,xmm10,xmm11,xmm12,xmm13,xmm14,xmm15>
-			virtual
-				; display type@param
-				origin = $	
-				if type@param eq qword
-					inc qword param
-				else
-					inc param
-				end if
-				load opcode byte from origin
-				if opcode = 67h | opcode = 41h
-					load opcode byte from origin+1
-				end if
-				if opcode and 0F8h = 48h
-					size@param = 8
-				else if opcode = 66h
-					size@param = 2
-				else if opcode = 0FFh
-					size@param = 4
-				else
-					size@param = 1
-				end if
-			end virtual
 		end if
+
 		if ..argscount-counter+1 = 1
 			if type@param eq float | type@param eq double
 				if ~ param eq xmm0

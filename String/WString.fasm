@@ -1,0 +1,985 @@
+proc_noprologue
+
+define DW_BE_PSIZE (pointer.size * 01000000h)
+
+macro WString.print this, fp=[stdout]{
+    @call WString::getLpWChars(this)
+    @call c [fputws](pax, fp)
+}
+
+macro WString.println this{
+    @call WString::getLpWChars(this)
+    @call c [putws](pax)
+}
+
+macro WString.getLpWChars this{
+    local _this, check_dx
+    inlineObj _this, this, pcx
+    lea pax, [_this + WString.__wchars]
+
+    reg_in_addr check_dx, dx, _this
+    if ~check_dx
+        mov edx, [_this + WString.__size]
+        bswap edx
+        cmp edx, WString.SHORT_STRING_LEN
+    else
+        mov ecx, [_this + WString.__size]
+        bswap ecx
+        cmp ecx, WString.SHORT_STRING_LEN
+    end if
+    cmova pax, [_this + WString.__lpWChars]
+}
+
+; returns pointer to string data
+macro WString.flush this{
+    local _this
+    inlineObj _this, this, pcx
+    mov [_this + WString.len], 0
+    @call WString::getLpWChars(this)
+    mov pointer[pax], 0
+}
+
+macro WString.input this{
+    @call WString::read(this, [stdin])
+}
+
+macro WString.realloc this, size, minify=0{
+    @call WString::reallocParam(this, size, minify)
+}
+
+proc WString.make c uses pbx, this, size
+    virtObj .this:arg WString at pbx from @arg1
+    @larg pdx, @arg2
+    mov [.this.len], 0
+    cmp edx, WString.SHORT_STRING_LEN
+        jg .real_alloc
+    mov [.this.__size], WString.SHORT_STRING_LEN_BE
+    ret
+
+    .real_alloc:
+        bswap edx
+        mov [.this.__size], edx
+        bswap edx
+        @call CNV::alloc(addr (edx + 1) * 2)
+        mov [.this.__lpWChars], pax
+        ret
+endp
+
+proc WString.reallocParam c uses pbx, this, size, minify
+    virtObj .this:arg WString at pbx from @arg1
+    @larg pdx, @arg2
+    local memBuf:POINTER
+    
+    cmp @arg3, 0
+    jne .true_minify
+        mov eax, [.this.__size]
+        bswap eax
+        cmp eax, edx
+            jae .return
+    .true_minify:
+    cmp edx, WString.SHORT_STRING_LEN
+    seta al
+    mov ecx, [.this.__size]
+    bswap ecx
+    cmp ecx, WString.SHORT_STRING_LEN
+    seta cl
+    and ecx, 0x1
+    and eax, 0x1
+    lea eax, [eax + ecx * 2]
+    jmp pointer[.variants + pax * pointer.size]
+
+    .variants:
+        dptr .both_low
+        dptr .dest_low
+        dptr .src_low
+        dptr .no_low
+
+    .both_low:
+        mov [.this.__size], WString.SHORT_STRING_LEN_BE
+        .return: ret
+
+    .dest_low:
+        bswap edx
+        mov [.this.__size], edx
+        bswap edx
+        @call [memBuf] = CNV::alloc(addr (edx + 1) * 2)
+        @call CNV::fill(pax, addr .this.__lpWChars, WString.SHORT_STRING_LEN * 2)
+        mov pax, [memBuf]
+        mov [.this.__lpWChars], pax
+        ret
+
+    .src_low:
+        mov [.this.__size], WString.SHORT_STRING_LEN_BE
+        mov pax, [.this.__lpWChars]
+        mov [memBuf], pax
+        @call CNV::fill(addr .this.__lpWChars, pax, WString.SHORT_STRING_LEN * 2)
+        cmp [.this.len], WString.SHORT_STRING_LEN
+        jb .no_resize
+            mov [.this.len], WString.SHORT_STRING_LEN
+        .no_resize:
+        @call CNV::free([memBuf])
+        ret
+
+    .no_low:
+        bswap edx
+        mov [.this.__size], edx
+        bswap edx
+        cmp [.this.len], edx
+        jb .no_cut
+            mov [.this.len], edx
+        .no_cut:
+        @call CNV::realloc([.this.__lpWChars], addr (edx + 1) * 2)
+        mov [.this.__lpWChars], pax
+        mov edx, [.this.len]
+        mov word[pax + pdx * 2], 0
+        ret
+endp
+
+proc WString.unmake c, this
+    @sarg @arg1
+    virtObj .this:arg WString at pcx from @arg1
+    xor pax, pax
+    xchg pax, [.this.__lpWChars]
+    mov [.this.len], 0
+    mov edx, [.this.__size]
+    bswap edx
+    mov [.this.__size], WString.SHORT_STRING_LEN_BE
+    cmp edx, WString.SHORT_STRING_LEN
+    jbe .no_free
+        @call CNV::free(pax)
+    .no_free:
+    ret
+endp
+
+proc WString.fromWChars c uses pbx psi pdi, this, lpWChars, wCount
+    virtObj .this:arg WString at pbx from @arg1
+    cmp @arg3, 0
+        je .zero_bytes
+    @sarg @arg2, @arg3
+    @larg pax, @arg3
+    cmp eax, -1
+    jne .no_asciiz
+        @call CNV::wstrlen(@arg2)
+        test pax, pax
+            jz .zero_bytes
+        mov [wCount], pax
+    .no_asciiz:
+    mov edx, [.this.__size]
+    bswap edx
+    cmp eax, edx
+    jbe .no_realloc
+        @call .this->realloc([wCount])
+    .no_realloc:
+    ; mov eax, [.this.__size]
+    @call pdi = .this->getLpWChars()
+    mov psi, [lpWChars]
+    mov pcx, [wCount]
+    mov [.this.len], ecx
+    rep movsw
+    mov word[pdi], 0
+    ret
+
+    .zero_bytes:
+        @call .this->flush()
+        ret
+endp
+
+proc WString.addWChars c uses pbx psi pdi, this, lpWChars, wCount
+    cmp @arg3, 0
+        je .return
+    virtObj .this:arg WString at pbx from @arg1
+    @sarg @arg2, @arg3
+    @larg pax, @arg3
+    cmp eax, -1
+    jne .no_asciiz
+        @call CNV::wstrlen(@arg2)
+        test pax, pax
+            jz .return
+        mov [wCount], pax
+    .no_asciiz:
+    add eax, [.this.len]
+    mov edx, [.this.__size]
+    bswap edx
+    cmp eax, edx
+    jbe .no_realloc
+        @call .this->realloc(addr (eax + 1) * 2)
+    .no_realloc:
+    @call .this->getLpWChars()
+    mov edi, [.this.len]
+    lea pdi, [pax + pdi * 2]
+    mov psi, [lpWChars]
+    mov pcx, [wCount]
+    add [.this.len], ecx
+    rep movsw
+    mov word[pdi], 0
+    .return: ret
+endp
+
+proc WString.fromWString c uses psi, this, lpWString
+    virtObj .other:arg WString at psi from @arg2
+    @sarg @arg1
+    @call .other->getLpWChars()
+    @call WString::fromWChars([this], pax, [.other.len])
+    ret
+endp
+
+proc WString.addWString c uses psi, this, lpWString
+    virtObj .other:arg WString at psi from @arg2
+    @sarg @arg1
+    @call .other->getLpWChars()
+    @call WString::addWChars([this], pax, [.other.len])
+    ret
+endp
+
+proc WString.slice c uses psi pdi pbx, this, source, _start, _end
+    virtObj .this:arg WString at pdi from @arg1
+    virtObj .src:arg WString at psi from @arg2
+    @sarg @arg3, @arg4
+    cmp dword[_start], 0
+    jge .no_neg_low
+        mov eax, [.src.len]
+        add dword[_start], eax
+        cmp dword[_start], 0
+        jg .no_out_low_bound
+            mov [_start], 0
+        .no_out_low_bound:
+    .no_neg_low:
+    cmp dword[_end], 0
+    jge .no_neg_high
+        mov eax, [.src.len]
+        add dword[_end], eax
+        cmp dword[_end], 0
+        jg .no_out_high_bound
+            mov [_end], 0
+        .no_out_high_bound:
+    .no_neg_high:
+    mov ebx, dword[_end]
+    cmp ebx, [.src.len]
+        cmova ebx, [.src.len]
+    sub ebx, dword[_start]
+        jbe .empty
+    cmp ebx, [.this.len]
+    jbe .no_realloc
+        @call .this->realloc(ebx)
+    .no_realloc:
+    @call psi = .src->getLpWChars()
+    shl [_start], 1
+    add psi, [_start]
+    @call .this->getLpWChars()
+    mov [.this.len], ebx
+    mov pdi, pax
+    mov pcx, pbx
+    rep movsw
+    mov word[pdi], 0
+    ret
+
+    .empty:
+        @call .this->flush()
+        ret
+endp
+
+proc WString.fromWChar c uses pdi, this, bVal, wCount
+    cmp @arg3, 0
+        je .flush
+    virtObj .this:arg WString at pdi from @arg1
+    @sarg @arg2, @arg3
+    @larg pax, @arg3
+    mov edx, [.this.__size]
+    bswap edx
+    cmp edx, eax
+    jae .no_realloc
+        @call .this->realloc(pax)
+    .no_realloc:
+    @call .this->getLpWChars()
+    mov pcx, [wCount]
+    mov [.this.len], ecx
+    mov pdi, pax
+    mov pax, [bVal]
+    rep stosw
+    mov word[pdi], 0
+    ret
+    .flush:
+        @call WString::flush(@arg1)
+        ret
+endp
+
+proc WString.addWChar c uses pdi, this, bVal, wCount
+    cmp @arg3, 0
+        je .return
+    virtObj .this:arg WString at pdi from @arg1
+    @sarg @arg2, @arg3
+    @larg pax, @arg3
+    add eax, [.this.len]
+    mov edx, [.this.__size]
+    bswap edx
+    cmp edx, eax
+    jae .no_realloc
+        @call .this->realloc(pax)
+    .no_realloc:
+    @call .this->getLpWChars()
+    mov edx, [.this.len]
+    mov pcx, [wCount]
+    add [.this.len], ecx
+    lea pdi, [pax + pdx * 2]
+    mov pax, [bVal]
+    rep stosw
+    mov word[pdi], 0
+    .return: ret
+endp
+
+proc WString.fromInt c uses pbx psi, this, num, radix, isSigned
+    @sarg @arg2, @arg3
+    @larg psi, @arg4
+
+    virtObj .this:arg WString at pbx from @arg1
+
+    and psi, 1
+    mov edx, [.this.__size]
+    bswap edx
+    cmp edx, 66
+    jae .no_realloc
+        @call .this->realloc(65)
+    .no_realloc:
+    @call .this->getLpWChars()
+    @call c [.funcs + psi * pointer.size](pax, [num], [radix], 2)
+    mov [.this.len], eax
+    ret
+
+    .funcs dptr CNV.uintToStrVarchar, CNV.intToStrVarchar
+endp
+
+proc WString.addInt c uses pbx psi, this, num, radix, isSigned
+    @sarg @arg2, @arg3
+    @larg psi, @arg4
+    virtObj .this:arg WString at pbx from @arg1
+
+    mov eax, [.this.len]
+    add eax, 66
+    mov edx, [.this.__size]
+    bswap edx
+    cmp eax, edx
+    jbe .no_realloc
+        @call .this->realloc(pax)
+    .no_realloc:
+    @call .this->getLpWChars()
+    mov ecx, [.this.len]
+    lea pcx, [pax + pcx * 2]
+    and psi, 1
+    @call c [.funcs + psi * pointer.size](pcx, [num], [radix], 2)
+    add [.this.len], eax
+    ret
+
+    .funcs dptr CNV.uintToStrVarchar, CNV.intToStrVarchar
+endp
+
+proc WString.fromInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
+    @sarg @arg2, @arg3
+    @larg psi, @arg4
+
+    virtObj .this:arg WString at pbx from @arg1
+
+    and psi, 1
+    mov edx, [.this.__size]
+    bswap edx
+    cmp edx, 66
+    jae .no_realloc
+        @call .this->realloc(65)
+    .no_realloc:
+    @call .this->getLpWChars()
+    @call c [.funcs + psi * pointer.size](pax, [num], [radix], 2)
+    mov [.this.len], eax
+    ret
+
+    .funcs dptr CNV.ui64ToStrVarchar, CNV.i64ToStrVarchar
+endp
+
+proc WString.addInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
+    @sarg @arg2, @arg3
+    @larg psi, @arg4
+    virtObj .this:arg WString at pbx from @arg1
+
+    mov eax, [.this.len]
+    add eax, 66
+    mov edx, [.this.__size]
+    bswap edx
+    cmp eax, edx
+    jbe .no_realloc
+        @call .this->realloc(pax)
+    .no_realloc:
+    @call .this->getLpWChars()
+    mov ecx, [.this.len]
+    lea pcx, [pax + pcx * 2]
+    and psi, 1
+    @call c [.funcs + psi * pointer.size](pcx, [num], [radix], 2)
+    add [.this.len], eax
+    ret
+
+    .funcs dptr CNV.ui64ToStrVarchar, CNV.i64ToStrVarchar
+endp
+
+proc WString.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
+    @sarg @arg1, @arg2, @arg3
+    @larg psi, @arg2, pbp, @arg3
+
+    virtObj .this:arg WString at pbx from @arg1 
+    locals 
+        buf WString
+        result WString
+    endl
+    mov edx, [.this.__size]
+    bswap edx
+    @call result->make(edx)
+    @call buf->make(256)
+    mov pdi, psi
+    .loop1:
+        movzx eax, word[psi]
+        cmp eax, "%"
+            je .fmt
+        add psi, 2
+    cmp ax, 0
+    jne .loop1
+    sub psi, pdi
+    shr psi, 1
+    dec psi
+    @call result->addWChars(pdi, psi)
+    @call .this->unmake()
+    @call buf->unmake()
+    @call CNV::fill(addr .this, addr result, sizeof.WString, FILL_NO_SAVE)
+    ret
+
+    .types:
+        dptr .character
+        dptr .decimal
+        dptr .unsigned
+        dptr .hex
+        dptr .oct
+        dptr .asciiz
+        dptr .WString
+        dptr .float
+        dptr .float
+        dptr ?
+        dptr ?
+        dptr ?
+        dptr ?
+        dptr ?
+        dptr ?
+        dptr .percent
+
+    .fmt:
+        locals
+            flags       dd 0x0040
+            width       dd -1
+            precision   dd -1
+            uns_base    dd ?
+            numeric_len dd ?
+            numeric_buf db 64 dup(?)
+            pDouble     ParsedDouble
+        endl
+        sub psi, pdi
+        test psi, psi
+        jz .no_bytes
+            shr psi, 1
+            @call result->addWChars(pdi, psi)
+            shl psi, 1
+        .no_bytes:
+        @call buf->flush()
+        movzx eax, byte[pdi + psi + 2]
+        add pdi, 3
+        test eax, FSTR_HAS_FLAGS
+        jz .no_flags
+            movzx edx, byte[pdi + psi]
+            mov [flags], edx
+            add pdi, 1
+        .no_flags:
+        test eax, FSTR_HAS_WIDTH
+        jz .no_width
+            mov edx, [pdi + psi]
+            lea pcx, [pbp + pointer.size]
+            cmp edx, -2
+            cmove edx, dword[pbp]
+            cmove ebp, ecx
+            mov [width], edx
+            add pdi, 4
+        .no_width:
+        test eax, FSTR_HAS_PRECISION
+        jz .no_precision
+            mov edx, [pdi + psi]
+            lea pcx, [pbp + pointer.size]
+            cmp edx, -2
+            cmove edx, dword[pbp]
+            cmove ebp, ecx
+            mov [precision], edx
+            add pdi, 4
+        .no_precision:
+        and eax, 0xF
+        jmp pointer[.types + eax * pointer.size]
+
+    .end_fmt:
+        cmp [width], -1
+        je .after_correct
+        mov eax, [buf.len]
+        cmp [width], eax
+        jb .after_correct
+            sub [width], eax
+            test [flags], FSTR_MINUS_FLAG
+            jz .no_reverse
+                @call result->addWString(addr buf)
+                @call result->addWChar(+" ", [width])
+                add psi, pdi
+                mov pdi, psi
+                jmp .loop1
+            .no_reverse:
+            @call result->addWChar(+" ", [width])
+        .after_correct:
+        @call result->addWString(addr buf)
+        add psi, pdi
+        mov pdi, psi
+        jmp .loop1
+
+
+    .character:
+        cmp [precision], -1
+        jne .no_char_precision
+            mov [precision], 1
+        .no_char_precision:
+        @call buf->fromWChar(pointer[pbp], [precision])
+        add pbp, pointer.size
+        jmp .end_fmt
+
+    .decimal:
+        mov eax, [flags]
+        and eax, FSTR_SIZE
+        switch [flags]
+            case FSTR_SIZE_QWORD
+                test dword[pbp + 4], 80000000h
+                match =x86, __architecture{
+                        jz .no_dec_neg
+                    @call buf->fromWChar(+"-", 1)
+                    neg pointer[pbp]
+                    adc pointer[pbp + 4], 0
+                    neg pointer[pbp + 4]
+                    jmp .check_precision
+                }
+                match =x64, __architecture{
+                    jmp end_case
+                }
+            case FSTR_SIZE_BYTE
+                test dword[pbp], 80h
+                jmp end_case
+            case FSTR_SIZE_WORD
+                test dword[pbp], 8000h
+                jmp end_case
+            case_default
+                test dword[pbp], 80000000h
+        end_switch
+        jz .no_dec_neg
+            @call buf->fromWChar(+"-", 1)
+            neg pointer[pbp]
+            jmp .check_precision
+        .no_dec_neg:
+            xor edx, edx
+            mov eax, "+"
+            test [flags], FSTR_PLUS_FLAG
+            cmovnz edx, eax
+            mov eax, " "
+            test [flags], FSTR_SPACE_FLAG
+            cmovnz edx, eax
+            test edx, edx
+            jz .no_dec_start
+                @call buf->fromWChar(edx, 1)
+            .no_dec_start:
+        .check_precision:
+
+        mov [uns_base], 10
+        jmp .unumeric
+
+    .unsigned:
+        mov [uns_base], 10
+        jmp .unumeric
+
+    .hex:
+        mov [uns_base], 16
+        jmp .unumeric
+
+    .oct:
+        mov [uns_base], 8
+        ; jmp .unumeric
+
+    .unumeric:
+        mov eax, [flags]
+        and eax, FSTR_SIZE
+        switch [flags]
+            match =x86, __architecture{
+                case FSTR_SIZE_QWORD
+                    @call CNV::ui64ToWStr(addr numeric_buf, qword[pbp], [uns_base])
+                    add pbp, 8
+                    jmp .check_precision_unumeric
+            }
+            case FSTR_SIZE_BYTE
+                movzx pax, byte[pbp]
+                add pbp, pointer.size
+                jmp end_case
+            case FSTR_SIZE_WORD
+                movzx pax, word[pbp]
+                add pbp, pointer.size
+                jmp end_case
+            case_default
+                mov pax, pointer[pbp]
+                add pbp, pointer.size
+        end_switch
+        @call CNV::uintToWStr(addr numeric_buf, pax, [uns_base])
+
+        .check_precision_unumeric:
+        cmp [precision], -1
+        je .no_uns_precision
+        cmp eax, [precision]
+        ja .no_uns_precision
+            mov [numeric_len], eax
+            sub [precision], eax
+            @call buf->addWChar(+"0", [precision])
+            mov eax, [numeric_len]
+        .no_uns_precision:
+
+        @call buf->addWChars(addr numeric_buf, eax)
+        jmp .end_fmt
+
+    .asciiz:
+        @call CNV::wstrlen(pointer[pbp])
+        cmp eax, [precision]
+            cmova eax, [precision]
+        @call buf->fromWChars(pointer[pbp], eax)
+        add pbp, pointer.size
+        jmp .end_fmt
+
+    .WString:
+        cmp [precision], -1
+        je .no_string_precision
+        mov pax, [pbp]
+        mov ecx, [pax + WString.len]
+        cmp ecx, [precision]
+        jbe .no_string_precision
+            @call WString::getLpWChars(pointer[pbp])
+            mov pdx, pax
+            @call buf->fromWChars(pdx, [precision])
+            add pbp, pointer.size
+            jmp .end_fmt
+        .no_string_precision:
+
+        @call buf->fromWString(pointer[pbp])
+        add pbp, pointer.size
+        jmp .end_fmt
+
+    .percent:
+        @call buf->fromWChar(+"%", 1)
+        jmp .end_fmt
+
+    .float:
+        virtual at uns_base
+            .normalization dd ?
+        end virtual
+        mov edx, 6
+        mov ecx, 1
+        sub eax, 7
+        test eax, eax
+            cmovnz edx, ecx
+        mov [.normalization], edx
+        mov eax, [flags]
+        and eax, FSTR_SIZE
+        switch [flags]
+            case FSTR_SIZE_WORD
+                test dword[pbp], 0x8000
+                lahf
+                and dword[pbp], 0x7FFF
+                vcvtph2ps xmm0, qword[pbp]
+                cvtss2sd xmm0, xmm0
+                add pbp, pointer.size
+                jmp end_case
+            case FSTR_SIZE_QWORD
+                test dword[pbp + 4], 0x80000000
+                lahf
+                and dword[pbp + 4], 0x7FFFFFFF
+                movq xmm0, qword[pbp]
+                add pbp, 8
+                jmp end_case
+            case_default
+                test dword[pbp], 0x80000000
+                lahf
+                and dword[pbp], 0x7FFFFFFF
+                cvtss2sd xmm0, dword[pbp]
+                add pbp, pointer.size
+        end_switch
+        movq qword[numeric_buf], xmm0
+        sahf
+        jz .no_float_neg
+            @call buf->fromWChar(+"-", 1)
+            jmp .check_precision_float
+        .no_float_neg:
+            xor edx, edx
+            mov eax, "+"
+            test [flags], FSTR_PLUS_FLAG
+            cmovnz edx, eax
+            mov eax, " "
+            test [flags], FSTR_SPACE_FLAG
+            cmovnz edx, eax
+            test edx, edx
+            jz .no_float_start
+                @call buf->fromWChar(edx, 1)
+            .no_float_start:
+        .check_precision_float:
+        mov edx, 5
+        mov eax, [precision]
+        cmp [precision], -1
+        cmove eax, edx
+        @call pDouble->parseDouble(double [numeric_buf], eax, [.normalization])
+        movq xmm0, [pDouble.fracVal]
+        movsx eax, [pDouble.sign]
+        cmp eax, 0
+        jl .error_num
+            cmp [.normalization], 1
+            jne .no_exp_key
+            cmp dword[pDouble.intVal + 4], 0
+            jne .no_exp_key
+            cmp dword[pDouble.intVal], 0
+            jne .no_exp_key
+                @call [numeric_len] = CNV::ui64ToWStr(addr numeric_buf, [pDouble.fracVal], 10)
+                @call CNV::ui64pow(qword 10, addr pax - 1)
+                ; int3
+                @call CNV::ui64div(addr pDouble, [pDouble.fracVal], qword_result)
+                @call CNV::ui64ToWStr(addr numeric_buf, [pDouble.fracVal], 10)
+                inc eax
+                sub eax, [numeric_len]
+                sub [pDouble.order], eax
+                dec [pDouble.expVal]
+            .no_exp_key:
+            @call buf->addInt64([pDouble.intVal], 10, 0)
+            movq xmm0, [pDouble.fracVal]
+            ptest xmm0, xmm0
+            jz @f
+                @call buf->addWChar(+".", 1)->addWChar(+"0", [pDouble.order])->addInt64([pDouble.fracVal], 10, 0)
+            @@:
+            cmp [pDouble.expVal], 0
+            je @f
+                @call buf->addWChar(+"e", 1)
+                movsx pax, [pDouble.expVal]
+                @call buf->addInt(pax, 10, 1)
+            @@:
+            jmp .end_fmt
+        .error_num:
+        ; mov pax, _inf
+        shr pax, 1
+        and pax, 1
+        @call buf->addWChars(pointer[.errors + pax * pointer.size], 3)
+        jmp .end_fmt
+
+        .inf @const db "inf"
+        .nan @const db "NaN"
+        .errors @const dptr .nan, .inf
+endp
+
+proc WString.sprintf c, this, fmtstr, va_args, arg4
+    @sarg @arg3, @arg4
+    @call WString::vsprintf(@arg1, @arg2, addr va_args)
+    ret
+endp
+
+proc WString.streamRead c uses pbx psi pdi pbp, this, fp, delimiter:DWORD, delimiter_callback, eof_callback, lParam
+    .len_buf = 4096
+    @sarg @arg2, @arg3, @arg4
+    @larg pbp, @arg2
+    virtObj .this:arg WString at pbx from @arg1
+    local saveAx:DWORD
+
+    xor psi, psi
+    .string_realloc:
+        @call .this->getLpWChars()
+        mov pdi, pax
+        .read_chars:
+            @call c [fgetwc](pbp)
+            switch eax
+                case -1, 0x1A, [delimiter]
+                    mov [saveAx], eax
+                    mov edx, 0x1A
+                    cmp eax, -1
+                    cmove eax, edx
+                    cmp eax, 0x1A
+                    sete al
+                    cmp [delimiter_callback + pax * pointer.size], NULL
+                        cmove eax, [saveAx]
+                        je end_case
+
+                    mov word[pdi + psi], 0
+                    shr psi, 1
+                    mov [.this.len], esi
+
+                    mov psi, [delimiter_callback + pax * pointer.size]
+                    @call c psi(addr .this, [lParam])
+                    xor esi, esi
+                    test eax, eax
+                        jz .return
+                    mov eax, [saveAx]
+            end_switch
+            mov word[pdi + psi], ax
+            add psi, 2
+        mov edx, [.this.__size]
+        bswap edx
+        cmp esi, edx
+        jl .read_chars
+        @call .this->realloc(addr pdx + .len_buf)
+    jmp .string_realloc
+
+    .return: ret
+endp
+
+proc WString.read c, this, fp
+    virtObj .this:arg WString at pcx from @arg1
+    local result:POINTER
+    @call .this->streamRead(@arg2, 0Ah, .newLineCallback, .eofCallback, addr result)
+    mov pax, [result]
+    ret
+endp
+
+proc .eofCallback c string, lParam
+    @larg pax, @arg2
+    mov pax, [lParam]
+    mov pointer[pax], -1
+    mov eax, 0
+    ret
+endp
+
+proc .newLineCallback c string, lParam
+    @larg pcx, @arg1, \
+        pdx, @arg2
+    mov eax, [pcx + WString.len]
+    mov [pdx], pax 
+    mov eax, 0
+    ret
+endp
+
+proc WString.parseInt c uses pbx psi pdi pbp, this, radix
+    @sarg @arg1, @arg2
+    @larg pax, @arg2
+
+    local maxDigit:DWORD, isNeg:DWORD
+    lea edx, [eax + "0"]
+    lea ecx, [eax + "A" - 10]
+    cmp edx, "9" + 1
+        cmova edx, ecx
+    mov [maxDigit], edx
+
+    mov pbp, .mul
+    mov edx, eax
+    dec edx
+    test eax, edx
+    jnz .no_power_two
+        mov pbp, .shift
+        bsr pax, [radix]
+    .no_power_two:
+    mov [radix], pax
+
+    @call WString::getLpWChars([this])
+    mov pbx, pax
+    mov pcx, [radix]
+    mov edx, 2
+    xor esi, esi
+    cmp word[pbx], "-"
+        cmove esi, edx
+    mov [isNeg], esi
+    add pbx, psi
+    
+    xor eax, eax
+    xor edx, edx
+
+    movzx edi, word[pbx]
+    switch edi
+        case u "9" ... "A"
+        case_default
+            ; mov pcx, pax
+            ; neg pcx
+            cmp [isNeg], 0
+                je .return
+            match =x64, __architecture{
+                neg pax                    
+            }
+            match =x86, __architecture{
+                movd xmm0, eax
+                movd xmm1, edx
+                psllq xmm1, 32
+                paddq xmm0, xmm1
+                pcmpeqq xmm1, xmm1      ; xmm1 = -1
+                pxor xmm0, xmm1
+                psubq xmm0, xmm1
+                movd eax, xmm0
+                psrlq xmm0, 32
+                movd edx, xmm0
+            }
+            .return: ret
+        case u +"a" ... +"f"
+            and edi, 0DFh
+            jmp start_case
+        case u +"0" ... [maxDigit]
+            jmp pbp
+            .after_digit:
+            lea esi, [edi - "A" + 10]
+            sub edi, "0"
+            cmp edi, 9
+                cmova edi, esi
+            add pax, pdi
+            adc edx, 0
+            add pbx, 2
+            movzx edi, word[pbx]
+            jmp start_case
+    end_switch
+
+    .mul:
+        xchg ecx, edx
+        @call edx:eax = CNV::ui64mul(ecx:eax, 0:edx)
+        mov ecx, dword[radix]
+        jmp .after_digit
+
+    .shift:
+        shld edx, eax, cl
+        shl eax, cl
+        jmp .after_digit
+endp
+
+proc WString.cmpWChars c uses psi pdi, this, lpWChars, wCount
+    @sarg @arg2
+    virtObj .this:arg WString at psi from @arg1
+    @larg pcx, @arg3
+    ; int3
+    cmp pcx, -1
+    jne .len_isset
+        @call CNV::strlen(@arg2, STRLEN_REZULT_CX or STRLEN_NO_SAVE)
+    .len_isset:
+    cmp ecx, [.this.len]
+        cmova ecx, [.this.len]
+    inc pcx
+    mov [wCount], pcx
+    @call psi = .this->getLpWChars()
+    mov pdi, [lpWChars]
+    mov pcx, [wCount]
+    repe cmpsb
+    lahf
+    ret
+endp
+
+proc WString.cmpWString c uses psi pdi, this, other
+    virtObj .this:arg WString at psi from @arg1
+    virtObj .other:arg WString at pdi from @arg2
+    local wCount:POINTER
+    mov ecx, [.other.len]
+    cmp ecx, [.this.len]
+        cmova ecx, [.this.len]
+    inc pcx
+    mov [wCount], pcx
+    @call .this->getLpWChars()
+    mov psi, pax
+    @call .other->getLpWChars()
+    mov pdi, pax
+    mov pcx, [wCount]
+    repe cmpsb
+    lahf
+    ret
+endp
+
+proc_resprologue

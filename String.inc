@@ -5,8 +5,22 @@
 	include "String\fstr.fasm"
 	include "ParsedDouble.inc"
 
-	struct String
+	; struct IString @interface
+	; 	const @abstract equ 1
+
+	; 	getBytes	dm ?:virtual
+	; 	freeBytes	dm ?:virtual
+	; 	getWords	dm ?:virtual
+	; 	freeWords 	dm ?:virtual
+		
+	; 	getLen 		dm ?:virtual
+	; ends
+
+	struct String; IString
+		; const @abstract equ 0
+
 		const SHORT_STRING_LEN = 24
+		const SHORT_STRING_LEN_BE = WString.SHORT_STRING_LEN * 01000000h
 
 	    len     dd ?
 	    union
@@ -24,6 +38,7 @@
 
 	    make       		dm this			;(chars_count)
 	    unmake        	dm this			;()
+
 	    reallocParam	dm this			;(chars_count, minify:BOOLEAN)
 	    fromChars   	dm this			;(lpChars, count) or (lpCstr, -1)
 	    addChars    	dm this
@@ -41,7 +56,7 @@
 	    streamRead		dm this			;(fp, delimiter, delimiter_callback, eof_callback, lParam)
 	    								;cdecl delimiter_callback(lpStrilgLine, lParam)
 	    read 			dm this			;(fstream)
-	    parseInt		dm this			;(radix)
+	    parseInt		dm this			;(radix) -> i64
 
 	    match =x64, __architecture\{
 	    	fromInt64 	dm String.fromInt
@@ -53,17 +68,66 @@
     	\}
 	ends
 
-	; struct Wstring
-	; 	const SHORT_WSTRING_LEN = 12
-
-	;     len     dd ?
-	;     union
-	;         __lpWChars   dptr ?
-	;         __wchars     dw SHORT_WSTRING_LEN dup(?)
-	;     ends
-	;     __size  dd ?					;Big Endian
-    ; ends
-
 	include "String\String.fasm"
+
+	struct WString; IString
+		; const @abstract equ 0
+
+		const SHORT_STRING_LEN = 12
+		const SHORT_STRING_LEN_BE = WString.SHORT_STRING_LEN * 01000000h
+
+	    len     dd ?
+	    union
+	        __lpWChars   dptr ?
+	        __wchars     dw WString.SHORT_STRING_LEN dup(?)
+	    ends
+	    __size  dd ?					;Big Endian
+
+	    print      	dm this:inline		;()
+	    println    	dm this:inline		;()
+	    getLpWChars dm this:inline		;()
+	    flush      	dm this:inline		;()
+	    input      	dm this:inline		;()
+	    realloc 	dm this:inline		;(chars_count, minify=0)
+
+	    make       		dm this			;(chars_count)
+	    unmake        	dm this			;()
+
+	    reallocParam	dm this			;(chars_count, minify:BOOLEAN)
+
+	    fromWChars   	dm this			;(lpWChars, count) or (lpCwstr, -1)
+	    addWChars    	dm this
+	    cmpWChars		dm this
+
+	    fromWString  	dm this			;(lpWString)
+	    addWString   	dm this
+	    cmpWString 		dm this
+	    
+	    fromWChar    	dm this			;(byte, count)
+	    addWChar     	dm this
+	    
+	    fromInt     	dm this			;(num, radix, isSigned)
+	    addInt      	dm this
+	    
+	    slice       	dm this			;(indexFrom,indexTo) 
+	    vsprintf 		dm this			;(fstr, va_list)
+	    sprintf     	dm this			;(fstr, ...)
+	    
+	    streamRead		dm this			;(fp, delimiter, delimiter_callback, eof_callback, lParam)
+	    								;cdecl delimiter_callback(lpStrilgLine, lParam)
+	    read 			dm this			;(fstream)
+	    parseInt		dm this			;(radix) -> i64
+
+	    match =x64, __architecture\{
+	    	fromInt64 	dm String.fromInt
+	    	addInt64 	dm String.addInt
+    	\}
+	    match =x86, __architecture\{
+	    	fromInt64 	dm this
+	    	addInt64 	dm this
+    	\}
+    ends
+
+    include "String\WString.fasm"
 
 @endm

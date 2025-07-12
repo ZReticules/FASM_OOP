@@ -1,9 +1,9 @@
 proc_noprologue
 
 importlib user32,\
-	SetWindowPtrA,\
-	GetWindowPtrA,\
-	MapDialogRect
+	MapDialogRect;,\
+	; SetWindowPtrA,\
+	; GetWindowPtrA
 
 importlib comctl32,\
 	DefSubclassProc,\
@@ -11,7 +11,8 @@ importlib comctl32,\
 
 proc DLG.hookEventsChecker uses psi pdi, hWnd, uMsg, wParam, lParam, uIdSubclass, dwRefData
 	@sarg @arg1, @arg2, @arg3, @arg4
-	@call [GetWindowPtrA](@arg1, GWL_USERDATA)
+	@call DLG::getPtr(@arg1)
+	; @call [GetWindowPtrA](@arg1, GWL_USERDATA)
 	test eax, eax
 		jz .return
 	virtObj .cntrl:arg CONTROL at psi from pax
@@ -45,7 +46,8 @@ proc DLG.controlNotifyChecker c uses psi pdi pbx, lpForm, lParam
 	mov eax, dword[.nmhdr.idFrom]
 	cmp eax, [.form.idCount]
 		ja .return
-	@call [GetWindowPtrA]([.nmhdr.hwndFrom], GWL_USERDATA)
+	@call DLG::getPtr([.nmhdr.hwndFrom])
+	; @call [GetWindowPtrA]([.nmhdr.hwndFrom], GWL_USERDATA)
 	test eax, eax
 		jz .return
 	virtObj .cntrl:arg CONTROL at psi from pax
@@ -79,7 +81,8 @@ proc DLG.controlEventsChecker c uses psi pdi pbx, lpForm, wParam, lpHwndDlg
 	movzx pdx, word[wParam]
 	; int3
 	@call [GetDlgItem]([.form.hWnd], pdx)
-	@call [GetWindowPtrA](pax, GWL_USERDATA)
+	@call DLG::getPtr(pax)
+	; @call [GetWindowPtrA](pax, GWL_USERDATA)
 	test eax, eax
 		jz .return
 	virtObj .cntrl:arg CONTROL at psi from pax
@@ -136,7 +139,8 @@ proc DLG.initEvent c uses pbx psi pdi pbp, hwndDlg, lParam
 	virtObj .form:arg DIALOGFORM at pbx from @arg2
 	mov [.form.hWnd], pcx
 	mov pbp, [.form.sData.lpClOffsets]
-	@call [SetWindowPtrA]([hwndDlg], GWL_USERDATA, addr .form)
+	@call DLG::setPtr([hwndDlg], addr .form)
+	; @call [SetWindowPtrA]([hwndDlg], GWL_USERDATA, addr .form)
     ; @call [OpenThemeData]([.form.hWnd], L "Menu;Button")
     ; mov [.form.hTheme], pax
 
@@ -157,7 +161,8 @@ proc DLG.initEvent c uses pbx psi pdi pbp, hwndDlg, lParam
 			mov [.cntrl.ID], edi
 			@call [GetDlgItem]([.form.hWnd], edi)
 			mov [.cntrl.hWnd], pax
-			@call [SetWindowPtrA]([.cntrl.hWnd], GWL_USERDATA, addr .cntrl)
+			@call DLG::setPtr([.cntrl.hWnd], addr .cntrl)
+			; @call [SetWindowPtrA]([.cntrl.hWnd], GWL_USERDATA, addr .cntrl)
 			@call .form.sData.mapDialog->mapRect(addr .cntrl.sData.baseRect)
 			cmp [.cntrl.sData.lpHooks], NULL
 			je .no_hook
@@ -180,7 +185,8 @@ proc DLG.DialogProc uses pdi pbx psi, hwndDlg, uMsg, wParam, lParam
 	mov eax, dword[uMsg]
 	cmp @arg2, WM_INITDIALOG
 	je .init_event
-		@call [GetWindowPtrA]([hwndDlg], GWL_USERDATA)
+		@call DLG::getPtr([hwndDlg])
+		; @call [GetWindowPtrA]([hwndDlg], GWL_USERDATA)
 		test pax, pax
 			jz .return
 		mov pbx, pax

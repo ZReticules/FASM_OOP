@@ -208,9 +208,9 @@ proc CNV.ui64sqrt c, num:QWORD
 endp
 
 
-proc CNV.ui64ToStr c uses pbx psi pdi pbp, lpStr, num:QWORD, radix
+proc CNV.ui64ToStrVarchar c uses pbx psi pdi pbp, lpStr, num:QWORD, radix, charSize
 	locals
-		buf 	db 70 dup ?
+		buf 	dw 70 dup ?
 	endl
 	cmp dword[num + 4], 0
 		je .only_low
@@ -238,21 +238,29 @@ proc CNV.ui64ToStr c uses pbx psi pdi pbp, lpStr, num:QWORD, radix
 		jle .decDigits
 			add edx, 7
 		.decDigits:
-		mov [buf + psi], dl
-		inc psi
+		mov [buf + psi], dx
+		add psi, [charSize]
 	test eax, eax
 	jnz .loop1
-
 	mov pcx, psi
+	
 	.migration_loop:
 		mov pdx, [lpStr]
+		mov ebx, dword[charSize]
 		.loop2:
-			mov al, [buf + pcx - 1]
-			mov [pdx], al
-			inc pdx
-		loop .loop2
-		mov byte[pdx], 0
+			sub ecx, dword[charSize]
+			mov ax, [buf + pcx]
+			mov [pdx], ax
+			lea pdx, [pdx + pbx]
+		jnz .loop2
+		mov eax, dword[charSize]
+		.loop3:
+			dec eax
+			mov byte[pdx + pax], 0
+		jnz .loop3
 		mov pax, psi
+		bsr ecx, dword[charSize]
+		shr pax, cl
 		ret
 
 	.power_of_two:
@@ -261,7 +269,7 @@ proc CNV.ui64ToStr c uses pbx psi pdi pbp, lpStr, num:QWORD, radix
 		mov edx, dword[num + 4]
 		xor psi, psi
 		bsr pcx, pbx
-		.loop3:
+		.loop4:
 			xor ebx, ebx
 			shrd pbx, pax, cl
 			shrd pax, pdx, cl
@@ -272,20 +280,20 @@ proc CNV.ui64ToStr c uses pbx psi pdi pbp, lpStr, num:QWORD, radix
 			jle .decDigits_binary
 				add ebx, 7
 			.decDigits_binary:
-			mov [buf + psi], bl
-			inc psi
+			mov [buf + psi], bx
+			add psi, [charSize]
 		test eax, eax
-		jnz .loop3
+		jnz .loop4
 		mov pcx, psi
 		; mov psi, pdx
 		jmp .migration_loop
 
 	.only_low:
-		@call CNV::uintToStr([lpStr], dword[num], [radix])
+		@call CNV::uintToStrVarchar([lpStr], dword[num], [radix], [charSize])
 		ret
 endp
 
-proc CNV.i64ToStr c, lpStr, num:QWORD, radix
+proc CNV.i64ToStrVarchar c, lpStr, num:QWORD, radix, charSize
 	locals
 		sign dd 0
 	endl
@@ -297,9 +305,10 @@ proc CNV.i64ToStr c, lpStr, num:QWORD, radix
 		neg dword[num]
 		adc dword[num + 4], 0
 		neg dword[num + 4]
-		inc [lpStr]
+		mov eax, dword[charSize]
+		add [lpStr], eax
 	.positive:
-	@call c CNV.ui64ToStr(@arg1, @arg2, @arg3)
+	@call c CNV.ui64ToStrVarchar(@arg1, @arg2, @arg3, @arg4)
 	lea ecx, [eax + 1]
 	cmp [sign], 0
 		cmovne eax, ecx

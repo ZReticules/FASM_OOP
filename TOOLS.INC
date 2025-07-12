@@ -34,7 +34,7 @@ define UINT64_MAX 	0FFFFFFFFFFFFFFFFh
 ; va_list@count equ
 
 purge deflocal@proc
-macro deflocal@proc name,def, val& { 
+macro deflocal@proc name, def, val& { 
 	; common
 	; match vars, all@vars \{ 
 	; 	all@vars equ all@vars, 
@@ -45,7 +45,7 @@ macro deflocal@proc name,def, val& {
 	; \}
 	; display `name, 0Ah
    	; forward
-	local ..var,..tmp
+	local ..var,..tmp, first, rest, tmp, value, any
 	; display `..var, 0Ah
 	
 	..var def val
@@ -85,7 +85,8 @@ macro deflocal@proc name,def, val& {
 
 macro define@proc name,statement{ 
 	local params,flag,regs,parmbytes,localbytes,current, va_list, va_list_counter, va_list_count
-   	
+   	local args, reglist, prologue
+
    	if used name
    	va_list_counter = 0
    	va_list@counter equ va_list_counter

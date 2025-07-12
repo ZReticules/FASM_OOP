@@ -45,11 +45,11 @@
 	}
 
 ; local variables initialization control
-	macro locals_no_init{
+	macro locals_no_init {
 		macro initlocal@proc args&\{\}
 	}
 
-	macro locals_res_init{
+	macro locals_res_init {
 		purge initlocal@proc
 	}
 

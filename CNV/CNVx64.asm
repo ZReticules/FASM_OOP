@@ -131,12 +131,12 @@ macro CNV.ui64div result, dividend, divisor{
 	mov [rcx + Divq.result], rax
 }
 
-if used CNV.ui64ToStr 
-	CNV.ui64ToStr = CNV.uintToStr
+if used CNV.ui64ToStrVarchar 
+	CNV.ui64ToStrVarchar = CNV.uintToStrVarchar
 end if
 
-if used CNV.i64ToStr
-	CNV.i64ToStr = CNV.intToStr
+if used CNV.i64ToStrVarchar
+	CNV.i64ToStrVarchar = CNV.intToStrVarchar
 end if
 
 if used CNV.ui64sqrt

@@ -1,8 +1,5 @@
 proc_noprologue
 
-; importlib msvcrt, \
-;     fgetc="_fgetc"
-
 define DW_BE_PSIZE (pointer.size * 01000000h)
 
 macro String.print this, fp=[stdout]{
@@ -10,7 +7,7 @@ macro String.print this, fp=[stdout]{
     @call c [fputs](pax, fp)
 }
 
-macro String.println this, fp=[stdout]{
+macro String.println this{
     @call String::getLpChars(this)
     @call c [puts](pax)
 }
@@ -84,7 +81,7 @@ proc String.make c uses pbx, this, size
     mov [.this.len], 0
     cmp edx, String.SHORT_STRING_LEN
         jg .real_alloc
-    mov [.this.__size], DW_BE_PSIZE
+    mov [.this.__size], String.SHORT_STRING_LEN_BE
     ret
 
     .real_alloc:
@@ -126,7 +123,7 @@ proc String.reallocParam c uses pbx, this, size, minify
         dptr .no_low
 
     .both_low:
-        mov [.this.__size], DW_BE_PSIZE
+        mov [.this.__size], String.SHORT_STRING_LEN_BE
         ret
 
     .dest_low:
@@ -140,7 +137,7 @@ proc String.reallocParam c uses pbx, this, size, minify
         .return: ret
 
     .src_low:
-        mov [.this.__size], DW_BE_PSIZE
+        mov [.this.__size], String.SHORT_STRING_LEN_BE
         mov pax, [.this.__lpChars]
         mov [memBuf], pax
         @call CNV::fill(addr .this.__lpChars, pax, String.SHORT_STRING_LEN)
@@ -174,7 +171,7 @@ proc String.unmake c, this
     mov [.this.len], 0
     mov edx, [.this.__size]
     bswap edx
-    mov [.this.__size], DW_BE_PSIZE
+    mov [.this.__size], String.SHORT_STRING_LEN_BE
     cmp edx, String.SHORT_STRING_LEN
     jbe .no_free
         @call CNV::free(pax)
@@ -202,8 +199,7 @@ proc String.fromChars c uses pbx psi pdi, this, lpChars, bCount
         @call .this->realloc([bCount])
     .no_realloc:
     ; mov eax, [.this.__size]
-    @call .this->getLpChars()
-    mov pdi, pax
+    @call pdi = .this->getLpChars()
     mov psi, [lpChars]
     mov pcx, [bCount]
     mov [.this.len], ecx
@@ -373,10 +369,11 @@ proc String.fromInt c uses pbx psi, this, num, radix, isSigned
         @call .this->realloc(65)
     .no_realloc:
     @call .this->getLpChars()
-    @call c [.funcs + psi * pointer.size](pax, [num], [radix])
+    @call c [.funcs + psi * pointer.size](pax, [num], [radix], 1)
     mov [.this.len], eax
     ret
-    .funcs dptr CNV.uintToStr, CNV.intToStr
+
+    .funcs dptr CNV.uintToStrVarchar, CNV.intToStrVarchar
 endp
 
 proc String.addInt c uses pbx psi, this, num, radix, isSigned
@@ -396,11 +393,11 @@ proc String.addInt c uses pbx psi, this, num, radix, isSigned
     mov ecx, [.this.len]
     add pcx, pax
     and psi, 1
-    @call c [.funcs + psi * pointer.size](pcx, [num], [radix])
+    @call c [.funcs + psi * pointer.size](pcx, [num], [radix], 1)
     add [.this.len], eax
     ret
 
-    .funcs dptr CNV.uintToStr, CNV.intToStr
+    .funcs dptr CNV.uintToStrVarchar, CNV.intToStrVarchar
 endp
 
 proc String.fromInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
@@ -417,10 +414,11 @@ proc String.fromInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
         @call .this->realloc(65)
     .no_realloc:
     @call .this->getLpChars()
-    @call c [.funcs + psi * pointer.size](pax, [num], [radix])
+    @call c [.funcs + psi * pointer.size](pax, [num], [radix], 1)
     mov [.this.len], eax
     ret
-    .funcs dptr CNV.ui64ToStr, CNV.i64ToStr
+
+    .funcs dptr CNV.ui64ToStrVarchar, CNV.i64ToStrVarchar
 endp
 
 proc String.addInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
@@ -440,11 +438,11 @@ proc String.addInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
     mov ecx, [.this.len]
     add pcx, pax
     and psi, 1
-    @call c [.funcs + psi * pointer.size](pcx, [num], [radix])
+    @call c [.funcs + psi * pointer.size](pcx, [num], [radix], 1)
     add [.this.len], eax
     ret
 
-    .funcs dptr CNV.ui64ToStr, CNV.i64ToStr
+    .funcs dptr CNV.ui64ToStrVarchar, CNV.i64ToStrVarchar
 endp
 
 ; proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
@@ -1254,7 +1252,7 @@ proc String.parseInt c uses pbx psi pdi pbp, this, radix
     @sarg @arg1, @arg2
     @larg pax, @arg2
 
-    local maxDigit:DWORD
+    local maxDigit:DWORD, isNeg:DWORD
     lea edx, [eax + "0"]
     lea ecx, [eax + "A" - 10]
     cmp edx, "9" + 1
@@ -1278,80 +1276,100 @@ proc String.parseInt c uses pbx psi pdi pbp, this, radix
     xor esi, esi
     cmp byte[pbx], "-"
         cmove esi, edx
-    xor eax, eax
+    mov [isNeg], esi
+    add pbx, psi
 
-    .digits_loop:
-        movzx edi, byte[pbx + psi]
-        switch edi
-            case u "9" ... "A"
-            case_default
-                ; mov pcx, pax
-                ; neg pcx
-                cmp byte[pbx], "-"
-                    jne .return
-                neg pax
-                .return: ret
-            case u +"a" ... +"f"
-                and edi, 0DFh
-                jmp start_case
-            case u +"0" ... [maxDigit]
-                jmp pbp
-                .after_digit:
-                lea edx, [edi - "A" + 10]
-                sub edi, "0"
-                cmp edi, 9
-                    cmova edi, edx
-                add pax, pdi
-                inc psi
-        end_switch
-    jmp .digits_loop
+    xor eax, eax
+    xor edx, edx
+
+    movzx edi, byte[pbx]
+    switch edi
+        case u "9" ... "A"
+        case_default
+            ; mov pcx, pax
+            ; neg pcx
+            cmp [isNeg], 0
+                je .return
+            match =x64, __architecture{
+                neg pax                    
+            }
+            match =x86, __architecture{
+                movd xmm0, eax
+                movd xmm1, edx
+                psllq xmm1, 32
+                paddq xmm0, xmm1
+                pcmpeqq xmm1, xmm1         ; xmm1 = -1
+                pxor xmm0, xmm1
+                psubq xmm0, xmm1
+                movd eax, xmm0
+                psrlq xmm0, 32
+                movd edx, xmm0
+            }
+            .return: ret
+        case u +"a" ... +"f"
+            and edi, 0DFh
+            jmp start_case
+        case u +"0" ... [maxDigit]
+            jmp pbp
+            .after_digit:
+            lea esi, [edi - "A" + 10]
+            sub edi, "0"
+            cmp edi, 9
+                cmova edi, esi
+            add pax, pdi
+            adc edx, 0
+            inc pbx
+            movzx edi, byte[pbx]
+            jmp start_case
+    end_switch
 
     .mul:
-        imul eax, ecx
+        @call CNV::ui64mul(edx:eax, 0:ecx)
+        mov ecx, dword[radix]
         jmp .after_digit
 
     .shift:
+        shld edx, eax, cl
         shl eax, cl
         jmp .after_digit
 endp
 
-proc String.cmpChars c uses psi pdi, this, lpChars, bCount
+proc String.cmpWChars c uses psi pdi, this, lpChars, wCount
     @sarg @arg2
     virtObj .this:arg String at psi from @arg1
     @larg pcx, @arg3
     ; int3
     cmp pcx, -1
     jne .len_isset
-        @call CNV::strlen(@arg2, STRLEN_REZULT_CX or STRLEN_NO_SAVE)
+        @call CNV::wstrlen(@arg2, STRLEN_REZULT_CX or STRLEN_NO_SAVE)
     .len_isset:
     cmp ecx, [.this.len]
         cmova ecx, [.this.len]
     inc pcx
-    mov [bCount], pcx
-    @call .this->getLpChars()
-    mov psi, pax
+    mov [wCount], pcx
+    @call psi = .this->getLpWChars()
     mov pdi, [lpChars]
-    mov pcx, [bCount]
-    repe cmpsb
+    mov pcx, [wCount]
+    repe cmpsw
     lahf
     ret
 endp
 
-proc String.cmpString c uses psi pdi, this, other
-    virtObj .this:arg String at psi from @arg1
-    virtObj .other:arg String at pdi from @arg2
-    local bCount:POINTER
+proc String.cmpWString c uses psi pdi, this, other
+    virtObj .this:arg WString at psi from @arg1
+    virtObj .other:arg WString at pdi from @arg2
+    local wCount:POINTER
     mov ecx, [.other.len]
     cmp ecx, [.this.len]
         cmova ecx, [.this.len]
     inc pcx
-    mov [bCount], pcx
-    @call .this->getLpChars()
+    mov [wCount], pcx
+    @call .this->getLpWChars()
     mov psi, pax
-    @call .other->getLpChars()
+    @call .other->getLpWChars()
     mov pdi, pax
-    mov pcx, [bCount]
-    repe cmpsb
+    mov pcx, [wCount]
+    repe cmpsw
     lahf
     ret
 endp

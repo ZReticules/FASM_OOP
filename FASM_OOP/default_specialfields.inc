@@ -1,6 +1,6 @@
 macro MStruct@GenMethods name{						;макрос для генерации методов
 	name#.Table:
-	match =1, name#.@imported\{
+	match =1, name#.@abstract\{
 		virtual at name#.Table
 	\}
 	irpv MethName, name#@MStack\{									;перебираем стек методов
@@ -17,7 +17,7 @@ macro MStruct@GenMethods name{						;макрос для генерации ме
 			name#@Virtual equ 1							;поле с указателем на таблицу виртуальных методов
 		\\}
 	\}
-	match =1, name#.@imported\{
+	match =1, name#.@abstract\{
 		end virtual
 	\}
 }

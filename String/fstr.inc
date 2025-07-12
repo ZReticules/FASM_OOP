@@ -102,6 +102,7 @@ macro fstr [args]{
                 display "Unknown sequence"
                 err
             end if
+            db smb
         else if smb = '%'
             load smb byte from ..unformatData:bytenow
             bytenow = bytenow + 1
@@ -204,38 +205,19 @@ macro fstr [args]{
             end if
 
             db "%"
-            if _flags
-                db type or _flags shl 4
-            else
-                smb = type
-            end if
+            db type or _flags shl 4
             if _flags and 0001b
-                if _flags xor 0001b
-                    db flags
-                else
-                    smb = flags
-                end if
+                db flags
             end if
             if _flags and 0010b
-                if (_flags and 1110b) xor 0010b
-                    dd width
-                else
-                    dw width and 0FFFFh
-                    db (width shr 16) and 0FFh 
-                    smb = width shr 24
-                end if
+                dd width
             end if
             if _flags and 0100b
-                if (_flags and 1100b) xor 0100b
-                    dd precision
-                else
-                    dw precision and 0FFFFh
-                    db (precision shr 16) and 0FFh 
-                    smb = precision shr 24
-                end if
+                dd precision
             end if
+        else
+            db smb
         end if
-        db smb
     end while
     common
     db 0
@@ -272,7 +254,7 @@ macro fwstr [args]{
     ; purge no@local
     ; dd $-..end_format
     wordnow = 0
-    while wordnow < lendata
+    while wordnow < (lendata / 2)
         load smb word from ..unformatData:wordnow * 2
         wordnow = wordnow + 1
         if smb = '\'
@@ -345,6 +327,7 @@ macro fwstr [args]{
                 display "Unknown sequence"
                 err
             end if
+            dw smb
         else if smb = '%'
             load smb word from ..unformatData:wordnow * 2
             wordnow = wordnow + 1
@@ -447,38 +430,19 @@ macro fwstr [args]{
             end if
 
             dw "%"
-            if _flags
-                db type or _flags shl 4
-            else
-                smb = type
-            end if
+            db type or _flags shl 4
             if _flags and 0001b
-                if _flags xor 0001b
-                    db flags
-                else
-                    smb = flags
-                end if
+                db flags
             end if
             if _flags and 0010b
-                if (_flags and 1110b) xor 0010b
-                    dd width
-                else
-                    dw width and 0FFFFh
-                    db (width shr 16) and 0FFh 
-                    smb = width shr 24
-                end if
+                dd width
             end if
             if _flags and 0100b
-                if (_flags and 1100b) xor 0100b
-                    dd precision
-                else
-                    dw precision and 0FFFFh
-                    db (precision shr 16) and 0FFh 
-                    smb = precision shr 24
-                end if
+                dd precision
             end if
+        else
+            dw smb
         end if
-        dw smb
     end while
     common
     dw 0

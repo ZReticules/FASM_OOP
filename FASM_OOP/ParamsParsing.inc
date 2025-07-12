@@ -123,8 +123,17 @@ macro param@parser type@param, definition@param{
 		define type@param float 
 	\}
 	match =addr value,definition@param\{ 
-		define definition@param value
 		define type@param addr 
+		define definition@param value
+		match any1 ( any2, [:] value [:]\\{
+			\\local ..label_addr
+			virtual at value
+				..label_addr:
+			end virtual
+			define definition@param ..label_addr
+		rept 0\\{\\} rept 1\\{
+			define definition@param value
+		\\}
 	\}
 	match =data value,definition@param\{ 
 		\local arr@name
@@ -155,29 +164,30 @@ macro param@parser type@param, definition@param{
 	match =va_list list, definition@param\{
 		define type@param va_list
 		define definition@param list
-	\}
-	match |start=,any, type@param|definition@param\{ 
-		\local arr@name
-		match type firstarg, start\\{
-			arr@name @const definition@param
-		rept 0\\{\\} rept 1\\{
-			arr@name @const db definition@param, 0
+	rept 0\{\}rept 1\{
+		match start=,any, definition@param\\{ 
+			\local arr@name
+			match type firstarg, start\\\{
+				arr@name @const definition@param
+			rept 0\\\{\\\} rept 1\\\{
+				arr@name @const db definition@param, 0
+			\\\}
+			define definition@param arr@name
 		\\}
-		define definition@param arr@name
-	\}
-	match |=L any, type@param|definition@param\{ 
-		\local arr@name
-		match \`any,any\\{
-			arr@name @const cwstr any
-			define definition@param arr@name
-		\\} 
-	\}
-	match |any, type@param|definition@param\{ 
-		\local arr@name
-		match \`any,any\\{
-			arr@name @const cstr definition@param
-			define definition@param arr@name
-		\\} 
+		match =L any, definition@param\\{ 
+			\\local arr@name
+			match \\`any,any\\\{
+				arr@name @const cwstr any
+				define definition@param arr@name
+			\\\} 
+		\\}
+		match any, definition@param\\{ 
+			match \\`any,any\\\{
+				\\\local arr@name
+				arr@name @const cstr definition@param
+				define definition@param arr@name
+			\\\} 
+		\\}
 	\}
 }
 

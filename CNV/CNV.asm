@@ -352,6 +352,37 @@ macro CNV.strlen src*, flags = STRLEN_SAVE_DI{
 	end if
 }
 
+macro CNV.wstrlen src*, flags = STRLEN_SAVE_DI{
+	if flags and STRLEN_SAVE_DI
+		if defined current@frame
+			if current@frame < pointer.size * 2
+				current@frame = pointer.size * 2
+			end if
+			mov [psp], pdi
+		else
+			push pdi pdi
+		end if
+	end if
+	fillParam pdi, src
+	xor eax, eax
+	mov pcx, -1
+	repnz scasw
+	if flags and STRLEN_REZULT_CX
+		lea pcx, [pcx+2]
+		neg pcx
+	else
+		lea pax, [pcx+2]
+		neg pax
+	end if
+	if flags and STRLEN_SAVE_DI
+		if defined current@frame
+			mov pdi, [psp]
+		else
+			pop pdi pdi
+		end if
+	end if
+}
+
 STRMOV_NO_SAVE 	= 0
 STRMOV_SAVE_SI 	= 1
 STRMOV_SAVE_DI 	= 2
@@ -389,6 +420,57 @@ macro CNV.strmov dest*, src*, flags=STRMOV_SAVE_SI or STRMOV_SAVE_DI{
 		inc pax
 	end if
 	cmp byte[psi-1], 0
+	jne ..lab
+	if defined current@frame
+		if flags and STRMOV_SAVE_SI
+			mov psi, [psp]
+		end if
+		if flags and STRMOV_SAVE_DI
+			mov pdi, [psp + pointer.size]
+		end if
+	else
+		if (flags and STRMOV_SAVE_SI) and (flags and STRMOV_SAVE_DI)
+			pop pdi psi
+		else if flags and STRMOV_SAVE_DI
+			pop pdi pdi
+		else if flags and STRMOV_SAVE_SI
+			pop psi psi
+		end if
+	end if
+}
+
+macro CNV.wstrmov dest*, src*, flags=STRMOV_SAVE_SI or STRMOV_SAVE_DI{
+	if defined current@frame
+		if current@frame < pointer.size * 2
+			current@frame = pointer.size * 2
+		end if
+		if flags and STRMOV_SAVE_SI
+			mov [psp], psi
+		end if
+		if flags and STRMOV_SAVE_DI
+			mov [psp + pointer.size], pdi
+		end if
+	else
+		if (flags and STRMOV_SAVE_SI) and (flags and STRMOV_SAVE_DI)
+			push psi pdi
+		else if flags and STRMOV_SAVE_DI
+			push pdi pdi
+		else if flags and STRMOV_SAVE_SI
+			push psi psi
+		end if
+	end if
+	fillParam pdi, dest
+	fillParam psi, src
+	if flags and STRMOV_RET_LEN
+		mov pax, -1
+	end if
+	local ..lab
+	..lab:
+		movsw
+	if flags and STRMOV_RET_LEN
+		inc pax
+	end if
+	cmp word[psi-2], 0
 	jne ..lab
 	if defined current@frame
 		if flags and STRMOV_SAVE_SI
@@ -454,34 +536,30 @@ proc_noprologue
 
 @arch_include "CNV"
 
-; next functions both returns count of chars 
-proc CNV.intToStr c, lpStr, num, radix
-	@sarg @arg2
-	locals
-		sign dd 0
-	endl
-	cmp @arg2, 0
-	jns .positive
-		@larg pcx, @arg1
-		mov [sign], 1
-		mov byte[pcx], '-'
-		neg @arg2
-		inc @arg1
-	.positive:
-	@call c CNV.uintToStr(@arg1, @arg2, @arg3)
-	lea edx, [eax + 1]
-	cmp [sign], 0
-		cmovne eax, edx
-	ret
-endp
+macro CNV.i64ToStr lpBuf, num, radix{
+	@call CNV::i64ToStrVarchar(lpBuf, num, radix, 1)
+}
 
-proc CNV.uintToStr c uses pbx psi, lpStr, num, radix
+macro CNV.i64ToWStr lpBuf, num, radix{
+	@call CNV::i64ToStrVarchar(lpBuf, num, radix, 2)
+}
+
+macro CNV.ui64ToStr lpBuf, num, radix{
+	@call CNV::ui64ToStrVarchar(lpBuf, num, radix, 1)
+}
+
+macro CNV.ui64ToWStr lpBuf, num, radix{
+	@call CNV::ui64ToStrVarchar(lpBuf, num, radix, 2)
+}
+
+; next functions both returns count of chars 
+proc CNV.uintToStrVarchar c uses pbx psi, lpStr, num, radix, charSize
 	locals
-		buf 	db 65 dup ?
+		buf 	dw 70 dup ?
 	endl
 	cmp @arg2, 0
 		je .zeroret
-	@sarg @arg1, @arg3
+	@sarg @arg1, @arg3, @arg4
 	@larg pax, @arg3
 	mov pbx, pax
 	dec pax
@@ -497,27 +575,36 @@ proc CNV.uintToStr c uses pbx psi, lpStr, num, radix
 		jle .decDigits
 			add edx, 7
 		.decDigits:
-		mov [buf + pcx], dl
-		inc ecx
+		mov [buf + pcx], dx
+		add pcx, [charSize]
 	test eax, eax
 	jnz .loop1
 	mov psi, pcx
+
 	.migration_loop:
 		mov pdx, [lpStr]
+		mov ebx, dword[charSize]
 		.loop2:
-			mov al, [buf + pcx - 1]
-			mov [pdx], al
-			inc pdx
-		loop .loop2
-		mov byte[pdx], 0
+			sub ecx, dword[charSize]
+			mov ax, [buf + pcx]
+			mov [pdx], ax
+			lea pdx, [pdx + pbx]
+		jnz .loop2
+		mov eax, dword[charSize]
+		.loop3:
+			dec eax
+			mov byte[pdx + pax], 0
+		jnz .loop3
 		mov pax, psi
+		bsr ecx, dword[charSize]
+		shr pax, cl
 		ret
 
 	.power_of_two:
 		; @larg pdx, @arg1
 		mov pdx, 0
 		bsr pcx, pbx
-		.loop3:
+		.loop4:
 			xor ebx, ebx
 			shrd pbx, pax, cl
 			shr pax, cl
@@ -527,20 +614,56 @@ proc CNV.uintToStr c uses pbx psi, lpStr, num, radix
 			jle .decDigits_binary
 				add ebx, 7
 			.decDigits_binary:
-			mov [buf + pdx], bl
-			inc pdx
+			mov [buf + pdx], bx
+			add pdx, [charSize]
 		test eax, eax
-		jnz .loop3
+		jnz .loop4
 		mov pcx, pdx
 		mov psi, pdx
 		jmp .migration_loop
 
 	.zeroret:
 		@larg pcx, @arg1
-		mov word[pcx], "0"
+		mov dword[pcx], "0"
 		mov pax, 1
 		ret
 endp
+
+proc CNV.intToStrVarchar c, lpStr, num, radix, charSize
+	@sarg @arg2
+	locals
+		sign dd 0
+	endl
+	cmp @arg2, 0
+	jns .positive
+		@larg pcx, @arg1, pax, @arg4
+		mov [sign], 1
+		mov word[pcx], '-'
+		neg @arg2
+		add @arg1, pax
+	.positive:
+	@call c CNV.uintToStrVarchar(@arg1, @arg2, @arg3, @arg4)
+	lea edx, [eax + 1]
+	cmp [sign], 0
+		cmovne eax, edx
+	ret
+endp
+
+macro CNV.intToStr lpBuf, num, radix{
+	@call CNV::intToStrVarchar(lpBuf, num, radix, 1)
+}
+
+macro CNV.intToWStr lpBuf, num, radix{
+	@call CNV::intToStrVarchar(lpBuf, num, radix, 2)
+}
+
+macro CNV.uintToStr lpBuf, num, radix{
+	@call CNV::uintToStrVarchar(lpBuf, num, radix, 1)
+}
+
+macro CNV.uintToWStr lpBuf, num, radix{
+	@call CNV::uintToStrVarchar(lpBuf, num, radix, 2)
+}
 
 proc CNV.ui32sqrt c uses pbx psi pdi, num:POINTER
 	@larg pax, @arg1
