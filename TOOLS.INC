@@ -39,7 +39,10 @@ macro deflocal@proc name, def, val& {
 	; match vars, all@vars \{ 
 	; 	all@vars equ all@vars, 
 	; \}
-	all@vars equ name
+	local all_vars
+	match all_vars, all@vars\{
+		all_vars equ name
+	\}
 	; match any, all@vars\{
 	; 	display \`any
 	; \}
@@ -82,17 +85,54 @@ macro deflocal@proc name, def, val& {
 	\} 
 }
 
+proc@name equ 
+macro make@proc_label name{
+	local father_name
+	match father_name, proc@name \{
+		\local full_name
+
+		restore regs@proc
+		match all,args@proc \\{ restore all \\}
+		restore args@proc
+		local all_vars
+		match all_vars, all@vars\\{
+			irpv all, all_vars \\\{
+				\\\common 
+				\\\restore all
+				\\\reverse 
+				\\\restore all@vars 
+			\\\}
+		\\}
+		restore all@vars
+
+		match full_name, father_name\#name \\{
+   			if used full_name
+			
+			full_name:
+			proc@name equ full_name
+		\\}
+	rept 0\{\} rept 1 \{
+
+   		if used name
+
+		proc@name equ name
+		name:
+	\}
+}
 
 macro define@proc name,statement{ 
 	local params,flag,regs,parmbytes,localbytes,current, va_list, va_list_counter, va_list_count
    	local args, reglist, prologue
 
-   	if used name
+	
+	make@proc_label name
+
    	va_list_counter = 0
    	va_list@counter equ va_list_counter
    	va_list@count equ va_list_count
-	
-	name:
+
+   	local all_vars
+   	all@vars equ all_vars
 	match =stdcall args, statement \{ 
 		params equ args
 		flag = 11b 
@@ -241,6 +281,18 @@ macro define@proc name,statement{
 	; 	; restore all@vars 
 	; \}
 	va@list equ va_list
+	; macro proc args& \{
+	; 	\local name, any
+	; 	match name any, args [::]\\{
+	; 		\\local ..name
+	; 		name equ ..name
+	; 		proc args
+	; 		macro endp \\\{
+	; 			purge endp
+	; 			restore name
+	; 		\\\}
+	; 	\\}
+	; \}
 }
 
 macro endp {
@@ -248,16 +300,27 @@ macro endp {
 	restore va@list, va_list@counter, va_list@count
  	purge ret,locals,endl
 	finish@proc
+	; match name, proc@name\{
+	; 	display \`name, 0Ah
+	; \}
+	restore proc@name
+	; match name, proc@name\{
+	; 	display \`name, 0Ah
+	; \}
 	purge finish@proc
 	restore regs@proc
 	match all,args@proc \{ restore all \}
 	restore args@proc
-	irpv all,all@vars \{
-		\common 
-		\restore all
-		\reverse 
-		\restore all@vars 
+	local all_vars
+	match all_vars, all@vars\{
+		irpv all, all_vars \\{
+			\\common 
+			\\restore all
+			\\reverse 
+			\\restore all@vars 
+		\\}
 	\}
+	restore all@vars
 }
 
 include "FASM_OOP\FASM_OOP.inc"

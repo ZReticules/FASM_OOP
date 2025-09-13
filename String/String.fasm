@@ -1190,10 +1190,10 @@ proc String.streamRead c uses pbx psi pdi pbp, this, fp, delimiter:DWORD, delimi
         .read_chars:
             @call c [fgetc](pbp)
             switch eax
-                case -1, 0x1A, [delimiter]
+                case 0xFFFF, 0x1A, [delimiter]
                     mov [saveAx], eax
                     mov edx, 0x1A
-                    cmp eax, -1
+                    cmp eax, 0xFFFF
                     cmove eax, edx
                     cmp eax, 0x1A
                     sete al
@@ -1324,7 +1324,9 @@ proc String.parseInt c uses pbx psi pdi pbp, this, radix
     end_switch
 
     .mul:
-        @call CNV::ui64mul(edx:eax, 0:ecx)
+        ; int3
+        xchg ecx, edx
+        @call CNV::ui64mul(ecx:eax, 0:edx)
         mov ecx, dword[radix]
         jmp .after_digit
 
@@ -1371,6 +1373,45 @@ proc String.cmpWString c uses psi pdi, this, other
     mov pcx, [wCount]
     repe cmpsw
     lahf
+    ret
+endp
+
+proc WString.countChar c uses pdi, this, bVal
+    @sarg @arg2
+    virtObj .this String at pdi from @arg1
+    
+    @call .this->getLpChars()
+    mov ecx, [.this.len]
+    mov pdi, pax
+    movzx eax, word[bVal]
+    mov edx, -1
+
+    @@:
+        repne scasb
+        inc edx
+    cmp ecx, 0
+    jnz @b
+    mov eax, edx
+    ret
+endp
+
+proc WString.findChar c uses pdi, this, startIndex, bVal
+    @sarg @arg2, @arg3
+    virtObj .this String at pdi from @arg1
+    
+    @call .this->getLpChars()
+    mov ecx, [.this.len]
+    mov edx, ecx
+    sub ecx, dword[startIndex]
+    mov pdi, pax
+    add pdi, [startIndex]
+    movzx eax, word[bVal]
+    repne scasb
+    sub edx, ecx
+    dec edx
+    mov eax, -1
+    cmp byte[pdi], 0
+        cmovne eax, edx
     ret
 endp
 

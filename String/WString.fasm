@@ -796,10 +796,10 @@ proc WString.streamRead c uses pbx psi pdi pbp, this, fp, delimiter:DWORD, delim
         .read_chars:
             @call c [fgetwc](pbp)
             switch eax
-                case -1, 0x1A, [delimiter]
+                case 0xFFFF, 0x1A, [delimiter]
                     mov [saveAx], eax
                     mov edx, 0x1A
-                    cmp eax, -1
+                    cmp eax, 0xFFFF
                     cmove eax, edx
                     cmp eax, 0x1A
                     sete al
@@ -979,6 +979,48 @@ proc WString.cmpWString c uses psi pdi, this, other
     mov pcx, [wCount]
     repe cmpsb
     lahf
+    ret
+endp
+
+proc WString.countWChar c uses pdi, this, wVal
+    @sarg @arg2
+    virtObj .this WString at pdi from @arg1
+    
+    @call .this->getLpWChars()
+    mov ecx, [.this.len]
+    mov pdi, pax
+    movzx eax, word[wVal]
+    mov edx, -1
+
+    @@:
+        repne scasw
+        inc edx
+    cmp ecx, 0
+    jnz @b
+    mov eax, edx
+    ret
+endp
+
+proc WString.findWChar c uses pdi, this, startIndex, wVal
+    @sarg @arg2, @arg3
+    virtObj .this WString at pdi from @arg1
+    
+    @call .this->getLpWChars()
+    mov ecx, [.this.len]
+    mov edx, ecx
+    sub ecx, dword[startIndex]
+    mov pdi, pax
+    shl [startIndex], 1
+    add pdi, [startIndex]
+    movzx eax, word[wVal]
+    repne scasw
+    sub edx, ecx
+    dec edx
+    mov eax, -1
+    ; int3
+    ; movzx ecx, word[pdi]
+    cmp word[pdi], 0
+        cmovne eax, edx
     ret
 endp
 

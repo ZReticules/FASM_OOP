@@ -657,9 +657,11 @@
 	}
 
 ; statics
-	virtual at statics@initaddr
-		statics@addrspace::
-	end virtual
+	if defined statics@initaddr
+		virtual at statics@initaddr
+			statics@addrspace::
+		end virtual
+	end if
 
 	macro statics{
 		virtual statics@addrspace
@@ -681,14 +683,16 @@
 
 	macro postpone@statics{
 		@init_statics
-		virtual statics@addrspace
-			statics@size = $ - statics@initaddr
-		end virtual
-		local _byte
-		repeat statics@size
-			load _byte byte from statics@addrspace: statics@initaddr + % - 1
-			store byte _byte at statics@real_addrspace: statics@initaddr + % - 1
-		end repeat
+		if defined statics@initaddr
+			virtual statics@addrspace
+				statics@size = $ - statics@initaddr
+			end virtual
+			local _byte
+			repeat statics@size
+				load _byte byte from statics@addrspace: statics@initaddr + % - 1
+				store byte _byte at statics@real_addrspace: statics@initaddr + % - 1
+			end repeat
+		end if
 	}
 
 	macro static [var] { 
@@ -806,4 +810,26 @@
 		\}
 	   	common
 		endst 
+	}
+
+; @block
+	macro @block [arg] {
+		common
+		local ..start_block_label, ..end_block_label, any
+		@sb equ ..start_block_label
+		@fb equ ..end_block_label
+		forward
+		arg
+		common
+		..start_block_label:
+
+	}
+	macro @endb [arg] {
+		common
+		local any
+		@fb:
+		forward
+		arg
+		common
+		restore @sb, @fb
 	}

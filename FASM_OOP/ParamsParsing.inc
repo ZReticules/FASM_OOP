@@ -227,7 +227,7 @@ macro inline@parse param@result, [args]{
 macro define@call{
 	macro @call args&\{
 		\define@call
-		local call_conv, argums, dest
+		local call_conv, argums, dest, matched
 		define argums args
 		dest equ
 		match dst == any, argums\\{
@@ -240,6 +240,7 @@ macro define@call{
 			call_conv equ conv
 		\\}
 		match obj->proc(_argums, argums\\{
+			define matched
 			; restore call_conv
 			match conv, __obj_call\\\{
 				call_conv equ conv
@@ -296,6 +297,7 @@ macro define@call{
 			\\\}
 		\\}
 		match _Struct::proc(_argums, argums\\{
+			define matched
 			; restore call_conv
 			local __Struct
 			define __Struct _Struct
@@ -328,7 +330,7 @@ macro define@call{
 				\\\\}
 			\\\}
 		\\}
-		match _proc ( _argums , argums\\{
+		match [:=matched:]_proc ( _argums , [:matched:]argums\\{
 			define argums _proc
 			match any), _argums\\\{
 				argums equ argums, any

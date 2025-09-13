@@ -9,11 +9,11 @@ match =PROGRAM_FORMAT, PROGRAM_FORMAT{
 match =x64|_pf, __architecture|PROGRAM_FORMAT{
 	format _pf#64 PROGRAM_TYPE
 
-	section ".code" readable writeable executable
+	section ".text" readable writeable executable; align 64
 }
 
 match =x86, __architecture{
 	format PROGRAM_FORMAT PROGRAM_TYPE
 
-	section ".code" readable writeable executable
+	section ".text" readable writeable executable; align 64
 }

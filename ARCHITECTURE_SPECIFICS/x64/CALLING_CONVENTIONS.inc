@@ -86,7 +86,7 @@ macro va_list@load counter, ax_destroyed, ax_restored, ax_need_save, size@param,
 			ax_destroyed = 1
 		\}
 		if size@param = 8
-			mov rax, param
+			mov rax, qword param
 		else if size@param = 4
 			mov eax, param
 		else if size@param = 2
@@ -282,7 +282,11 @@ macro @oopcall proc,[arg]{
 						mov rax, [rsp - 8]
 						ax_restored = 1
 					end if
-					mov rcx,param
+					if param eqtype [0]
+						mov rcx, qword param
+					else
+						mov rcx, param
+					end if
 				end if
 			else if size@param = 4
 				if ~ param eq ecx
@@ -379,7 +383,11 @@ macro @oopcall proc,[arg]{
 						mov rax, [rsp - 8]
 						ax_restored = 1
 					end if
-					mov rdx,param
+					if param eqtype [0]
+						mov rdx, qword param
+					else
+						mov rdx, param
+					end if
 				end if
 			else if size@param = 4
 				if ~ param eq edx
@@ -476,7 +484,11 @@ macro @oopcall proc,[arg]{
 						mov rax, [rsp - 8]
 						ax_restored = 1
 					end if
-					mov r8,param
+					if param eqtype [0]
+						mov r8, qword param
+					else
+						mov r8, param
+					end if
 				end if
 			else if size@param = 4
 				if ~ param eq r8d
@@ -573,7 +585,11 @@ macro @oopcall proc,[arg]{
 						mov rax, [rsp - 8]
 						ax_restored = 1
 					end if
-					mov r9,param
+					if param eqtype [0]
+						mov r9, qword param
+					else
+						mov r9, param
+					end if
 				end if
 			else if size@param = 4
 				if ~ param eq r9d
@@ -680,7 +696,7 @@ macro @oopcall proc,[arg]{
 					ax_destroyed = 1
 				\\}
 				if size@param = 8
-					mov rax, param
+					mov rax, qword param
 				else if size@param = 4
 					mov eax, param
 				else if size@param = 2

@@ -329,7 +329,10 @@ macro def@fields@virt name, def, [val]{
 	; match vars, all@vars \{ 
 	; 	_all@vars equ _all@vars, 
 	; \}
-	all@vars equ name
+	local all_wars
+	match all_vars, all@vars\{
+		all_vars equ name
+	\} 
    	forward
 	local ..var
 	..var def val

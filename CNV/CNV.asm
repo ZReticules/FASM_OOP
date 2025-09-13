@@ -327,7 +327,7 @@ macro CNV.strlen src*, flags = STRLEN_SAVE_DI{
 			if current@frame < pointer.size * 2
 				current@frame = pointer.size * 2
 			end if
-			mov [psp], pdi
+			mov [psp - pointer.size], pdi
 		else
 			push pdi pdi
 		end if
@@ -345,7 +345,7 @@ macro CNV.strlen src*, flags = STRLEN_SAVE_DI{
 	end if
 	if flags and STRLEN_SAVE_DI
 		if defined current@frame
-			mov pdi, [psp]
+			mov pdi, [psp - pointer.size]
 		else
 			pop pdi pdi
 		end if
@@ -358,7 +358,7 @@ macro CNV.wstrlen src*, flags = STRLEN_SAVE_DI{
 			if current@frame < pointer.size * 2
 				current@frame = pointer.size * 2
 			end if
-			mov [psp], pdi
+			mov [psp - pointer.size], pdi
 		else
 			push pdi pdi
 		end if
@@ -376,7 +376,7 @@ macro CNV.wstrlen src*, flags = STRLEN_SAVE_DI{
 	end if
 	if flags and STRLEN_SAVE_DI
 		if defined current@frame
-			mov pdi, [psp]
+			mov pdi, [psp - pointer.size]
 		else
 			pop pdi pdi
 		end if

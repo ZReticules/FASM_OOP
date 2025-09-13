@@ -66,6 +66,8 @@
 	    	fromInt64 	dm this
 	    	addInt64 	dm this
     	\}
+
+    	countChar  		dm this
 	ends
 
 	include "String\String.fasm"
@@ -126,6 +128,9 @@
 	    	fromInt64 	dm this
 	    	addInt64 	dm this
     	\}
+
+    	countWChar  	dm this
+    	findWChar 		dm this
     ends
 
     include "String\WString.fasm"
