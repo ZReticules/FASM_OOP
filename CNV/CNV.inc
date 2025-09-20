@@ -54,6 +54,10 @@
 		i64ToStr			dm this:inline	; (lpStr, num64, radix) -> len
 		ui64ToWStr			dm this:inline	; (lpStr, num64, radix) -> len
 		i64ToWStr			dm this:inline	; (lpStr, num64, radix) -> len
+
+		consoleToWin1251	dm this:inline
+		consoleToUTF16		dm this:inline
+		consoleToUtf8		dm this:inline
 		db ?
 	ends
 

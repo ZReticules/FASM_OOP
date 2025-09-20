@@ -532,6 +532,27 @@ macro CNV.memset dst*, val*, countval*, sizeval = 1, flags = MEMSET_SAVE_RDI{
 	end if
 }
 
+macro CNV.consoleToWin1251 {
+	@call [SetConsoleCP](1251)
+	@call [SetConsoleOutputCP](1251)
+}
+macro CNV.consoleToUtf8 {
+	@call [SetConsoleCP](65001)
+	@call [SetConsoleOutputCP](65001)
+}
+
+macro CNV.consoleToUTF16 {
+	@call [SetConsoleCP](65001)
+	@call [SetConsoleOutputCP](65001)
+	@call c [fileno]([stdout])
+	@call c [setmode](pax, 0x00040000)
+	@call c [fileno]([stdin])
+	@call c [setmode](pax, 0x00040000)
+	@call c [fileno]([stderr])
+	@call c [setmode](pax, 0x00040000)
+	@call c [setlocale](2, ".utf8")
+}
+
 proc_noprologue
 
 @arch_include "CNV"

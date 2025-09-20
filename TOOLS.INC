@@ -20,6 +20,7 @@ match =x86, __architecture{
 }
 purge defargs@proc
 purge endp
+purge static_rsp_close
 
 define INT_MIN 	80000000h
 define INT_MAX 	7FFFFFFFh
@@ -74,9 +75,9 @@ macro deflocal@proc name, def, val& {
 		..tmp equ 
 	\}
 	match tmp : value, ..tmp : val \{ 
-		tmp: end virtual
+		end virtual
 		initlocal@proc ..var,def value
-		virtual at tmp
+		virtual proc@locals
 	\}
    	; common
 	match first rest, ..var, \{ 
@@ -120,11 +121,118 @@ macro make@proc_label name{
 	\}
 }
 
+close@proc equ closedef
+
+macro closedef procname,flag,parmbytes,localbytes,reglist {
+	restore localbase@proc, parmbase@proc
+}
+
+macro finish@proc{ 
+	; match ..locals, proc@locals\\{
+		; display \`..locals
+	match localbytes, proc@localbytes\{
+		virtual proc@locals
+			localbytes = $-(localbase@proc)
+		end virtual
+	  	match close:reglist, close@proc:<proc@regs> \\{ 
+	  		close name,flag,parmbytes,localbytes,reglist 
+	  	\\}
+	\}
+	; \\}
+	end if 
+} 
+
+macro locals { 
+	virtual proc@locals
+  	macro label def \{ 
+  		match . type,def> \\{
+  			deflocal@proc .,label,<type 
+  		\\} 
+  	\}
+	struc db [val] \{
+		\common 
+		deflocal@proc .,db,val
+	\}
+	struc du [val] \{ 
+		\common 
+		deflocal@proc .,du,val
+	\}
+	struc dw [val] \{ 
+		\common 
+		deflocal@proc .,dw,val 
+	\}
+	struc dp [val] \{ 
+		\common 
+		deflocal@proc .,dp,val
+	\}
+	struc dd [val] \{ 
+		\common 
+		; end virtual
+		; virtual proc@locals
+		deflocal@proc .,dd,val
+	\}
+	struc dt [val] \{ 
+		\common 
+		deflocal@proc .,dt,val 
+	\}
+	struc dq [val] \{ 
+		\common 
+		deflocal@proc .,dq,val
+	\}
+	struc rb cnt \{ 
+		\common 
+		deflocal@proc .,db,(cnt) dup(?) 
+	\}
+	struc rw cnt \{ 
+		\common 
+		deflocal@proc .,dw,(cnt) dup(?) 
+	\}
+	struc rp cnt \{ 
+		\common 
+		deflocal@proc .,dp,(cnt) dup(?)  
+	\}
+	struc rd cnt \{ 
+		\common 
+		deflocal@proc .,dd,(cnt) dup(?)  
+	\}
+	struc rt cnt \{ 
+		\common 
+		deflocal@proc .,dt,(cnt) dup(?)  
+	\}
+	struc rq cnt \{ 
+		\common 
+		deflocal@proc .,dq,(cnt) dup(?) 
+	\} 
+	; macro align num\{
+	; 	\local ..tmp
+	; 	if num > 16
+	; 		display "cannot align more than 16 in locals"
+	; 		err
+	; 	end if
+	; 	..tmp:
+	; 	if ..tmp relativeto pbp & (num - (..tmp - pbp) mod num) <> 0
+	; 		db (num - (..tmp - pbp) mod num) dup(?)
+	; 	else if ..tmp relativeto psp & (num - (..tmp - psp) mod num) <> 0
+	; 		db (num - (..tmp - psp) mod num) dup(?)
+	; 	else 
+	; 		display "locals base must be sp or bp"
+	; 		err
+	; 	end if
+	; \}
+}
+macro endl { 
+	purge label, align
+  	restruc db,du,dw,dp,dd,dt,dq
+  	restruc rb,rw,rp,rd,rt,rq
+  	; current = $-(localbase@proc)
+  	end virtual 
+}
 macro define@proc name,statement{ 
 	local params,flag,regs,parmbytes,localbytes,current, va_list, va_list_counter, va_list_count
    	local args, reglist, prologue
 
-	
+	proc@regs equ regs
+	proc@localbytes equ localbytes
 	make@proc_label name
 
    	va_list_counter = 0
@@ -171,89 +279,12 @@ macro define@proc name,statement{
 	name # % = parmbytes/pointer.size
 	; all@vars equ
 	current = 0
-	macro locals \{ 
-		virtual at localbase@proc+current
-	  	macro label def \\{ 
-	  		match . type,def> \\\{
-	  			deflocal@proc .,label,<type 
-	  		\\\} 
-	  	\\}
-		struc db [val] \\{
-			\\common 
-			deflocal@proc .,db,val
-		\\}
-		struc du [val] \\{ 
-			\\common 
-			deflocal@proc .,du,val
-		\\}
-		struc dw [val] \\{ 
-			\\common 
-			deflocal@proc .,dw,val 
-		\\}
-		struc dp [val] \\{ 
-			\\common 
-			deflocal@proc .,dp,val
-		\\}
-		struc dd [val] \\{ 
-			\\common 
-			deflocal@proc .,dd,val
-		\\}
-		struc dt [val] \\{ 
-			\\common 
-			deflocal@proc .,dt,val 
-		\\}
-		struc dq [val] \\{ 
-			\\common 
-			deflocal@proc .,dq,val
-		\\}
-		struc rb cnt \\{ 
-			\\common 
-			deflocal@proc .,db,(cnt) dup(?) 
-		\\}
-		struc rw cnt \\{ 
-			\\common 
-			deflocal@proc .,dw,(cnt) dup(?) 
-		\\}
-		struc rp cnt \\{ 
-			\\common 
-			deflocal@proc .,dp,(cnt) dup(?)  
-		\\}
-		struc rd cnt \\{ 
-			\\common 
-			deflocal@proc .,dd,(cnt) dup(?)  
-		\\}
-		struc rt cnt \\{ 
-			\\common 
-			deflocal@proc .,dt,(cnt) dup(?)  
-		\\}
-		struc rq cnt \\{ 
-			\\common 
-			deflocal@proc .,dq,(cnt) dup(?) 
-		\\} 
-		macro align num\\{
-			\\local ..tmp
-			if num > 16
-				display "cannot align more than 16 in locals"
-				err
-			end if
-			..tmp:
-			if ..tmp relativeto pbp & (num - (..tmp - pbp) mod num) <> 0
-				db (num - (..tmp - pbp) mod num) dup(?)
-			else if ..tmp relativeto psp & (num - (..tmp - psp) mod num) <> 0
-				db (num - (..tmp - psp) mod num) dup(?)
-			else 
-				display "locals base must be sp or bp"
-				err
-			end if
-		\\}
-	\}
-	macro endl \{ 
-		purge label, align
-	  	restruc db,du,dw,dp,dd,dt,dq
-	  	restruc rb,rw,rp,rd,rt,rq
-	  	current = $-(localbase@proc)
-	  	end virtual 
-	\}
+	local ..locals
+	proc@locals equ ..locals
+	virtual at localbase@proc
+		..locals::
+	end virtual
+
 	macro ret operand\{ 
 		match any, operand \\{ 
 			retn operand 
@@ -264,13 +295,6 @@ macro define@proc name,statement{
 	  		\\\}
   		\\} 
   	\}
-	macro finish@proc\{ 
-		localbytes = current
-	  	match close:reglist, close@proc:<regs> \\{ 
-	  		close name,flag,parmbytes,localbytes,reglist 
-	  	\\}
-		end if 
-	\} 
 	locals 
 		va_list rb va_list_count
 	endl
@@ -298,8 +322,10 @@ macro define@proc name,statement{
 macro endp {
 	va_list@count = va_list@counter
 	restore va@list, va_list@counter, va_list@count
- 	purge ret,locals,endl
+ 	purge ret
+ 	; purge locals,endl
 	finish@proc
+	restore proc@locals, proc@regs, proc@localbytes
 	; match name, proc@name\{
 	; 	display \`name, 0Ah
 	; \}
@@ -307,7 +333,7 @@ macro endp {
 	; match name, proc@name\{
 	; 	display \`name, 0Ah
 	; \}
-	purge finish@proc
+	; purge finish@proc
 	restore regs@proc
 	match all,args@proc \{ restore all \}
 	restore args@proc

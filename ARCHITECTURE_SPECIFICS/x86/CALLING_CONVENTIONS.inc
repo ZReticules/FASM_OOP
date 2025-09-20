@@ -46,7 +46,7 @@ macro static_esp_epilogue procname,flag,parmbytes,localbytes,reglist {
 
 macro static_esp_close procname,flag,parmbytes,localbytes,reglist { 
 	size@frame = current@frame 
-	restore size@frame,current@frame 
+	restore size@frame, current@frame, localbase@proc, regsbase@proc, parmbase@proc, framebytes@proc
 }
 
 macro proc_noprologue{

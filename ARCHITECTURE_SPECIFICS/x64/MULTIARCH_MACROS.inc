@@ -88,9 +88,9 @@ macro @larg [dest, argreg]{
 		restore _argreg
 		_argreg equ arg
 	\}
-	if argreg in <xmm1, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14> | dest in <xmm1, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14>
+	if argreg in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14> | dest in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14>
 		if ~dest eq argreg
-			movd dest, argreg
+			movq dest, argreg
 		end if
 	else
 		if ~dest eq argreg

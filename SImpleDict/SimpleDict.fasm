@@ -1,0 +1,382 @@
+proc_noprologue
+
+proc SimpleDict.make c uses pbx, this, size
+	virtObj .this SimpleDict at pbx from @arg1
+	@larg pdx, @arg2
+
+	mov eax, 16
+	cmp edx, 16
+	cmovb edx, eax
+	jb @f
+		bsr ecx, edx
+		inc ecx
+		mov eax, 1
+		shl eax, cl
+		mov ecx, eax
+
+		popcnt eax, edx
+		cmp eax, 1
+			cmovne edx, ecx
+	@@:
+
+	mov [.this.__size], edx
+	mov [.this.len], 0
+	imul ecx, edx, sizeof.SimpleDictItem
+	@call [.this.lpItems] = CNV::alloc(ecx)
+	ret
+endp
+
+proc SimpleDict.set c uses pbx pbp psi pdi, this, lpKey, keyLen:DWORD, lpVal, isConst:DWORD
+	virtObj .this SimpleDict at pbx from @arg1
+	@sarg @arg2, @arg3, @arg4
+
+	local hash:DWORD, index:DWORD
+
+	
+	switch [keyLen]
+		case -1
+			@call [keyLen] = CNV::strlen([lpKey])
+			jmp end_case
+		case -2
+			@call [keyLen] = CNV::wstrlen([lpKey])
+			shl [keyLen], 1
+	end_switch
+	@call c MurmurHash3([lpKey], [keyLen], 0)
+	; xmm0 - hash
+	movd xmm0, eax
+	xor edx, edx
+
+	mov ecx, [.this.__size]
+	dec ecx
+	and eax, ecx
+	imul eax, eax, sizeof.SimpleDictItem
+
+	; xmm1 - index
+	movd xmm1, eax
+
+	mov pcx, [.this.lpItems]
+
+	virtObj .item SimpleDictItem at pbp from addr pcx + pdx
+
+	switch [.item.lpKey]
+		case NULL
+			inc [.this.len]
+			xor eax, eax
+
+			mov pdx, [lpVal]
+			mov [.item.value], pdx
+			mov edx, [keyLen]
+			mov [.item.keyLen], edx
+			; mov edx, [hash]
+			movd [.item.hash], xmm0
+			mov pdx, [lpKey]
+			mov [.item.lpKey], pdx
+
+			mov edx, [isConst]
+			mov [.item.isConst], edx
+			cmp edx, 0
+				jne end_case
+
+			@call [.item.lpKey] = CNV::alloc([keyLen])
+			@call CNV::fill([.item.lpKey], [lpKey], [keyLen])
+
+			jmp end_case
+		case_default
+
+
+			local counter:DWORD, firstZero: dptr NULL
+
+			mov eax, [.this.__size]
+			mov [counter], eax
+
+			; xmm2 - lpKey
+			movptr xmm2, [lpKey]
+			; xmm3 - size * sizeof(SimpleDictItem)
+			imul eax, [.this.__size], sizeof.SimpleDictItem
+			movd xmm3, eax
+			; xmm4 - lpItems
+			movptr xmm4, [.this.lpItems]
+			; xmm5 - keyLen
+			movd xmm5, [keyLen]
+
+			@block
+				dec [counter]
+					jz @fb
+
+				; index = (index + 1) % size
+				movd eax, xmm1
+				xor edx, edx
+				add eax, sizeof.SimpleDictItem
+				movd ecx, xmm3
+				div ecx
+				movd ecx, xmm1
+				movd xmm1, edx
+
+
+				movptr pdx, xmm4
+
+				lea pbp, [pdx + pcx]
+
+				
+				mov psi, [.item.lpKey]
+				test psi, psi
+				jnz @f
+					mov pax, [firstZero]
+					cmp [firstZero], NULL
+						cmove pax, pbp
+					mov [firstZero], pax
+					jmp @sb
+				@@:
+
+				movd edx, xmm0
+				cmp edx, [.item.hash]
+					jne @sb
+
+				movd ecx, xmm5
+				cmp ecx, [.item.keyLen]
+					jne @sb
+
+				movptr pdi, xmm2
+				repe cmpsb
+					jne @sb
+
+				mov pax, [.item.value]
+				
+				mov pdx, [lpVal]
+				mov [.item.value], pdx
+
+				jmp end_case
+
+
+			@endb
+
+			mov eax, [.this.__size]
+			cmp eax, [.this.len]
+				je .overflow
+			inc [.this.len]
+
+			mov pbp, [firstZero]
+
+			mov pdx, [lpVal]
+			mov [.item.value], pdx
+			; mov edx, [keyLen]
+			movd [.item.keyLen], xmm5
+			; mov edx, [hash]
+			movd [.item.hash], xmm0
+			; mov pdx, [lpKey]
+			movptr [.item.lpKey], xmm2
+
+			mov edx, [isConst]
+			mov [.item.isConst], edx
+			cmp edx, 0
+				jne end_case
+
+			mov [firstZero], pax
+			@call [.item.lpKey] = CNV::alloc([keyLen])
+			@call CNV::fill([.item.lpKey], [lpKey], [keyLen])
+
+			mov pax, [firstZero]
+
+			; jmp end_case
+	end_switch
+
+
+	.return: ret
+
+	.overflow:
+		mov eax, [.this.__size]
+		shl eax, 1
+		local newDict:SimpleDict
+		@call newDict->make(eax)
+		@call newDict->set([lpKey], [keyLen], [lpVal], [isConst])
+		@call .this->forEach(.migration_callback, addr newDict)
+		@call .this->unmake()
+		@call CNV::fill(.this, newDict, sizeof.SimpleDict)
+		ret
+
+	proc .migration_callback c, lpKey, lpVal, lpNewDict
+		@larg pax, @arg2 
+		virtObj .key SimpleDictKey at pdx from @arg1
+		virtObj .this SimpleDict at pcx from @arg3
+		@call .this->set([.key.key], [.key.len], pax, [.key.isConst])
+		mov eax, esp
+		ret
+	endp
+endp
+
+proc SimpleDict.__findItem c uses pbx pbp psi pdi, this, lpKey, keyLen:DWORD
+	virtObj .this SimpleDict at pbx from @arg1
+	@sarg @arg2, @arg3
+	
+	local counter:DWORD
+
+	switch [keyLen]
+		case -1
+			@call [keyLen] = CNV::strlen(@arg2)
+			jmp end_case
+		case -2
+			@call [keyLen] = CNV::wstrlen(@arg2)
+			shl [keyLen], 1
+	end_switch
+	; int3
+	@call c MurmurHash3([lpKey], [keyLen], 0)
+	; xmm0 - hash
+	movd xmm0, eax
+	; xor edx, edx
+	mov edx, [.this.__size]
+	dec edx
+	and eax, edx
+	imul eax, eax, sizeof.SimpleDictItem
+
+	; xmm1 - index
+	movd xmm1, eax
+	
+	mov eax, [.this.__size]
+	mov [counter], eax
+
+	; xmm2 - lpKey
+	movptr xmm2, [lpKey]
+	; xmm3 - size * sizeof(SimpleDictItem)
+	imul eax, [.this.__size], sizeof.SimpleDictItem
+	movd xmm3, eax
+	; xmm4 - lpItems
+	movptr xmm4, [.this.lpItems]
+	; xmm5 - keyLen
+	movd xmm5, [keyLen]
+
+
+	@block
+		dec [counter]
+			jz .return
+
+		; index = (index + 1) % size
+		movd eax, xmm1
+		xor edx, edx
+		add eax, sizeof.SimpleDictItem
+		movd ecx, xmm3
+		div ecx
+		movd ecx, xmm1
+		movd xmm1, edx
+
+		; movptr pax, xmm2
+		xor eax, eax
+
+		movptr pdx, xmm4
+
+		virtObj .item SimpleDictItem at pbp from addr pdx + pcx
+		
+		movd edx, xmm0
+		cmp edx, [.item.hash]
+			jne @sb
+
+		movd ecx, xmm5
+		cmp ecx, [.item.keyLen]
+			jne @sb
+
+		mov psi, [.item.lpKey]
+		test psi, psi
+			jz @sb
+
+		movptr pdi, xmm2
+		repe cmpsb
+			jne @sb
+	@endb
+
+	lea pax, [.item]
+	.return: ret
+
+endp
+
+proc SimpleDict.get c uses pbx, this, lpKey, keyLen:DWORD, notFoundVal
+	@sarg @arg1, @arg4
+	virtObj .this SimpleDict at pcx from @arg1
+	
+	; int3
+	@call .this->__findItem(@arg2, @arg3)
+	; int3
+
+	virtObj .item SimpleDictItem at pdx from pax
+	mov pax, [notFoundVal]
+	test pdx, pdx
+		jz .return
+	
+	mov pax, [.item.value]	
+	.return: ret
+endp
+
+proc SimpleDict.del c uses pbx, this, lpKey, keyLen:DWORD
+	virtObj .this SimpleDict at pbx from @arg1
+	
+	; int3
+	@call .this->__findItem(@arg2, @arg3)
+	test pax, pax
+		jz .return
+
+	virtObj .item SimpleDictItem at pax
+	
+	dec [.this.len]
+
+	mov pcx, [.item.lpKey]
+	mov [.item.lpKey], NULL
+	cmp [.item.isConst], 0
+	jne @f
+		mov pbx, pax
+		@call CNV::free(pcx)
+		mov pax, pbx
+	@@:
+	
+	mov pax, [.item.value]	
+	.return: ret
+endp
+
+proc SimpleDict.forEach c uses pbx pbp psi pdi, this, lpFunc, lParam
+	@sarg @arg3
+	@larg psi, @arg2
+	
+	virtObj .this SimpleDict at pcx from @arg1
+	mov ebx, [.this.__size]
+	test ebx, ebx
+		jz .return
+	
+	imul pbx, pbx, sizeof.SimpleDictItem
+	mov pbp, [.this.lpItems]
+	mov edi, [.this.len]
+	virtObj .item SimpleDictItem at pbp + pbx - sizeof.SimpleDictItem
+	@block
+		cmp [.item.lpKey], NULL
+		@block < je @fb >
+			@call c psi(addr .item.key, [.item.value], [lParam])
+			test eax, eax
+				jz .return
+			dec edi
+				jz .return
+		@endb
+	sub pbx, sizeof.SimpleDictItem
+	@endb < jnz @sb >
+	.return: ret
+endp
+
+proc SimpleDict.clear c uses pbx, this
+	virtObj .this SimpleDict at pbx from @arg1
+	@call .this->forEach(.free_keys, NULL)
+	ret
+	
+	proc .free_keys c, lpKey, value, lParam
+		virtObj .key SimpleDictKey at pcx from @arg1
+		cmp [.key.isConst], 0
+		jne @f
+			@call CNV::free([.key.key])
+		@@:
+		mov [.key.key], NULL
+		ret
+	endp
+endp
+
+proc SimpleDict.unmake c uses pbx, this
+	virtObj .this SimpleDict at pbx from @arg1
+	@call .this->clear()
+	@call CNV::free([.this.lpItems])
+	ret
+endp
+
+proc_resprologue

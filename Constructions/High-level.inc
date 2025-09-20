@@ -69,26 +69,27 @@
 					_ins equ jl
 
 					local start_suff, _start
-					start_suff equ e
+					define start_suff e
 					_start equ first
 					match =u any, _start\\\{
 						restore _ins
 						_ins equ jb
-						restore _start
+						; restore _start
 						_start equ any
 					\\\}
 					match + any, _start\\\{
-						start_suff equ
-						restore _start
+						define start_suff
+						; restore _start
 						_start equ any
 					\\\}
 
 					local end_suff, _end
-					end_suff equ
+					define end_suff
 					_end equ second
 					match + any, _end\\\{
-						end_suff equ e
-						restore _end
+
+						define end_suff e
+						; restore _end
 						_end equ any
 					\\\}
 

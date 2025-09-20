@@ -459,10 +459,12 @@
 		virtObj .this:arg ParsedDouble at pdi from @arg1
 		locals 
 			ftox dq ?
+			cvtBuf dq ?
 		endl
 		; int3
-		mov eax, [.this.fracVal]
-		call intLen
+		mov eax, dword[.this.fracVal]
+		mov edx, dword[.this.fracVal + 4]
+		call int64Len
 		add ecx, [.this.order]
 		; @call CNV::ui32pow(10, ecx)
 		mov dword[ftox], ecx
@@ -471,14 +473,36 @@
 		fstp [ftox]
 		; mulsd xmm0, [ftox]
 		movq xmm1, [ftox]
-		cvtsi2sd xmm0, [.this.fracVal]
+		movq xmm0, [.this.fracVal]
+		match =x64, __architecture\{
+			cvtsi2sd xmm0, [.this.fracVal]
+		\}
+		match =x86, __architecture\{
+			fild [.this.fracVal]
+			fstp [cvtBuf]
+			movq xmm0, [cvtBuf]
+		\}
 		divsd xmm0, xmm1
-		cvtsi2sd xmm1, [.this.intVal]
+		match =x64, __architecture\{
+			cvtsi2sd xmm1, [.this.intVal]
+		\}
+		match =x86, __architecture\{
+			fild [.this.intVal]
+			fstp [cvtBuf]
+			movq xmm0, [cvtBuf]
+		\}
 		addsd xmm0, xmm1
 		fild [.this.expVal]
 		call tenPow
 		fstp [ftox]
 		mulsd xmm0, [ftox]
+		cmp [.this.sign], 0
+		je @f
+			; int3
+			pcmpeqq xmm1, xmm1
+			psllq xmm1, 63
+			por xmm0, xmm1
+		@@:
 		ret
 	endp
 

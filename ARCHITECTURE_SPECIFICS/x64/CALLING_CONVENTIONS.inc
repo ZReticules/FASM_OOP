@@ -6,6 +6,11 @@ __struc_call equ @oop
 
 _oop_default fix
 
+macro static_rsp_close procname,flag,parmbytes,localbytes,reglist { 
+	size@frame = current@frame 
+	restore size@frame, current@frame, localbase@proc, regsbase@proc, parmbase@proc, framebytes@proc
+}
+
 macro proc_noprologue{
 	prologue@proc equ static_rsp_prologue
 	epilogue@proc equ static_rsp_epilogue

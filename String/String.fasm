@@ -1190,10 +1190,10 @@ proc String.streamRead c uses pbx psi pdi pbp, this, fp, delimiter:DWORD, delimi
         .read_chars:
             @call c [fgetc](pbp)
             switch eax
-                case 0xFFFF, 0x1A, [delimiter]
+                case 0xFFFFFFFF, 0x1A, [delimiter]
                     mov [saveAx], eax
                     mov edx, 0x1A
-                    cmp eax, 0xFFFF
+                    cmp eax, 0xFFFFFFFF
                     cmove eax, edx
                     cmp eax, 0x1A
                     sete al
