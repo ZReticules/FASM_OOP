@@ -227,7 +227,7 @@ macro inline@parse param@result, [args]{
 macro define@call{
 	macro @call args&\{
 		\define@call
-		local call_conv, argums, dest, matched
+		\local call_conv, argums, dest, matched
 		define argums args
 		dest equ
 		match dst == any, argums\\{
@@ -241,12 +241,10 @@ macro define@call{
 		\\}
 		match obj->proc(_argums, argums\\{
 			define matched
-			; restore call_conv
-			match conv, __obj_call\\\{
-				call_conv equ conv
-			\\\}
-			local _obj
+			restore call_conv
+			\\local _obj, _obj_addr, any1, any2
 			define _obj obj
+			define _obj_addr addr _obj
 			match any1 )->any2, (_argums\\\{
 				@call obj->proc any1)
 				@call obj->any2
@@ -255,20 +253,35 @@ macro define@call{
 				; restore argums
 				define argums
 			\\\} 
-			match _call_conv _obj_, _obj\\\{
-				define _obj _obj_
-				; call_conv equ _call_conv
+			; match _call_conv _obj_, _obj\\\{
+			; 	define _obj _obj_
+			; 	; call_conv equ _call_conv
+			; \\\}
+			match any1 [any2], _obj\\\{
+				define _obj any2
+				define _obj_addr [any2]
+				define call_conv any1
 			\\\}
-			match _obj_, _obj\\\{
-				match MethTable ObjType, _obj_\\\#.Table _obj_\\\#.Type\\\\{
-
-					match _call_conv _obj_, obj\\\\\{
-						call_conv equ _call_conv
-					rept 0\\\\\{\\\\\} match _call_conv, proc\\#.Conv\\\\#ObjType \\\\\{
-						; display \\\\\`_call_conv
+			match [any2], _obj\\\{
+				define _obj any2
+				define _obj_addr [any2]
+			\\\}
+			match _obj_|_obj_addr_|base_conv, _obj|_obj_addr|__obj_call \\\{
+				\\\local __type
+				; display \\\`_obj_, 0Ah
+				; match any, _obj_\\\#.BaseType\\\\{
+				; 	display \\\\`any, 0Ah
+				; \\\\}
+				match =_obj_\\\#.BaseType, _obj_\\\#.BaseType\\\\{
+					__type equ _obj_\\\#.Type
+				rept 0\\\\{\\\\}rept 1\\\\{
+					__type equ _obj_\\\#.BaseType
+				\\\\}
+				match MethTable ObjType, _obj_\\\#.Table __type \\\\{
+					match =call_conv|_call_conv, call_conv|proc\\#.Conv\\\\#ObjType \\\\\{
 						call_conv equ _call_conv
 					\\\\\}
-					argums equ MethTable\\\\#.\\#proc, addr _obj_
+					argums equ MethTable\\\\#.\\#proc, _obj_addr_
 					match any), _argums \\\\\{
 						argums equ argums, any
 					\\\\\}
@@ -278,7 +291,12 @@ macro define@call{
 							inline@parse argums, _argums_
 						\\\\\\}
 						macro call arg1\\\\\\{
-							mov pax, [_obj_\\\#.VTable]
+							match [any1], _obj_addr\\\\\\\{
+								mov pax, [_obj_]
+								mov pax, [pax + ObjType\\\\#.VTable]
+							rept 0\\\\\\\{\\\\\\\}rept 1\\\\\\\{
+								mov pax, [_obj + ObjType\\\\#.VTable]
+							\\\\\\\}
 							call [pax + MethTable\\\\#.\\\\\#proc-MethTable]
 						\\\\\\}
 						_call_conv\\\\\#call _argums_
@@ -296,7 +314,68 @@ macro define@call{
 				\\\\}
 			\\\}
 		\\}
-		match _Struct::proc(_argums, argums\\{
+		match _Struct::>proc(_argums, argums\\{
+			define matched
+			; restore call_conv
+			\\local __Struct
+			define __Struct _Struct
+			match _call_conv _Struct_, _Struct\\\{
+				define __Struct _Struct_
+				call_conv equ _call_conv
+			rept 0\\\{\\\} match _call_conv, proc\\#.Conv\\#_Struct \\\{
+				call_conv equ _call_conv
+			\\\}
+			match _Struct_, __Struct\\\{
+				argums equ _Struct_\\\#.Table\\\#.\\#proc
+				; match =virtual, proc\\#.Type\\\#_Struct_\\\\{
+				; 	argums equ call_conv pointer[argums]
+				; \\\\}
+				match any), _argums \\\\{
+					argums equ argums, any
+				\\\\}
+				; local time@argums
+				match =virtual _call_conv _argums_, proc\\#.Type\\\#_Struct_ call_conv argums\\\\{
+					\\\\local arg1, any, _obj_addr, __proc
+					match __proc=, arg1=, any, _argums_\\\\\{
+						_obj_addr equ arg1
+					rept 0 \\\\\{\\\\\}match __proc=, arg1, _argums_\\\\\{
+						_obj_addr equ arg1
+						; display arg1
+					\\\\\}
+					match =addr arg1, _obj_addr\\\\\{
+						_obj_addr equ arg1
+					\\\\\}
+					match _argums_, argums\\\\\{
+						inline@parse argums, _argums_
+					\\\\\}
+					macro call arg1\\\\\{
+						match any1], _obj_addr\\\\\\{
+							mov pax, _obj_addr
+							mov pax, [pax + _Struct_\\\#.VTable]
+						rept 0\\\\\\{\\\\\\}rept 1\\\\\\{
+							mov pax, [_obj_addr + _Struct_\\\#.VTable]
+						\\\\\\}
+						call [pax + _Struct_\\\#.Table\\\\#.\\\\\#proc-_Struct_\\\#.Table]
+					\\\\\}
+					_call_conv\\\\#call _argums_
+					purge call
+					define argums
+				\\\\}
+				match =inline _MacName _proc=,_argums_, proc\\#.Type\\\#_Struct_ proc\\#.Value\\\#_Struct_ argums\\\\{
+					inline@parse argums, _argums_
+					match __argums_, argums\\\\\{
+						_MacName __argums_
+					\\\\\}
+					restore __argscount__
+					define argums
+				\\\\}
+				match =inline _MacName _proc, proc\\#.Type\\\#_Struct_ proc\\#.Value\\\#_Struct_ argums\\\\{
+					_MacName
+					define argums
+				\\\\}
+			\\\}
+		\\}
+		match =matched [::] _Struct::proc(_argums, matched [::] argums\\{
 			define matched
 			; restore call_conv
 			local __Struct
@@ -352,6 +431,7 @@ macro define@call{
 			inline@parse argums, _argums_
 		\\}
 		match _call_conv _argums, call_conv argums\\{
+			; display \\`_call_conv
 			_call_conv\\#call _argums
 			restore __argscount__
 		\\}

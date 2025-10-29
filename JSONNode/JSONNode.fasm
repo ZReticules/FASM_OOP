@@ -25,8 +25,8 @@ struct JSONIterContext
 			escaped	rd 1
 		ends
 	ends
-	; error 	rd 1
-	end 	rptr 1
+	pUtf8Len	rptr 1
+	end 		rptr 1
 ends
 
 JSONIterNumCtxState enum \
@@ -68,12 +68,13 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 		.object,\
 		.null,\
 		.parse_string,\
-		.unknown,\
+		.integer,\
 		.unknown
 
 	.bool:
 	.number:
 	.null:
+	.integer:
 		movq [.this.value], xmm0
 		ret
 	.string:
@@ -118,112 +119,148 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 		ret
 
 	.parse_string:
-		locals 
-			s_psi rptr 1
-			ctx JSONIterContext
-		endl
-		mov [s_psi], psi
-		movptr psi, xmm0
-		movzx eax, byte[psi]
-		switch eax
-			case 'n'
-				mov [.this.jType], JSONTypes.null
-				mov [ctx.cmpstr], .null_c
-				@call c IterateUtf8(psi, -1, .utf8_callback_bool, addr ctx)
-				sub [ctx.end], psi
-				mov pax, [ctx.end]
-				jmp end_case
-			case 't', 'f'
-				mov [.this.jType], JSONTypes.bool
-				sub eax, 'f'
-				test eax, eax
-				setnz al
-				and eax, 0xFF
-				mov dword[.this.value], eax
-				mov pax, [.consts + pax * pointer.size]
-				mov [ctx.cmpstr], pax
-				@call c IterateUtf8(psi, -1, .utf8_callback_bool, addr ctx)
-				sub [ctx.end], psi
-				mov pax, [ctx.end]
-				jmp end_case
-			case +'0' ... +'9', '-'
-				mov [.this.jType], JSONTypes.number
-				mov [ctx.result.sign], 0
-				cmp eax, '-'
-				jne @f
-					mov [ctx.result.sign], 1
-					inc psi
-				@@:
-				mov [ctx.state], JSONIterNumCtxState.integer
-				pxor xmm0, xmm0
-				movq [ctx.result.intVal], xmm0
-				movq [ctx.result.fracVal], xmm0
-				movd [ctx.result.order], xmm0
-				mov [ctx.result.expVal], 0
-				mov [ctx.negExp], 0
-				@call c IterateUtf8(psi, -1, .utf8_callback_number, addr ctx)
-				cmp [ctx.negExp], 0
-				je @f
-					neg [ctx.result.expVal]
-				@@:
-				movzx pax, [ctx.result.sign]
-				sub psi, pax
-				@call ctx.result->getDouble()
-				; int3
-				movq [.this.value], xmm0
-				sub [ctx.end], psi
-				mov pax, [ctx.end]
-				; int3
-				jmp end_case
-			case +'"'
-				mov [.this.jType], JSONTypes.string
-				inc psi
-				mov [.this.lpStr], psi
-				mov [.this.isConst], 1
-				mov [ctx.escaped], 0
-				@call c IterateUtf8(psi, -1, .utf8_callback_string, addr ctx)
-				dec psi
-				sub [ctx.end], psi
-				mov pax, [ctx.end]
-				sub pax, 2
-				mov [.this.len], eax
-				add eax, 2
-				jmp end_case
-			case '['
-				mov [.this.jType], JSONTypes.array
-				mov [.this.selectedNode], NULL
-				inc psi
-				@call CNV::alloc(addr 4 + 4 + JSONNode.ARRAY_DEFAULT_SIZE * sizeof.JSONNode)
-				mov [.this.subNodes], pax
-				mov [pax + JSONFlatArray.capacity], JSONNode.ARRAY_DEFAULT_SIZE
-				mov [pax + JSONFlatArray.len], 0
-				mov [ctx.lpRoot], pbx
-				mov [ctx.state], JSONIterArrCtxState.comma
-				@call c IterateUtf8(psi, -1, .utf8_callback_array, addr ctx)
-				dec psi
-				sub [ctx.end], psi
-				mov pax, [ctx.end]
-				jmp end_case
-			case '{'
-				mov [.this.jType], JSONTypes.object
-				mov [.this.selectedNode], NULL
-				inc psi
-				@call [.this.subNodes] = CNV::alloc(sizeof.SimpleDict)
-				@call SimpleDict::make([.this.subNodes], JSONNode.ARRAY_DEFAULT_SIZE)
-				mov [ctx.lpRoot], pbx
-				mov [ctx.state], JSONIterArrCtxState.comma
-				@call c IterateUtf8(psi, -1, .utf8_callback_object, addr ctx)
+		local result_len:DWORD
 
-				dec psi
-				sub [ctx.end], psi
-				mov pax, [ctx.end]
-				jmp end_case
-			case_default
-				@call c [printf]("Unexpected character %c\n", byte[psi])
-				@call [ExitProcess](0)
-		end_switch
-		mov psi, [s_psi]
+		mov [result_len], 0
+		; int3
+		@call .this->__from_string(xmm0, addr result_len)
 		ret
+endp
+
+proc JSONNode.__from_string c uses pbx psi, this, lpString, lpLen
+	@sarg @arg3	
+	virtObj .this JSONNode at pbx from @arg1
+	@larg psi, @arg2
+	@larg pax, @arg3
+	
+	locals 
+		ctx JSONIterContext
+	endl
+	mov [ctx.pUtf8Len], pax
+	movzx eax, byte[psi]
+	switch eax
+		case 'n'
+			mov [.this.jType], JSONTypes.null
+			mov [ctx.cmpstr], .null_c
+			@call Utf8::iterate(psi, -1, .utf8_callback_null, addr ctx)
+			sub [ctx.end], psi
+			mov pax, [ctx.end]
+			jmp end_case
+		case 't', 'f'
+			mov [.this.jType], JSONTypes.bool
+			sub eax, 'f'
+			test eax, eax
+			setnz al
+			and eax, 0xFF
+			mov dword[.this.value], eax
+			mov pax, [.consts + pax * pointer.size]
+			mov [ctx.cmpstr], pax
+			@call Utf8::iterate(psi, -1, .utf8_callback_bool, addr ctx)
+			sub [ctx.end], psi
+			mov pax, [ctx.end]
+			jmp end_case
+		case +'0' ... +'9', '-'
+			mov [.this.jType], JSONTypes.number
+			mov [ctx.result.sign], 0
+			cmp eax, '-'
+			mov pdx, [lpLen]
+			jne @f
+				mov [ctx.result.sign], 1
+				inc psi
+				inc dword[pdx]
+			@@:
+			mov [ctx.state], JSONIterNumCtxState.integer
+			pxor xmm0, xmm0
+			movq [ctx.result.intVal], xmm0
+			movq [ctx.result.fracVal], xmm0
+			movd [ctx.result.order], xmm0
+			mov [ctx.result.expVal], 0
+			mov [ctx.negExp], 0
+			@call Utf8::iterate(psi, -1, .utf8_callback_number, addr ctx)
+			cmp [ctx.negExp], 0
+			je @f
+				neg [ctx.result.expVal]
+			@@:
+			movzx pax, [ctx.result.sign]
+			sub psi, pax
+			switch [ctx.state]
+				case_default
+					@call ctx.result->getDouble()
+					jmp end_case
+				case JSONIterNumCtxState.integer
+					mov [.this.jType], JSONTypes.integer
+					movq xmm0, [ctx.result.intVal]
+			end_switch
+			; int3
+			movq [.this.value], xmm0
+			sub [ctx.end], psi
+			mov pax, [ctx.end]
+			; int3
+			jmp end_case
+		case +'"'
+			mov [.this.jType], JSONTypes.string
+			mov pdx, [lpLen]
+			inc dword[pdx]
+			inc psi
+			mov [.this.lpStr], psi
+			mov [.this.isConst], 1
+			mov [ctx.escaped], 0
+			@call Utf8::iterate(psi, -1, .utf8_callback_string, addr ctx)
+			dec psi
+			sub [ctx.end], psi
+			mov pax, [ctx.end]
+			sub pax, 2
+			mov [.this.len], eax
+			@call Utf8::unEsc([.this.lpStr], [.this.lpStr], eax)
+			sub [.this.len], eax
+			add eax, [.this.len]
+			add eax, 2
+			jmp end_case
+		case '['
+			mov [.this.jType], JSONTypes.array
+			mov [.this.selectedNode], NULL
+			mov pdx, [lpLen]
+			inc dword[pdx]
+			inc psi
+			@call CNV::alloc(addr 4 + 4 + JSONNode.ARRAY_DEFAULT_SIZE * sizeof.JSONNode)
+			mov [.this.subNodes], pax
+			mov [pax + JSONFlatArray.capacity], JSONNode.ARRAY_DEFAULT_SIZE
+			mov [pax + JSONFlatArray.len], 0
+			mov [ctx.lpRoot], pbx
+			mov [ctx.state], JSONIterArrCtxState.comma
+			@call Utf8::iterate(psi, -1, .utf8_callback_array, addr ctx)
+			dec psi
+			sub [ctx.end], psi
+			mov pax, [ctx.end]
+			jmp end_case
+		case '{'
+			mov [.this.jType], JSONTypes.object
+			mov [.this.selectedNode], NULL
+			mov pdx, [lpLen]
+			inc dword[pdx]
+			inc psi
+			@call [.this.subNodes] = CNV::alloc(sizeof.SimpleDict)
+			@call SimpleDict::make([.this.subNodes], JSONNode.ARRAY_DEFAULT_SIZE)
+			mov [ctx.lpRoot], pbx
+			mov [ctx.state], JSONIterArrCtxState.comma
+			mov [ctx.keyEsc], 0
+			@call Utf8::iterate(psi, -1, .utf8_callback_object, addr ctx)
+
+			dec psi
+			sub [ctx.end], psi
+			mov pax, [ctx.end]
+			jmp end_case
+		case_default
+			local jsonExcept:JSONException
+			mov [jsonExcept.lpSmb], psi
+			mov pax, [ctx.pUtf8Len]
+			mov eax, dword[pax]
+			mov [jsonExcept.pointIndex], pax
+			@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+			; @call c [printf]("Unexpected character %c\n", byte[psi])
+			; @call [ExitProcess](0)
+	end_switch
+	ret
 
 	.consts dptr .false, .true 
 		.true 	@const db "true", 0
@@ -238,6 +275,11 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 		virtObj .ctx JSONIterContext at pcx from @arg3
 		mov [.ctx.end], pax
 
+		mov pdx, [.ctx.pUtf8Len]
+		inc dword[pdx]
+		; mov edx, dword[pdx]
+		; int3
+
 		mov pdx, [.ctx.cmpstr]
 		inc [.ctx.cmpstr]
 		movzx edx, byte[pdx]
@@ -248,14 +290,27 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 			jne .error
 		.return: ret
 		.error:
-			@call c [printf]("Unexpected character %c\n", edx)
-			@call [ExitProcess](0)
+			local jsonExcept:JSONException
+			mov [jsonExcept.lpSmb], pax
+			mov pax, [.ctx.pUtf8Len]
+			mov eax, dword[pax]
+			mov [jsonExcept.pointIndex], pax
+			@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+			; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
+			; @call [ExitProcess](0)
 	endp
 
 	proc .utf8_callback_number c, lpSmb, codepoint, lParam, lpSkipBytes
 		@larg pax, @arg1, pdx, @arg2
 		virtObj .ctx JSONIterContext at pcx from @arg3
 		mov [.ctx.end], pax
+		
+		mov pax, [.ctx.pUtf8Len]
+		inc dword[pax]
+		
+		mov pax, [.ctx.end]
+		
+		local jsonExcept:JSONException
 		switch edx
 			case +"0" ... +"9"
 				switch [.ctx.state]
@@ -307,8 +362,13 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 						mov [.ctx.state], JSONIterNumCtxState.order
 						jmp .return
 					case_default
-						@call c [printf]("Unexpected character %c\n", edx)
-						@call [ExitProcess](0)
+						mov [jsonExcept.lpSmb], pax
+						mov pax, [.ctx.pUtf8Len]
+						mov eax, dword[pax]
+						mov [jsonExcept.pointIndex], pax
+						@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+						; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
+						; @call [ExitProcess](0)
 				end_switch
 			case "e", "E"
 				switch [.ctx.state]
@@ -318,8 +378,13 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 						mov [.ctx.state], JSONIterNumCtxState.e
 						jmp .return
 					case_default
-						@call c [printf]("Unexpected character %c\n", edx)
-						@call [ExitProcess](0)
+						mov [jsonExcept.lpSmb], pax
+						mov pax, [.ctx.pUtf8Len]
+						mov eax, dword[pax]
+						mov [jsonExcept.pointIndex], pax
+						@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+						; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
+						; @call [ExitProcess](0)
 				end_switch
 			case "+", "-"
 				switch [.ctx.state]
@@ -327,18 +392,30 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 						mov [.ctx.negExp], esp
 						jmp .return
 					case_default
-						@call c [printf]("Unexpected character %c\n", edx)
-						@call [ExitProcess](0)
+						mov [jsonExcept.lpSmb], pax
+						mov pax, [.ctx.pUtf8Len]
+						mov eax, dword[pax]
+						mov [jsonExcept.pointIndex], pax
+						@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+						; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
+						; @call [ExitProcess](0)
 				end_switch
 			case_default
 				movd xmm0, [.ctx.state]
 				switch [.ctx.state]
 					case JSONIterNumCtxState.integer, JSONIterNumCtxState.fractal, JSONIterNumCtxState.exp, JSONIterNumCtxState.order
+						mov pax, [.ctx.pUtf8Len]
+						dec dword[pax]
 						xor eax, eax
 						jmp .return
 					case_default
-						@call c [printf]("Unexpected character %c\n", edx)
-						@call [ExitProcess](0)
+						mov [jsonExcept.lpSmb], pax
+						mov pax, [.ctx.pUtf8Len]
+						mov eax, dword[pax]
+						mov [jsonExcept.pointIndex], pax
+						@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+						; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
+						; @call [ExitProcess](0)
 				end_switch
 		end_switch
 		.return: ret
@@ -347,6 +424,12 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 	proc .utf8_callback_string c, lpSmb, codepoint, lParam, lpSkipBytes
 		@larg pax, @arg1
 		virtObj .ctx JSONIterContext at pcx from @arg3
+		
+		mov pcx, [.ctx.pUtf8Len]
+		inc dword[pcx]
+
+		mov pcx, @arg3
+		
 		cmp [.ctx.escaped], 0
 		je @f
 			mov [.ctx.escaped], 0
@@ -368,10 +451,15 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 
 	proc .utf8_callback_array c, lpSmb, codepoint, lParam, lpSkipBytes
 		@sarg @arg4
-
+		; int3
 		@larg pax, @arg1
 		virtObj .ctx JSONIterContext at pcx from @arg3
-		; int3
+		
+		mov pcx, [.ctx.pUtf8Len]
+		inc dword[pcx]
+		@larg pcx, @arg3
+		
+		local jsonExcept:JSONException
 		switch @arg2
 			case ']'
 				inc pax
@@ -385,11 +473,18 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 			case_default
 				cmp [.ctx.state], JSONIterArrCtxState.comma
 				je @f
-					@call c [printf]("Unexpected character %c\n", edx)
-					@call [ExitProcess](0)
+					mov [jsonExcept.lpSmb], pax
+					mov pax, [.ctx.pUtf8Len]
+					mov eax, dword[pax]
+					mov [jsonExcept.pointIndex], pax
+					@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+					; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
+					; @call [ExitProcess](0)
 				@@:
 				mov [.ctx.state], JSONIterArrCtxState.no_comma
-				@call c .new_element([.ctx.lpRoot], pax)
+				mov pdx, [.ctx.pUtf8Len]
+				dec dword[pdx]
+				@call c .new_element(addr .ctx, pax)
 				; int3
 				mov pdx, [lpSkipBytes]
 				mov pointer[pdx], pax
@@ -397,16 +492,16 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 		end_switch
 		.return: ret
 
-		proc .new_element c uses pbx psi pdi, root, lpStr
-			virtObj .root JSONNode at pbx from @arg1
+		proc .new_element c uses pbx psi pdi, ctx, lpStr
+			virtObj .ctx JSONIterContext at pbx from @arg1
+			virtObj .root JSONNode at pdi from [.ctx.lpRoot]
 			@larg psi, @arg2
 
 			local result:POINTER, new:POINTER
 
 			@call [new] = CNV::alloc(sizeof.JSONNode)
 			
-			; int3
-			@call JSONNode::make([new], JSONTypes.parse_string, qword addr psi, -1, NULL)
+			@call JSONNode::__from_string([new], psi, [.ctx.pUtf8Len])
 			mov pointer[result], pax
 			@call .root->append([new])
 			mov pax, [result]
@@ -416,9 +511,14 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 
 	proc .utf8_callback_object c, lpSmb, codepoint, lParam, lpSkipBytes
 		@sarg @arg4
-
 		@larg pax, @arg1
 		virtObj .ctx JSONIterContext at pcx from @arg3
+		
+		mov pcx, [.ctx.pUtf8Len]
+		inc dword[pcx]
+		mov pcx, @arg3
+
+		local jsonExcept:JSONException
 		cmp [.ctx.keyEsc], 0
 		je @f
 			mov [.ctx.keyEsc], 0
@@ -428,8 +528,13 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 			case '}'
 				switch [.ctx.state]
 					case_default
-						@call c [printf]("Unexpected character %c\n", edx)
-						@call [ExitProcess](0)
+						mov [jsonExcept.lpSmb], pax
+						mov pax, [.ctx.pUtf8Len]
+						mov eax, dword[pax]
+						mov [jsonExcept.pointIndex], pax
+						@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+						; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
+						; @call [ExitProcess](0)
 					case JSONIterObjCtxState.comma, JSONIterObjCtxState.no_comma
 						inc pax
 						mov [.ctx.end], pax
@@ -440,12 +545,17 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 			case ","
 				switch [.ctx.state]
 					case_default
-						@call c [printf]("Unexpected character %c\n", edx)
-						@call [ExitProcess](0)
+						mov [jsonExcept.lpSmb], pax
+						mov pax, [.ctx.pUtf8Len]
+						mov eax, dword[pax]
+						mov [jsonExcept.pointIndex], pax
+						@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+						; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
+						; @call [ExitProcess](0)
 					case JSONIterObjCtxState.no_comma
 						mov [.ctx.state], JSONIterObjCtxState.comma
 					case JSONIterObjCtxState.comma
-						; @call c [printf]("Unexpected character %c\n", edx)
+						; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
 						; @call [ExitProcess](0)
 					case JSONIterObjCtxState.keyOpened 
 						jmp .return
@@ -457,8 +567,13 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 					case JSONIterObjCtxState.keyOpened
 						jmp .return
 					case_default
-						@call c [printf]("Unexpected character %c\n", edx)
-						@call [ExitProcess](0)
+						mov [jsonExcept.lpSmb], pax
+						mov pax, [.ctx.pUtf8Len]
+						mov eax, dword[pax]
+						mov [jsonExcept.pointIndex], pax
+						@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+						; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
+						; @call [ExitProcess](0)
 				end_switch
 			case '"'
 				switch [.ctx.state]
@@ -485,15 +600,23 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 						@@:
 						jmp .return
 					case_default
-						@call c [printf]("Unexpected character %c\n", edx)
-						@call [ExitProcess](0)
+						mov [jsonExcept.lpSmb], pax
+						mov pax, [.ctx.pUtf8Len]
+						mov eax, dword[pax]
+						mov [jsonExcept.pointIndex], pax
+						; @call c [printf]("%c\n", @arg2)
+						@call [RaiseException](Exception.EXCEPTION_RETURN, 0, sizeof.JSONException shr pointer.shift, addr jsonExcept)
+						; @call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
+						; @call [ExitProcess](0)
 					case JSONIterObjCtxState.colon
 						mov [.ctx.state], JSONIterObjCtxState.no_comma
 						mov pdx, [.ctx.lpRoot]
 						mov pdx, [pdx + JSONNode.subNodes]
 						movptr xmm0, pdx
+						mov pdx, [.ctx.pUtf8Len]
+						dec dword[pdx]
 
-						@call c .new_element(xmm0, [.ctx.lpKey], [.ctx.keyLen], pax)
+						@call c .new_element(xmm0, addr .ctx, pax)
 						; int3
 						mov pdx, [lpSkipBytes]
 						mov pointer[pdx], pax
@@ -503,19 +626,23 @@ proc JSONNode.make c uses pbx, this, type, value:QWORD, len, isConst:DWORD
 		end_switch
 		.return: ret
 
-		proc .new_element c uses pbx psi pdi, lpSimpleDict, key, keyLen, lpStr
+		proc .new_element c uses pbx psi pdi, lpSimpleDict, ctx, lpStr
 			virtObj .dict SimpleDict at pbx from @arg1
-			@sarg @arg2, @arg3
-			@larg psi, @arg4
+			virtObj .ctx JSONIterContext at pdi from @arg2
+			@larg psi, @arg3
 
 			local result:POINTER, new:POINTER
 			@call [new] = CNV::alloc(sizeof.JSONNode)
 			
 			; int3
-			@call JSONNode::make([new], JSONTypes.parse_string, qword addr psi, -1, NULL)
+			@call JSONNode::__from_string([new], psi, [.ctx.pUtf8Len])
 			mov pointer[result], pax
+			lea pdx, [psi + pax]
 			; int3
-			@call .dict->set([key], [keyLen], [new], 1)
+
+			@call Utf8::unEsc([.ctx.lpKey], [.ctx.lpKey], [.ctx.keyLen])
+			sub [.ctx.keyLen], eax
+			@call .dict->set([.ctx.lpKey], [.ctx.keyLen], [new], 1)
 			mov pax, [result]
 			ret
 		endp
@@ -542,7 +669,7 @@ proc JSONNode.append c uses pbx psi, this, lpNode
 		.object,\
 		.null,\
 		.parse_string,\
-		.unknown,\
+		.integer,\
 		.unknown
 
 	.null:
@@ -550,6 +677,7 @@ proc JSONNode.append c uses pbx psi, this, lpNode
 	.string:
 	.bool:
 	.object:
+	.integer:
 		mov eax, JSONRetCodes.unusedType
 		jmp .return
 	.array:
@@ -591,45 +719,42 @@ proc JSONNode.select c uses pbx psi pdi, this, key, keyLen
 	switch [.this.jType]
 		case JSONTypes.array, JSONTypes.object
 			cmp [.this.selectedNode], NULL
-			je @f
-				mov psi, [.this.selectedNode]
-			@@:
+				cmovne psi, [.this.selectedNode]
 			jmp end_case
 		case_default
 	end_switch
 
-	movzx eax, [.selected.jType]
-	and eax, 0x7
-	jmp [.type_handlers + pax * pointer.size]
+	mov eax, JSONRetCodes.unusedType
+	movzx ecx, [.selected.jType]
+	and ecx, 0x7
+	jmp [.type_handlers + pcx * pointer.size]
 	.return: ret
 
-	.type_handlers dptr .number,\ 
-		.string,\ 
-		.bool,\ 
+	.type_handlers dptr .return,\ 
+		.return,\ 
+		.return,\ 
 		.array,\ 
 		.object,\
-		.null,\
+		.return,\
 		.parse_string,\
-		.unknown,\
+		.return,\
 		.unknown
 
-	.number:
-	.string:
-	.bool:
-	.null:
-		mov eax, JSONRetCodes.unusedType
-		jmp .return
 	.array:
 		@larg pdx, @arg2
 		; array select
 		mov pax, [.selected.subNodes]
-		mov pdx, [pax + JSONFlatArray.data + pdx * pointer.size]
+		mov pcx, JSONRetCodes.invalidKey
+		cmp edx, [pax + JSONFlatArray.len]
+			cmovae pax, pcx
+			jae .return
+		mov pdx, pointer[pax + JSONFlatArray.data + pdx * pointer.size]
 		mov [.this.selectedNode], pdx
 		mov pax, JSONRetCodes.success
 		jmp .return
 	.object:
 		virtObj .dict SimpleDict at pdi from [.selected.subNodes]
-		@call .dict->get(@arg2, @arg3)
+		@call .dict->get(@arg2, @arg3, NULL)
 		mov pdx, pax
 		mov pax, JSONRetCodes.invalidKey
 		cmp pdx, NULL
@@ -641,6 +766,36 @@ proc JSONNode.select c uses pbx psi pdi, this, key, keyLen
 	.unknown:
 		mov eax, JSONRetCodes.unknownType
 		jmp .return
+endp
+
+proc JSONNode.get c uses psi pdi, this, key, keyLen, notFoundVal
+	virtObj .this JSONNode at pcx from @arg1
+	virtObj .selected JSONNode at psi from addr .this
+	@sarg @arg2, @arg3
+	; @larg pdi, @arg2
+	; int3
+	switch [.this.jType]
+		case JSONTypes.array
+			cmp [.this.selectedNode], NULL
+				cmovne psi, [.this.selectedNode]
+			@larg pdx, @arg2
+			; array select
+			mov pax, [.selected.subNodes]
+			cmp edx, [pax + JSONFlatArray.len]
+				cmovae pax, @arg4
+				jae .return
+			mov pax, pointer[pax + JSONFlatArray.data + pdx * pointer.size]
+			ret
+		case JSONTypes.object
+			cmp [.this.selectedNode], NULL
+				cmovne psi, [.this.selectedNode]
+			virtObj .dict SimpleDict at pdi from [.selected.subNodes]
+			@call .dict->get(@arg2, @arg3, @arg4)
+			ret
+		case_default
+			@larg pax, @arg4
+			.return: ret
+	end_switch
 endp
 
 proc JSONNode.reset c, this
@@ -657,7 +812,7 @@ proc JSONNode.forEach c uses pbx psi pdi pbp, this, func, lParam
 		case JSONTypes.array, JSONTypes.object
 			cmp [.this.selectedNode], NULL
 			je @f
-				mov psi, [.this.selectedNode]
+				mov pbx, [.this.selectedNode]
 			@@:
 			jmp end_case
 		case_default
@@ -676,7 +831,7 @@ proc JSONNode.forEach c uses pbx psi pdi pbp, this, func, lParam
 			lea psi, [.list.data]
 			xor pbp, pbp
 			@@:
-				@call [func](pointer[psi], ebp, NULL, [lParam])
+				@call c [func](pointer[psi], ebp, NULL, [lParam])
 				test eax, eax
 					jz .break
 				inc pbp
@@ -692,7 +847,7 @@ proc JSONNode.forEach c uses pbx psi pdi pbp, this, func, lParam
 			mov eax, JSONRetCodes.success
 			jmp .return
 
-		case JSONTypes.string, JSONTypes.bool, JSONTypes.bool
+		case JSONTypes.string, JSONTypes.bool, JSONTypes.bool, JSONTypes.integer
 			mov eax, JSONRetCodes.unusedType
 	end_switch
 	.return: ret
@@ -727,6 +882,9 @@ proc JSONNode.getLen c, this
 			virtObj .dict SimpleDict at pax from [.selected.subNodes]
 			mov eax, [.dict.len]
 			ret
+		case JSONTypes.string
+			mov eax, [.selected.len]
+			ret
 		case_default
 			mov pax, -1
 			ret
@@ -734,54 +892,42 @@ proc JSONNode.getLen c, this
 endp
 
 ; macro JSONNode.unmake{}
-proc JSONNode.unmake c, this
-	virtObj .this JSONNode at pcx from @arg1
+proc JSONNode.unmake c uses pbx, this
+	virtObj .this JSONNode at pbx from @arg1
 	
+					; int3
+					; movzx eax, [.this.jType]
 	switch [.this.jType]
 		case JSONTypes.string
 			cmp [.this.isConst], 0
-			je @f
+			jne @f
 				@call CNV::free([.this.lpStr])
 			@@:
 		case_default ; JSONTypes.bool, JSONTypes.null, JSONTypes.number
 			ret
 		case JSONTypes.object, JSONTypes.array
 	end_switch
+	; int3
 	
-	@call jnode->forEach(.json_callback, NULL)
+	@call .this->reset()->forEach(.json_callback, NULL)
+
+	switch [.this.jType]
+		case JSONTypes.object
+			@call SimpleDict::unmake([.this.subNodes])
+		case_default ; JSONTypes.array
+			@call CNV::free([.this.subNodes])
+	end_switch
 	ret
 
-	proc .json_callback c uses pbx, node, key, keyLen, lParam
-		@sarg @arg1, @arg2, @arg3, @arg4
-		mov ebx, dword[lParam]
-		test ebx, ebx
-
-		virtObj .node JSONNode at pbx from [node]
+	proc .json_callback c, node, key, keyLen, lParam
+		@sarg @arg1
+		; int3
+		virtObj .node JSONNode at pcx from @arg1
 		
-		xor eax, eax
-		switch [.node.jType]
-			case JSONTypes.string
-				cmp [.this.isConst], 0
-				je @f
-					@call CNV::free([.this.lpStr])
-				@@:
-			case_default ; JSONTypes.bool, JSONTypes.null, JSONTypes.number
-				jmp .return
-			case JSONTypes.object, JSONTypes.array
-		end_switch
-		
-		@call .node->forEach(JSONNode.unmake.json_callback, pax)
-		
-		switch [.node.jType]
-			case JSONTypes.object
-				@call SimpleDict::unmake([.this.subNodes])
-				jmp .return
-			case JSONTypes.array
-				@call CNV::free([.this.subNodes])
-		end_switch
+		@call .node->unmake()
 		
 		.return: 
-			@call CNV::free(addr .this)
+			@call CNV::free([node])
 			mov eax, esp
 			ret
 	endp

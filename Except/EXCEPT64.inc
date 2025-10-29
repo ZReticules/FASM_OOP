@@ -182,3 +182,29 @@ struct CONTEXT64
 	LastExceptToRip   dq  0
 	LastExceptFromRip dq  0
 ends
+
+macro Except.save_context {
+	local _buf
+	define Except@last_context _buf
+	procbuf_alloc _buf, 7 * 8
+	mov qword[_buf], rsi
+	mov qword[_buf + 8], rdi
+	mov qword[_buf + 16], rbx
+	mov qword[_buf + 24], r12
+	mov qword[_buf + 32], r13
+	mov qword[_buf + 40], r14
+	mov qword[_buf + 48], r15
+}
+
+macro Except.load_context {
+	match _buf, Except@last_context\{
+		mov rsi, qword[_buf]
+		mov rdi, qword[_buf + 8]
+		mov rbx, qword[_buf + 16]
+		mov r12, qword[_buf + 24]
+		mov r13, qword[_buf + 32]
+		mov r14, qword[_buf + 40]
+		mov r15, qword[_buf + 48]
+		procbuf_free _buf
+	\}
+}

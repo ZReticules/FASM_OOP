@@ -107,9 +107,9 @@
 								_ins ..ins_label
 							\\\}
 					..next:
-				rept 0\\{\\}rept 1\\{
+				rept 0\\{\\} rept 1\\{
 
-					\\local matched
+					\\local matched, any, _value
 					match any _value, values\\\{
 						match =t, any\\\\{
 							define matched
@@ -127,9 +127,16 @@
 								j\\\\\#flag ..ins_label
 							\\\\\}
 						\\\\}
+						\\\local any1, any2
+						match any1 =any any2, [::] -[(+ [::]\\\\{
+						rept 0\\\\{\\\\} match =matched, matched \\\\{
+							define matched
+							cmp variable, _value
+							j\\\#any ..ins_label
+						\\\\}
 					\\\}
 					match =matched, matched\\\{
-					cmp variable, values
+						cmp variable, values
 						je ..ins_label
 					\\\}
 				\\}
@@ -222,6 +229,7 @@
 
 
 ; with
+	; define debug@with
 	macro with [args]{
 		common
 		local with_name, ..break_with
@@ -230,7 +238,7 @@
 		break_with equ ..break_with
 		forward
 		match name:Type any, args [:|:]\{
-			width_name#dels equ name
+			with_name#dels equ name
 
 			local matched
 			match < _definits >(initvals [:|:], any\\{
@@ -289,6 +297,7 @@
 		; purge ret
 		match last_with, last@width\{
 			irpv del, last_with\#dels\\{
+				\\reverse
 				@call del->unmake()	
 			\\}
 		\}
@@ -327,7 +336,7 @@
 ; zero-initialize allocation, initializator in Low-level
 	bss_count = 0
 
-	macro @init_bss{
+	macro @init_bss {
 		match =@init_bss, @init_bss\{
 			bss@count = bss_count
 			align 64

@@ -73,7 +73,7 @@ macro make@atr name, atrname, atrtype, atrval{
 	name#.#atrname atrtype atrval
 }
 
-macro ends@handler{
+macro ends@handler {
 	match name, struct@lastname\{
 
 		irpv _name, @__specialfields\\{
@@ -88,7 +88,7 @@ macro ends@handler{
 
 ; define ends@handler ends@default
 
-macro ends{
+macro ends {
 	local any
 	match any, sub@struct\{
 		ends

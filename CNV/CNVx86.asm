@@ -94,7 +94,6 @@ endp
 
 proc CNV.ui64div c uses pbx, result:POINTER, dividend:QWORD, divisor:QWORD
 	virtObj .result:arg Divq at pbx from @arg1
-	; int3
 	@call CNV::fill(addr .result, addr dividend, 16)
 	bsr edx, dword[divisor + 4]
 		jz .QD_div

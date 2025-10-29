@@ -227,19 +227,21 @@ match =x64, __architecture{
 match =x86, __architecture{
 	proc Random64.__next c, this, min:QWORD, max:QWORD
 		virtObj .this:arg Random64 from [this]
-		movq xmm0, [.this.__seed]
-		movq xmm1, xmm0
-		psllq xmm0, 7
-		pxor xmm0, xmm1
-		movq xmm1, xmm0
-		psrlq xmm0, 9
-		pxor xmm0, xmm1
-		movq [.this.__seed], xmm0
-		movq xmm1, [max]
-		movq xmm2, [min]
-		psubq xmm1, xmm2
-		@call c CNV.ui64div(qword xmm0, qword xmm1)
-		movq xmm1, [eax + Divq.reminder]
+
+		\local result:Divq 
+		movq xmm1, [.this.__seed]
+		movq xmm2, xmm1
+		psllq xmm1, 7
+		pxor xmm1, xmm2
+		movq xmm2, xmm1
+		psrlq xmm1, 9
+		pxor xmm1, xmm2
+		movq [.this.__seed], xmm1
+		movq xmm2, [max]
+		movq xmm3, [min]
+		psubq xmm2, xmm3
+		@call c CNV.ui64div(addr result, qword xmm1, qword xmm2)
+		movq xmm1, [result.reminder]
 		movq xmm0, [min]
 		paddq xmm1, xmm0
 		movd eax, xmm1

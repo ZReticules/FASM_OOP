@@ -824,6 +824,9 @@ proc WString.streamRead c uses pbx psi pdi pbp, this, fp, delimiter:DWORD, delim
         bswap edx
         cmp esi, edx
         jl .read_chars
+        shr esi, 1
+        mov [.this.len], esi
+        shl esi, 1
         @call .this->realloc(addr pdx + .len_buf)
     jmp .string_realloc
 
@@ -855,91 +858,12 @@ proc .newLineCallback c string, lParam
     ret
 endp
 
-proc WString.parseInt c uses pbx psi pdi pbp, this, radix
-    @sarg @arg1, @arg2
-    @larg pax, @arg2
-
-    local maxDigit:DWORD, isNeg:DWORD
-    lea edx, [eax + "0"]
-    lea ecx, [eax + "A" - 10]
-    cmp edx, "9" + 1
-        cmova edx, ecx
-    mov [maxDigit], edx
-
-    mov pbp, .mul
-    mov edx, eax
-    dec edx
-    test eax, edx
-    jnz .no_power_two
-        mov pbp, .shift
-        bsr pax, [radix]
-    .no_power_two:
-    mov [radix], pax
-
-    @call WString::getLpWChars([this])
-    mov pbx, pax
-    mov pcx, [radix]
-    mov edx, 2
-    xor esi, esi
-    cmp word[pbx], "-"
-        cmove esi, edx
-    mov [isNeg], esi
-    add pbx, psi
-    
-    xor eax, eax
-    xor edx, edx
-
-    movzx edi, word[pbx]
-    switch edi
-        case u "9" ... "A"
-        case_default
-            ; mov pcx, pax
-            ; neg pcx
-            cmp [isNeg], 0
-                je .return
-            match =x64, __architecture{
-                neg pax                    
-            }
-            match =x86, __architecture{
-                movd xmm0, eax
-                movd xmm1, edx
-                psllq xmm1, 32
-                paddq xmm0, xmm1
-                pcmpeqq xmm1, xmm1      ; xmm1 = -1
-                pxor xmm0, xmm1
-                psubq xmm0, xmm1
-                movd eax, xmm0
-                psrlq xmm0, 32
-                movd edx, xmm0
-            }
-            .return: ret
-        case u +"a" ... +"f"
-            and edi, 0DFh
-            jmp start_case
-        case u +"0" ... [maxDigit]
-            jmp pbp
-            .after_digit:
-            lea esi, [edi - "A" + 10]
-            sub edi, "0"
-            cmp edi, 9
-                cmova edi, esi
-            add pax, pdi
-            adc edx, 0
-            add pbx, 2
-            movzx edi, word[pbx]
-            jmp start_case
-    end_switch
-
-    .mul:
-        xchg ecx, edx
-        @call edx:eax = CNV::ui64mul(ecx:eax, 0:edx)
-        mov ecx, dword[radix]
-        jmp .after_digit
-
-    .shift:
-        shld edx, eax, cl
-        shl eax, cl
-        jmp .after_digit
+proc WString.parseInt c uses pbx, this, radix
+    @sarg @arg2
+    virtObj .this WString at pbx from @arg1
+    @call .this->getLpWChars()
+    @call CNV::wstrToI64(pax, [.this.len], 10)
+    ret
 endp
 
 proc WString.cmpWChars c uses psi pdi, this, lpWChars, wCount
@@ -1022,6 +946,129 @@ proc WString.findWChar c uses pdi, this, startIndex, wVal
     cmp word[pdi], 0
         cmovne eax, edx
     ret
+endp
+
+proc WString.findWChars c uses pdi psi pbx, this, pWChars, len:DWORD
+    @sarg @arg2, @arg3
+
+    virtObj .this WString at pbx from @arg1
+    
+    cmp @arg3, -1
+    jne @f
+        @call [len] = CNV::wstrlen(@arg2, STRLEN_NO_SAVE)
+    @@:
+
+    local lenNow:DWORD, pSrc:POINTER
+    mov pax, -1
+    mov edx, [.this.len]
+    cmp edx, [len]
+        jb .return
+
+    mov [lenNow], edx
+    @call .this->getLpWChars()
+    mov [pSrc], pax
+    mov psi, pax
+    mov ecx, [len]
+    mov pdi, [pWChars]
+    @block
+        repe cmpsw
+            je .found
+
+        add [pSrc], 2
+        dec [lenNow]
+        mov psi, [pSrc]
+        mov pdi, [pWChars]
+        mov ecx, [len]
+    cmp ecx, [lenNow]
+    @endb jbe @sb
+    mov pax, -1
+    .return: ret
+
+    .found:
+        @call .this->getLpWChars()
+        sub psi, pax
+        shr psi, 1
+        mov pax, psi
+        sub eax, [len]
+        ret
+endp
+
+proc WString.replaceWChars c uses pbx psi pdi, this, chgIndex:DWORD, chgLen:DWORD, rWChars, rLen:DWORD
+    @sarg @arg2, @arg3, @arg4
+
+    virtObj .this WString at pbx from @arg1
+
+    cmp [rLen], -1
+    jne @f
+        mov [rLen], 0
+        cmp @arg4, NULL
+            je @f
+        @call [rLen] = CNV::wstrlen(@arg4)
+    @@:
+    ; @call 
+    mov eax, [.this.len]
+    sub eax, [chgLen]
+    add eax, [rLen]
+    ; mov [.this.len], eax
+
+    @call .this->realloc(eax)->getLpWChars()
+    ; int3
+
+    mov ecx, [.this.len]
+    sub ecx, [chgIndex]
+    sub ecx, [chgLen]
+    
+    @block jecxz @fb
+        mov edx, [chgLen]
+        cmp edx, [rLen]
+        switch NULL
+            case F a
+                mov esi, [chgIndex]
+                add esi, edx
+                lea psi, [pax + psi * 2]
+                
+                mov edi, [chgIndex]
+                add edi, [rLen]
+                lea pdi, [pax + pdi * 2]
+
+                rep movsw
+                jmp end_case
+            case F ne
+                mov esi, [.this.len]
+                mov edi, esi
+                lea psi, [pax + psi * 2 - 2]
+
+                sub edi, edx
+                add edi, [rLen]
+                lea pdi, [pax + pdi * 2 - 2]
+
+                ; int3
+
+                std
+                rep movsw
+                cld
+        end_switch
+    @endb
+
+    mov edx, [.this.len]
+    sub edx, [chgLen]
+    add edx, [rLen]
+    mov [.this.len], edx
+    mov word[pax + pdx * 2], 0
+
+    cmp [rLen], 0
+        je .return
+    
+    mov edi, [chgIndex]
+    lea pdi, [pax + pdi * 2]
+
+    mov psi, [rWChars]
+    mov ecx, [rLen]
+
+    rep movsw
+    @call .this->getLpWChars()
+
+    .return: ret
 endp
 
 proc_resprologue

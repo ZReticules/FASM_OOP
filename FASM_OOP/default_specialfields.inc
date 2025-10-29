@@ -123,11 +123,11 @@ macro specialfields_ends_default name{
 	struc name args&\{
 		\common
 		.Table equ name\#\\.Table				;прикрепляем таблицу статически
-		.Lp equ .								;каждому обьекту создаем точку начала
-		match =1, name#@Virtual \\{					;проверяем, нужно ли создать VTable для константы
-			restore .Lp
-			.Lp equ .VTable
-		\\}
+		; .Lp equ .								;каждому обьекту создаем точку начала
+		; match =1, name#@Virtual \\{					;проверяем, нужно ли создать VTable для константы
+		; 	restore .Lp
+		; 	.Lp equ .VTable
+		; \\}
         match , @struct \\{ 
             define field@struct .,name,<args> 
         \\}
@@ -165,6 +165,36 @@ macro specialfields_ends_default name{
 				\\\\}
 			\\\}
         \\}
+	\}
+	if defined name#.VTable
+		P_#name.VTable = name#.VTable
+	end if
+	struc P_#name args&\{
+        
+        match |pname, @struct|P_#name \\{ 
+            define field@struct .,pname,<args> 
+        rept 0\\{\\}rept 1\\{
+			match , args\\\{
+				. dptr ?
+			rept 0\\\{\\\} rept 1 \\\{
+				. dptr args
+			\\\}
+			.Table equ name\#\\.Table
+			.Type equ P_#name
+			.BaseType equ name
+			match any, P_#\name\\\{
+				.TypeName equ \\\`any
+			\\\}
+			.size = pointer.size
+    	\\}
+	\}
+	sizeof.P_#name = pointer.size
+	macro P_#name args&\{
+		match , args\\{
+			dptr ?
+		rept 0\\{\\} rept 1 \\{
+			dptr args
+		\\}
 	\}
 }
 

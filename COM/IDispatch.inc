@@ -1,6 +1,8 @@
 @module IDispatch
 	include "COM.inc"
 
+	DISP_E_PARAMNOTFOUND = -2147352572
+
 	struct IDispatch IUnknown
 	    GetTypeInfoCount	dm ?:virtual/std
 	    GetTypeInfo     	dm ?:virtual/std

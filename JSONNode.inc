@@ -1,7 +1,8 @@
 @module JSONNode
 	include "ParsedDouble.inc"
 	include "SimpleDict.inc"
-	include "IterateUtf8.inc"
+	include "Utf8.inc"
+	include "Except.inc"
 
 	JSONTypes enum \
 		number,\
@@ -10,7 +11,8 @@
 		array,\
 		object,\
 		null,\
-		parse_string
+		parse_string,\
+		integer
 
 	struct JSONNode_unaligned
 		union
@@ -46,9 +48,18 @@
 		reset 	dm this
 		append 	dm this
 		forEach dm this
+		get  	dm this
 		getLen 	dm this
 
 		unmake 	dm this
+		
+
+		__from_string dm this
+	ends
+
+	struct JSONException
+		lpSmb		dptr ?
+		pointIndex	dptr ?
 	ends
 
 	; %display_num sizeof.JSONNode, 10
@@ -58,7 +69,8 @@
 		success,\
 		unusedType,\
 		unknownType,\
-		invalidKey
+		invalidKey,\
+		failed
 
 	include "JSONNode\JSONNode.fasm"
 @endm

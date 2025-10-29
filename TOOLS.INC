@@ -220,6 +220,7 @@ macro locals {
 	; 	end if
 	; \}
 }
+
 macro endl { 
 	purge label, align
   	restruc db,du,dw,dp,dd,dt,dq
@@ -227,17 +228,30 @@ macro endl {
   	; current = $-(localbase@proc)
   	end virtual 
 }
+
+macro procbuf_alloc dest, size{
+	dest#@_size equ size
+	local ..buf
+	..buf = proc_buf@index
+	dest equ proc_buf@space + ..buf
+	proc_buf@index = proc_buf@index + size
+	if proc_buf@index > proc_buf@counter
+		proc_buf@counter = proc_buf@index
+	end if
+}
+
+macro procbuf_free dest{
+	proc_buf@index = proc_buf@index - dest#@_size
+	restore dest, dest#@_size
+}
+
 macro define@proc name,statement{ 
-	local params,flag,regs,parmbytes,localbytes,current, va_list, va_list_counter, va_list_count
+	local params,flag,regs,parmbytes,localbytes,current
    	local args, reglist, prologue
 
 	proc@regs equ regs
 	proc@localbytes equ localbytes
 	make@proc_label name
-
-   	va_list_counter = 0
-   	va_list@counter equ va_list_counter
-   	va_list@count equ va_list_count
 
    	local all_vars
    	all@vars equ all_vars
@@ -272,9 +286,9 @@ macro define@proc name,statement{
 	match =regs, regs \{ regs equ \}
 	match prologue:reglist, prologue@proc:<regs> \{ prologue name,flag,parmbytes,localbytes,reglist \}
 	virtual at parmbase@proc
-	match =,args, params \{ defargs@proc args \}
-	match =args@proc args, args@proc params \{ defargs@proc args \}
-	parmbytes = $-(parmbase@proc)
+		match =,args, params \{ defargs@proc args \}
+		match =args@proc args, args@proc params \{ defargs@proc args \}
+		parmbytes = $-(parmbase@proc)
 	end virtual
 	name # % = parmbytes/pointer.size
 	; all@vars equ
@@ -284,6 +298,26 @@ macro define@proc name,statement{
 	virtual at localbase@proc
 		..locals::
 	end virtual
+
+	local va_list, va_list_counter, va_list_count
+   	va_list_counter = 0
+   	va_list@counter equ va_list_counter
+   	va_list@count equ va_list_count
+
+   	local buf_space, buf_size, buf_counter, buf_index
+   	buf_counter = 0
+   	buf_index = 0
+   	proc_buf@counter equ buf_counter
+   	proc_buf@size equ buf_size
+   	proc_buf@index equ buf_index
+
+	locals 
+		va_list rb va_list_count
+   		buf_space rb buf_size
+   	endl
+
+   	proc_buf@space equ buf_space
+	va@list equ va_list
 
 	macro ret operand\{ 
 		match any, operand \\{ 
@@ -295,16 +329,12 @@ macro define@proc name,statement{
 	  		\\\}
   		\\} 
   	\}
-	locals 
-		va_list rb va_list_count
-	endl
 	; match all,all@vars \{
 	; 	; \reverse 
 	; 	display \`all, 0Ah
 	; 	; restore all
 	; 	; restore all@vars 
 	; \}
-	va@list equ va_list
 	; macro proc args& \{
 	; 	\local name, any
 	; 	match name any, args [::]\\{
@@ -322,6 +352,10 @@ macro define@proc name,statement{
 macro endp {
 	va_list@count = va_list@counter
 	restore va@list, va_list@counter, va_list@count
+
+	proc_buf@size = proc_buf@counter
+	restore proc_buf@space, proc_buf@counter, proc_buf@size, proc_buf@index
+ 	
  	purge ret
  	; purge locals,endl
 	finish@proc

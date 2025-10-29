@@ -44,8 +44,7 @@ proc SimpleDict.set c uses pbx pbp psi pdi, this, lpKey, keyLen:DWORD, lpVal, is
 	@call c MurmurHash3([lpKey], [keyLen], 0)
 	; xmm0 - hash
 	movd xmm0, eax
-	xor edx, edx
-
+	; xor edx, edx
 	mov ecx, [.this.__size]
 	dec ecx
 	and eax, ecx
@@ -56,7 +55,9 @@ proc SimpleDict.set c uses pbx pbp psi pdi, this, lpKey, keyLen:DWORD, lpVal, is
 
 	mov pcx, [.this.lpItems]
 
-	virtObj .item SimpleDictItem at pbp from addr pcx + pdx
+	virtObj .item SimpleDictItem at pbp from addr pcx + pax
+	; mov pdx, [lpKey]
+	; int3
 
 	switch [.item.lpKey]
 		case NULL
@@ -79,6 +80,7 @@ proc SimpleDict.set c uses pbx pbp psi pdi, this, lpKey, keyLen:DWORD, lpVal, is
 
 			@call [.item.lpKey] = CNV::alloc([keyLen])
 			@call CNV::fill([.item.lpKey], [lpKey], [keyLen])
+			xor pax, pax
 
 			jmp end_case
 		case_default
@@ -87,6 +89,7 @@ proc SimpleDict.set c uses pbx pbp psi pdi, this, lpKey, keyLen:DWORD, lpVal, is
 			local counter:DWORD, firstZero: dptr NULL
 
 			mov eax, [.this.__size]
+			inc eax
 			mov [counter], eax
 
 			; xmm2 - lpKey
@@ -222,7 +225,6 @@ proc SimpleDict.__findItem c uses pbx pbp psi pdi, this, lpKey, keyLen:DWORD
 	@call c MurmurHash3([lpKey], [keyLen], 0)
 	; xmm0 - hash
 	movd xmm0, eax
-	; xor edx, edx
 	mov edx, [.this.__size]
 	dec edx
 	and eax, edx
@@ -232,6 +234,7 @@ proc SimpleDict.__findItem c uses pbx pbp psi pdi, this, lpKey, keyLen:DWORD
 	movd xmm1, eax
 	
 	mov eax, [.this.__size]
+	inc eax
 	mov [counter], eax
 
 	; xmm2 - lpKey
@@ -266,6 +269,8 @@ proc SimpleDict.__findItem c uses pbx pbp psi pdi, this, lpKey, keyLen:DWORD
 		virtObj .item SimpleDictItem at pbp from addr pdx + pcx
 		
 		movd edx, xmm0
+		mov esi, [.item.hash]
+		mov psi, [.item.lpKey]
 		cmp edx, [.item.hash]
 			jne @sb
 

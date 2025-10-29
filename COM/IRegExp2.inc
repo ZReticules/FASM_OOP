@@ -31,12 +31,19 @@
 
 	match =x86, __architecture\{
 		macro IRegExp2.replace this, srcSysString, vtType, replVal, lpResult\\{
-			@call .re->Replace(srcSysString, vtType, 0, replVal, 0, lpResult)
+			; \\local ..this, _this
+			; inlineObj _this, this, pcx
+			; virtObj ..this IRegExp2 at _this
+			; @call ..this->Replace(srcSysString, vtType, 0, replVal, 0, lpResult)
+			@call IRegExp2::>Replace(this, srcSysString, vtType, 0, replVal, 0, lpResult)
 		\\}
 	\}
 	match =x64, __architecture\{
 		macro IRegExp2.replace this, srcSysString, vtType, replVal, lpResult\\{
-			@call .re->Replace(srcSysString, <va_list vtType, replVal>, lpResult)
+			; \\local ..this, _this
+			; inlineObj _this, this, pcx
+			; virtObj ..this IRegExp2 at _this
+			@call IRegExp2::>Replace(this, srcSysString, <va_list vtType, replVal>, lpResult)
 		\\}
 	\}
 

@@ -1,11 +1,15 @@
 if used Exception.used
 	Exception.used = 0
-	VEHStorage dptr ?
+	VEHStorage 	rptr 1
+	VEHCounter 	rptr 1
+	VEH_h		rptr 1
 end if
 
 macro MakeVEHStorage{
 	if used Exception.used
 		@call [VEHStorage] = [TlsAlloc]()
+		@call [VEHCounter] = [TlsAlloc]()
+		@call [VEH_h] = [TlsAlloc]()
 	end if
 	; @call CNV::alloc(8 + sizeof.ExceptionSaveStruct * 2)
 	; mov dword[pax], sizeof.ExceptionSaveStruct * 2
@@ -16,6 +20,8 @@ macro MakeVEHStorage{
 macro UnmakeVEHStorage{
 	if used Exception.used
 		@call [TlsFree]([VEHStorage])
+		@call [TlsFree]([VEHCounter])
+		@call [TlsFree]([VEH_h])
 	end if
 }
 
@@ -45,10 +51,16 @@ proc AllocVEHStack, handle, reason, reserved
 			mov dword[pax], sizeof.ExceptionSaveStruct * 2
 			mov dword[pax + 4], 0
 			@call [TlsSetValue]([VEHStorage], pax)
+			@call [TlsSetValue]([VEHCounter], NULL)
+			@call [TlsSetValue]([VEH_h], NULL)
 			jmp end_case
 		case TLS_THREAD_DETACH, TLS_PROCESS_DETACH
 			@call [TlsGetValue]([VEHStorage])
 			@call CNV::free(pax)
+			@call [TlsGetValue]([VEH_h])
+			test pax, pax
+				jz end_case
+			@call [RemoveVectoredExceptionHandler](pax)
 	end_switch
 	ret
 endp
@@ -136,6 +148,31 @@ proc Except.SaveStack uses pdi, lpHandler, savedPbp, savedPsp
 	mov pointer[pdi + 8 + pax + ExceptionSaveStruct.handler], pdx
 	add dword[pdi + 4], sizeof.ExceptionSaveStruct
 	ret
+endp
+
+proc Exception.__genVEH
+	local result:POINTER
+	@call [TlsGetValue]([VEHCounter])
+	test pax, pax
+	jz @f
+		local tryCntr:POINTER
+		mov [tryCntr], pax
+		@call [AddVectoredExceptionHandler](1, Except.ErrorHandler)
+		@call [TlsSetValue]([VEH_h], pax)
+		mov pax, [tryCntr]
+	@@:
+	@call [TlsSetValue]([VEHCounter], addr pax + 1)
+	@call [TlsGetValue]([VEH_h])
+	ret
+endp
+
+proc Exception.__delVEH
+	local result:POINTER
+	@call [TlsGetValue]([VEHCounter])
+	cmp pax, 1
+		jle .return
+	@call [TlsSetValue]([VEHCounter], addr pax - 1)
+	.return: ret
 endp
 
 proc_resprologue

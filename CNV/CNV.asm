@@ -541,7 +541,7 @@ macro CNV.consoleToUtf8 {
 	@call [SetConsoleOutputCP](65001)
 }
 
-macro CNV.consoleToUTF16 {
+macro CNV.consoleToUtf16 {
 	@call [SetConsoleCP](65001)
 	@call [SetConsoleOutputCP](65001)
 	@call c [fileno]([stdout])
@@ -685,6 +685,225 @@ macro CNV.uintToStr lpBuf, num, radix{
 macro CNV.uintToWStr lpBuf, num, radix{
 	@call CNV::uintToStrVarchar(lpBuf, num, radix, 2)
 }
+
+; len CAN`T be -1
+proc CNV.strVarcharToI64 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix:DWORD, charSize
+    @sarg @arg1, @arg2, @arg3, @arg4
+    @larg pax, @arg3
+
+    local maxDigit:DWORD, isNeg:DWORD
+    lea edx, [eax + "0"]
+    lea ecx, [eax + "A" - 10]
+    cmp edx, "9" + 1
+        cmova edx, ecx
+    mov [maxDigit], edx
+
+    mov pbp, .mul
+    mov edx, eax
+    dec edx
+    test eax, edx
+    jnz .no_power_two
+        mov pbp, .shift
+        bsr eax, [radix]
+    .no_power_two:
+    mov [radix], eax
+
+    mov eax, [len]
+    mov ecx, dword[charSize]
+    bsf ecx, ecx
+    shl eax, cl
+    mov pdi, [lpStr]
+    add pdi, pax
+
+    mov pbx, [lpStr]
+    mov ecx, [radix]
+    mov edx, 2
+    xor esi, esi
+    cmp word[pbx], "-"
+        cmove esi, edx
+    mov [isNeg], esi
+    add pbx, psi
+    
+    xor eax, eax
+    xor edx, edx
+
+    movzx edi, byte[pbx]
+    switch edi
+        case u "9" ... "A"
+        case_default
+        	jmp end_case
+        case u +"a" ... +"f"
+            and edi, 0DFh
+            jmp start_case
+        case u +"0" ... [maxDigit]
+            jmp pbp
+            .after_digit:
+            lea esi, [edi - "A" + 10]
+            sub edi, "0"
+            cmp edi, 9
+                cmova edi, esi
+            add eax, edi
+            adc edx, 0
+            add pbx, [charSize]
+            cmp pbx, pdi
+            	je end_case
+            movzx edi, byte[pbx]
+            jmp start_case
+    end_switch
+    ; mov pcx, pax
+    ; neg pcx
+    cmp [isNeg], 0
+        je .return
+    match =x64, __architecture{
+        neg pax                    
+    }
+    match =x86, __architecture{
+        movd xmm0, eax
+        movd xmm1, edx
+        psllq xmm1, 32
+        paddq xmm0, xmm1
+        pcmpeqq xmm1, xmm1      ; xmm1 = -1
+        pxor xmm0, xmm1
+        psubq xmm0, xmm1
+        movd eax, xmm0
+        psrlq xmm0, 32
+        movd edx, xmm0
+    }
+    .return: ret
+
+    .mul:
+        xchg ecx, edx
+        @call edx:eax = CNV::ui64mul(ecx:eax, 0:edx)
+        mov ecx, dword[radix]
+        jmp .after_digit
+
+    .shift:
+        shld edx, eax, cl
+        shl eax, cl
+        jmp .after_digit
+endp
+
+; len can be -1
+proc CNV.strToI64 c uses pbx psi pdi, lpStr, len, radix
+	@sarg @arg1, @arg2, @arg3
+	cmp @arg2, -1
+	jne @f
+		@call [len] = CNV::strlen(@arg1)
+	@@:
+	@call CNV::strVarcharToI64([lpStr], [len], [radix], 1)
+	ret
+endp
+
+; len can be -1
+proc CNV.wstrToI64 c uses pbx psi pdi, lpStr, len, radix
+	@sarg @arg1, @arg2, @arg3
+	cmp @arg2, -1
+	jne @f
+		@call [len] = CNV::wstrlen(@arg1)
+	@@:
+	@call CNV::strVarcharToI64([lpStr], [len], [radix], 2)
+	ret
+endp
+
+; len CAN`T be -1 
+proc CNV.strVarcharToI32 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix, charSize
+    @sarg @arg1, @arg2, @arg3, @arg4
+    @larg pax, @arg3
+
+    local maxDigit:DWORD, isNeg:DWORD
+    lea edx, [eax + "0"]
+    lea ecx, [eax + "A" - 10]
+    cmp edx, "9" + 1
+        cmova edx, ecx
+    mov [maxDigit], edx
+
+    mov pbp, .mul
+    mov edx, eax
+    dec edx
+    test eax, edx
+    jnz .no_power_two
+        mov pbp, .shift
+        bsr eax, [radix]
+    .no_power_two:
+    mov [radix], eax
+
+    mov eax, [len]
+    mov ecx, dword[charSize]
+    bsf ecx, ecx
+    shl eax, cl
+    mov pdi, [lpStr]
+    add pdi, pax
+
+    ; @call WString::getLpWChars([this])
+    mov pbx, [lpStr]
+    mov ecx, [radix]
+    mov edx, 2
+    xor esi, esi
+    cmp word[pbx], "-"
+        cmove esi, edx
+    mov [isNeg], esi
+    add pbx, psi
+    
+    xor eax, eax
+    xor edx, edx
+
+    movzx edi, byte[pbx]
+    switch edi
+        case u "9" ... "A"
+        case_default
+        	jmp end_case
+        case u +"a" ... +"f"
+            and edi, 0DFh
+            jmp start_case
+        case u +"0" ... [maxDigit]
+            jmp pbp
+            .after_digit:
+            lea esi, [edi - "A" + 10]
+            sub edi, "0"
+            cmp edi, 9
+                cmova edi, esi
+            add eax, edi
+            add pbx, [charSize]
+            cmp pbx, pdi
+            	je end_case
+            movzx edi, byte[pbx]
+            jmp start_case
+    end_switch
+    ; mov pcx, pax
+    ; neg pcx
+    cmp [isNeg], 0
+        je .return
+    neg eax
+    .return: ret
+
+    .mul:
+    	mul ecx
+        jmp .after_digit
+
+    .shift:
+        shl eax, cl
+        jmp .after_digit
+endp
+
+proc CNV.strToI32 c uses pbx psi pdi, lpStr, len, radix
+	@sarg @arg1, @arg2, @arg3
+	cmp @arg2, -1
+	jne @f
+		@call [len] = CNV::strlen(@arg1)
+	@@:
+	@call CNV::strVarcharToI32([lpStr], [len], [radix], 1)
+	ret
+endp
+
+proc CNV.wstrToI32 c uses pbx psi pdi, lpStr, len, radix
+	@sarg @arg1, @arg2, @arg3
+	cmp @arg2, -1
+	jne @f
+		@call [len] = CNV::wstrlen(@arg1)
+	@@:
+	@call CNV::strVarcharToI32([lpStr], [len], [radix], 2)
+	ret
+endp
 
 proc CNV.ui32sqrt c uses pbx psi pdi, num:POINTER
 	@larg pax, @arg1

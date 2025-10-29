@@ -1217,6 +1217,10 @@ proc String.streamRead c uses pbx psi pdi pbp, this, fp, delimiter:DWORD, delimi
         bswap edx
         cmp esi, edx
         jl .read_chars
+        ; @call c [puts]("1) ")
+        ; @call .this->println()
+        ; @call c [puts]("2) ")
+        mov [.this.len], esi
         @call .this->realloc(addr pdx + .len_buf)
     jmp .string_realloc
 
@@ -1376,14 +1380,14 @@ proc String.cmpWString c uses psi pdi, this, other
     ret
 endp
 
-proc WString.countChar c uses pdi, this, bVal
+proc WString.countChar c uses pdi, this, wVal
     @sarg @arg2
     virtObj .this String at pdi from @arg1
     
     @call .this->getLpChars()
     mov ecx, [.this.len]
     mov pdi, pax
-    movzx eax, word[bVal]
+    movzx eax, word[wVal]
     mov edx, -1
 
     @@:
@@ -1395,7 +1399,7 @@ proc WString.countChar c uses pdi, this, bVal
     ret
 endp
 
-proc WString.findChar c uses pdi, this, startIndex, bVal
+proc WString.findChar c uses pdi, this, startIndex, wVal
     @sarg @arg2, @arg3
     virtObj .this String at pdi from @arg1
     
@@ -1405,7 +1409,7 @@ proc WString.findChar c uses pdi, this, startIndex, bVal
     sub ecx, dword[startIndex]
     mov pdi, pax
     add pdi, [startIndex]
-    movzx eax, word[bVal]
+    movzx eax, word[wVal]
     repne scasb
     sub edx, ecx
     dec edx

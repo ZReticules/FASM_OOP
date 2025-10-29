@@ -6,7 +6,8 @@
 		TlsFree,\
 		TlsGetValue,\
 		TlsSetValue,\
-		SetThreadErrorMode
+		SetThreadErrorMode,\
+		RaiseException
 
 	EXCEPTION_MAXIMUM_PARAMETERS    =  15
 
@@ -71,22 +72,26 @@
 
 
 	struct Exception
-		getExceptionInfo dm this:inline
+		getExceptionInfo 	dm this:inline
+		__genVEH			dm this
+		__delVEH			dm this
+
+		const EXCEPTION_RETURN = EXCEPTION_USER + 0xEC0
 		rb 0
 	ends
 
 	include "Except\Except.fasm"
 
 	macro try \{
-		\local hVEH, ..catch, ..no_except, exceptionUsed
+		\local ..catch, ..no_except, exceptionUsed
 		exceptionUsed = Exception.used
 		last@catch equ ..catch
 		last@no_except equ ..no_except
-		last@hVEH equ hVEH
-		locals
-			hVEH dptr ?
-		endl
-		@call [hVEH] = [AddVectoredExceptionHandler](1, Except.ErrorHandler)
+		break_try equ ..no_except
+
+		Except.save_context
+		
+		@call Exception::__genVEH()
 		mov pax, psp
 		@call Except.SaveStack(..catch, pbp, pax)
 	\}
@@ -94,13 +99,22 @@
 	macro catch \{
 		jmp last@no_except
 		last@catch:
+		Except.load_context
+		@call [TlsGetValue]([VEHStorage])
+		sub dword[pax + 4], sizeof.ExceptionSaveStruct
+		@call Exception::__delVEH() 
 	\}
 
 	macro end_try \{
+		\local ..skip_noexcept
+		
+		jmp ..skip_noexcept
 		last@no_except:
 		@call [TlsGetValue]([VEHStorage])
 		sub dword[pax + 4], sizeof.ExceptionSaveStruct
-		@call [RemoveVectoredExceptionHandler]([last@hVEH])
-		restore last@catch, last@no_except, last@hVEH
+		@call Exception::__delVEH()
+
+		..skip_noexcept:
+		restore last@catch, last@no_except, last@hVEH, break_try
 	\}
 @endm

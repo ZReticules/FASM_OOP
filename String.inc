@@ -50,14 +50,6 @@
 	    addChar     	dm this
 	    fromInt     	dm this			;(num, radix, isSigned)
 	    addInt      	dm this
-	    slice       	dm this			;(indexFrom,indexTo) 
-	    vsprintf 		dm this			;(fstr, va_list)
-	    sprintf     	dm this			;(fstr, ...)
-	    streamRead		dm this			;(fp, delimiter, delimiter_callback, eof_callback, lParam)
-	    								;cdecl delimiter_callback(lpStrilgLine, lParam)
-	    read 			dm this			;(fstream)
-	    parseInt		dm this			;(radix) -> i64
-
 	    match =x64, __architecture\{
 	    	fromInt64 	dm String.fromInt
 	    	addInt64 	dm String.addInt
@@ -66,8 +58,16 @@
 	    	fromInt64 	dm this
 	    	addInt64 	dm this
     	\}
+	    slice       	dm this			;(indexFrom,indexTo) 
+	    vsprintf 		dm this			;(fstr, va_list)
+	    sprintf     	dm this			;(fstr, ...)
+	    streamRead		dm this			;(fp, delimiter, delimiter_callback, eof_callback, lParam)
+	    								;cdecl delimiter_callback(lpStrilgLine, lParam)
+	    read 			dm this			;(fstream)
+	    parseInt		dm this			;(radix) -> i64
 
-    	countChar  		dm this
+    	countChar  		dm this			;(wVal) -> i32
+    	findChar 		dm this			;(wVal) -> i32
 	ends
 
 	include "String\String.fasm"
@@ -110,6 +110,14 @@
 	    
 	    fromInt     	dm this			;(num, radix, isSigned)
 	    addInt      	dm this
+	    match =x64, __architecture\{
+	    	fromInt64 	dm WString.fromInt
+	    	addInt64 	dm WString.addInt
+    	\}
+	    match =x86, __architecture\{
+	    	fromInt64 	dm this
+	    	addInt64 	dm this
+    	\}
 	    
 	    slice       	dm this			;(indexFrom,indexTo) 
 	    vsprintf 		dm this			;(fstr, va_list)
@@ -120,17 +128,11 @@
 	    read 			dm this			;(fstream)
 	    parseInt		dm this			;(radix) -> i64
 
-	    match =x64, __architecture\{
-	    	fromInt64 	dm String.fromInt
-	    	addInt64 	dm String.addInt
-    	\}
-	    match =x86, __architecture\{
-	    	fromInt64 	dm this
-	    	addInt64 	dm this
-    	\}
+    	countWChar  	dm this			;(wVal) -> i32
+    	findWChar 		dm this			;(wVal) -> i32
 
-    	countWChar  	dm this
-    	findWChar 		dm this
+    	findWChars 		dm this			;(pWChars, len) -> i32
+    	replaceWChars	dm this
     ends
 
     include "String\WString.fasm"
