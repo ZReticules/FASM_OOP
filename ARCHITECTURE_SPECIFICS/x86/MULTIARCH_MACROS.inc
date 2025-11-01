@@ -19,19 +19,31 @@ macro defargs@proc [arg] {
 		\}
 		match argname:type, arg \{ 
 			current@arg equ argname
-			label ..arg type
 			argname equ ..arg
-			if qqword eq type
-				dd ?,?,?,?,?,?,?,?
-			else if dqword eq type
-				dd ?,?,?,?
-			else if tbyte eq type
-				dd ?,?,?
-			else if qword eq type | pword eq type
-				dd ?,?
+			if [type] in <[qqword], [dqword], [tbyte], [qword], [pword], [dword], [word], [byte]>
+				label ..arg type
+				if qqword eq type
+					dd ?,?,?,?,?,?,?,?
+				else if dqword eq type
+					dd ?,?,?,?
+				else if tbyte eq type
+					dd ?,?,?
+				else if qword eq type | pword eq type
+					dd ?,?
+				else
+					dd ?
+				end if 
 			else
-				dd ?
-			end if 
+				label ..arg POINTER
+				; argname equ ..arg
+				struc dptr args\\{
+					match , .\\\{
+					\\\}
+					dptr ?
+				\\}
+				argname type
+				restruc dptr
+			end if
 		\}
 		match =current@arg,current@arg\{ 
 		 	current@arg equ arg

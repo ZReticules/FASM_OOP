@@ -12,15 +12,23 @@
 	include "WINUSER\DialogForm\dialogform_specialfields.inc"
 
 	match =x64, __architecture\{
-		SetWindowPtrA fix SetWindowLongPtrA
-		GetWindowPtrA fix GetWindowLongPtrA
+		importlib user32, \
+			SetWindowPtrA="SetWindowLongPtrA",\
+			GetWindowPtrA="GetWindowLongPtrA"
+
+		; SetWindowPtrA fix SetWindowLongPtrA
+		; GetWindowPtrA fix GetWindowLongPtrA
 		base_layout_cx equ 1
 		base_layout_cy equ 12
 	\}
 
 	match =x86, __architecture\{
-		SetWindowPtrA fix SetWindowLongA
-		GetWindowPtrA fix GetWindowLongA
+		importlib user32, \
+			SetWindowPtrA="SetWindowLongA",\
+			GetWindowPtrA="GetWindowLongA"
+
+		; SetWindowPtrA fix SetWindowLongA
+		; GetWindowPtrA fix GetWindowLongA
 		base_layout_cx equ 1
 		base_layout_cy equ 12
 	\}
