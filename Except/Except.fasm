@@ -10,6 +10,12 @@ macro MakeVEHStorage{
 		@call [VEHStorage] = [TlsAlloc]()
 		@call [VEHCounter] = [TlsAlloc]()
 		@call [VEH_h] = [TlsAlloc]()
+		@call CNV::alloc(8 + sizeof.ExceptionSaveStruct * 2)
+		mov dword[pax], sizeof.ExceptionSaveStruct * 2
+		mov dword[pax + 4], 0
+		@call [TlsSetValue]([VEHStorage], pax)
+		@call [TlsSetValue]([VEHCounter], NULL)
+		@call [TlsSetValue]([VEH_h], NULL)
 	end if
 	; @call CNV::alloc(8 + sizeof.ExceptionSaveStruct * 2)
 	; mov dword[pax], sizeof.ExceptionSaveStruct * 2
@@ -47,6 +53,9 @@ proc_noprologue
 proc AllocVEHStack, handle, reason, reserved
 	switch @arg2
 		case TLS_THREAD_ATTACH, TLS_PROCESS_ATTACH
+			@call [TlsGetValue]([VEHStorage])
+			test eax, eax
+				jnz end_case
 			@call CNV::alloc(8 + sizeof.ExceptionSaveStruct * 2)
 			mov dword[pax], sizeof.ExceptionSaveStruct * 2
 			mov dword[pax + 4], 0

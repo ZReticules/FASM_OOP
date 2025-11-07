@@ -34,15 +34,7 @@ macro defargs@proc [arg] {
 					dd ?
 				end if 
 			else
-				label ..arg POINTER
-				; argname equ ..arg
-				struc dptr args\\{
-					match , .\\\{
-					\\\}
-					dptr ?
-				\\}
 				argname type
-				restruc dptr
 			end if
 		\}
 		match =current@arg,current@arg\{ 

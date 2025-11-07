@@ -15,17 +15,23 @@ macro defargs@proc [arg] {
 		\}
 		match argname:type, arg \{ 
 			current@arg equ argname
-		 	label ..arg type
-		 	argname equ ..arg
-			if qqword eq type
-				dq ?,?,?,?
-			else if dqword eq type
-				dq ?,?
-			else if tbyte eq type
-				dq ?,?
+			if type in <qqword, dqword, tbyte, qword, pword, dword, word, byte>
+				label ..arg type
+				argname equ ..arg
+				if qqword eq type
+					dd ?,?,?,?,?,?,?,?
+				else if dqword eq type
+					dd ?,?,?,?
+				else if tbyte eq type
+					dd ?,?,?
+				else if qword eq type | pword eq type
+					dd ?,?
+				else
+					dq ?
+				end if 
 			else
-				dq ?
-			end if 
+				..arg type
+			end if
 		\}
 		match =current@arg,current@arg \{ 
 			current@arg equ arg

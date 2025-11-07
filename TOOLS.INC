@@ -87,33 +87,45 @@ macro deflocal@proc name, def, val& {
 }
 
 proc@name equ 
-macro make@proc_label name{
-	local father_name
-	match father_name, proc@name \{
-		\local full_name
 
-		restore regs@proc
-		match all,args@proc \\{ restore all \\}
-		restore args@proc
-		local all_vars
-		match all_vars, all@vars\\{
-			irpv all, all_vars \\\{
-				\\\common 
-				\\\restore all
-				\\\reverse 
-				\\\restore all@vars 
-			\\\}
+
+macro clear@proc_consts{
+	match all,args@proc \{ 
+		restore all 
+	\}
+	restore args@proc
+	local all_vars
+	match all_vars, all@vars\{
+		irpv all, all_vars \\{
+			\\common 
+			\\restore all
+			\\reverse 
+			\\restore all@vars 
 		\\}
-		restore all@vars
+	\}
+	restore all@vars
+}
 
-		match full_name, father_name\#name \\{
+macro make@proc_label name{
+	local father_name, all_vars
+	match father_name, proc@name \{
+		\local full_name, all_vars
+
+		clear@proc_consts
+
+	   	all@vars equ all_vars
+		match full_name|all_vars, father_name\#name|all@vars \\{
    			if used full_name
 			
+			all_vars equ name
+			name equ full_name
 			full_name:
+
 			proc@name equ full_name
 		\\}
 	rept 0\{\} rept 1 \{
 
+	   	all@vars equ all_vars
    		if used name
 
 		proc@name equ name
@@ -141,6 +153,14 @@ macro finish@proc{
 	; \\}
 	end if 
 } 
+
+macro proc [args] { 
+	common
+	clear@proc_consts
+	match name params, args> \{ 
+		define@proc name,<params 
+	\} 
+}
 
 macro locals { 
 	virtual proc@locals
@@ -245,7 +265,7 @@ macro procbuf_free dest{
 	restore dest, dest#@_size
 }
 
-macro define@proc name,statement{ 
+macro define@proc name, statement{ 
 	local params,flag,regs,parmbytes,localbytes,current
    	local args, reglist, prologue
 
@@ -253,8 +273,6 @@ macro define@proc name,statement{
 	proc@localbytes equ localbytes
 	make@proc_label name
 
-   	local all_vars
-   	all@vars equ all_vars
 	match =stdcall args, statement \{ 
 		params equ args
 		flag = 11b 
@@ -283,6 +301,9 @@ macro define@proc name,statement{
 		regs equ reglist
 	    params equ 
     \}
+    ; match |ar, args_print|params\{
+    ; 	display statement
+	; \}
 	match =regs, regs \{ regs equ \}
 	match prologue:reglist, prologue@proc:<regs> \{ prologue name,flag,parmbytes,localbytes,reglist \}
 	virtual at parmbase@proc
@@ -359,28 +380,11 @@ macro endp {
  	purge ret
  	; purge locals,endl
 	finish@proc
+
 	restore proc@locals, proc@regs, proc@localbytes
-	; match name, proc@name\{
-	; 	display \`name, 0Ah
-	; \}
 	restore proc@name
-	; match name, proc@name\{
-	; 	display \`name, 0Ah
-	; \}
-	; purge finish@proc
 	restore regs@proc
-	match all,args@proc \{ restore all \}
-	restore args@proc
-	local all_vars
-	match all_vars, all@vars\{
-		irpv all, all_vars \\{
-			\\common 
-			\\restore all
-			\\reverse 
-			\\restore all@vars 
-		\\}
-	\}
-	restore all@vars
+	clear@proc_consts
 }
 
 include "FASM_OOP\FASM_OOP.inc"
