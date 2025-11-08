@@ -1,5 +1,12 @@
 proc_noprologue
 
+importlib kernel32, \
+	MultiByteToWideChar,\
+	WideCharToMultiByte
+
+importlib oleaut32,\
+	SysAllocString
+
 proc Utf8.toSysString c, lpChars, len
 	@sarg @arg1, @arg2
 	local lpBuf:POINTER, bufSize:DWORD, result:POINTER
