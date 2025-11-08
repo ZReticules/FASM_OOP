@@ -202,7 +202,7 @@
 	TDCBF_RETRY_BUTTON 	= 0x10
 	TDCBF_CLOSE_BUTTON 	= 0x20
 
-	include "TOOLS\Graphics\Graphics.inc"
+	include "Graphics\Graphics.inc"
 	include "WINUSER\CUSTOMDRAW.inc"
 	include "WINUSER\Winuser.fasm"
 	include "WINUSER\MsgBox.inc"
