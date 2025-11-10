@@ -127,9 +127,8 @@
 								j\\\\\#flag ..ins_label
 							\\\\\}
 						\\\\}
-						\\\local any1, any2
-						match any1 =any any2, [::] -[(+ [::]\\\\{
-						rept 0\\\\{\\\\} match =matched, matched \\\\{
+						\\\local any1, any2, any3
+						match any1 =any any2, any3 z nz e ne l le nle b be nbe g ge nge a ae nae any3\\\\{
 							define matched
 							cmp variable, _value
 							j\\\#any ..ins_label
