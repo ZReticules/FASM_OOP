@@ -248,6 +248,7 @@ macro $control _type*, [argums]{
 	_padding_right#a	equ 0
 	_padding_top#a 		equ 0
 	_padding_bottom#a 	equ 0
+	_flags#a 			equ 0
 
 	match any, last@sufx\{
 		_x_sticker#a  		equ _x_sticker\#any
@@ -319,6 +320,7 @@ macro $control _type*, [argums]{
 			_style_ex#a,\
 			ctext,\
 			<_x_sticker#a, _y_sticker#a, _cx_sticker#a, _cy_sticker#a>,\
+			_flags#a,\
 			_initvals#a
 	\}
 }

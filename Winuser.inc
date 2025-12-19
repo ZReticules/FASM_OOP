@@ -134,6 +134,7 @@
 
 	struct WND
 		msgBox 					dm this:inline
+		msgBoxW					dm this:inline
 		setTimer				dm this:inline
 		killTimer				dm this:inline
 		taskDlg 				dm this:inline

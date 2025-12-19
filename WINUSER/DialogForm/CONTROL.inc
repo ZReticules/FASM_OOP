@@ -9,16 +9,19 @@
 		ry 	db ? 
 	ends
 
+	CONTROL.UNVALIDATABLE = 1
+
 	struct DLG_CONTROL_SERVICE_DATA
 		baseRect		RECT
-		lpEvents		dptr ?
-		lpNotifications	dptr ?
-		lpHooks 		dptr ?
+		lpEvents		rptr 1
+		lpNotifications	rptr 1
+		lpHooks 		rptr 1
 		scaleMode		ScaleMode
+		flags 			rd 1
 	ends
 
 	struct CONTROL WINAPI_WINDOW
-		ID				dd ?
+		ID				rd 1
 		sData 			DLG_CONTROL_SERVICE_DATA
 		
 		hideCur 		dm this:inline

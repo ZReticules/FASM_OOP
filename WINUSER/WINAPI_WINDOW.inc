@@ -1,6 +1,8 @@
 importlib user32,\
 	GetWindowTextLengthA,\
 	GetWindowTextA,\
+	GetWindowTextLengthW,\
+	GetWindowTextW,\
 	SendMessageA,\
 	EnableWindow,\
 	ShowWindow,\
@@ -21,6 +23,8 @@ struct WINAPI_WINDOW
 
 	getString	dm this
 	setString 	dm this
+	getWString	dm this
+	setWString 	dm this
 ends
 
 macro WINAPI_WINDOW.invalidate this, lpRect=NULL, bErase=0{
@@ -95,6 +99,31 @@ proc WINAPI_WINDOW.setString c uses pbx pdi, this, lpString
 	virtObj .string:arg String at pdx from @arg2
 	@call .string->getLpChars()
 	@call [SetWindowTextA]([.this.hWnd], pax)
+	ret
+endp
+
+proc WINAPI_WINDOW.getWString c uses pbx pdi, this, lpString
+	; int3
+	@sarg @arg2
+	virtObj .this:arg WINAPI_WINDOW at pbx from @arg1
+	virtObj .string:arg WString at pdi from @arg2
+	@call [GetWindowTextLengthW]([.this.hWnd])
+	mov [.string.len], eax
+	@call .string->realloc([.string.len])->getLpWChars()
+	mov edx, [.string.len]
+	inc edx
+	@call [GetWindowTextW]([.this.hWnd], pax, pdx)
+	mov eax, [.string.len]
+	ret
+endp
+
+proc WINAPI_WINDOW.setWString c uses pbx pdi, this, lpString
+	; int3
+	@sarg @arg2
+	virtObj .this:arg WINAPI_WINDOW at pbx from @arg1
+	virtObj .string:arg WString at pdx from @arg2
+	@call .string->getLpWChars()
+	@call [SetWindowTextW]([.this.hWnd], pax)
 	ret
 endp
 

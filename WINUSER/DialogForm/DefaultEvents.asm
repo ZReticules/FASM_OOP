@@ -36,6 +36,7 @@ importlib uxtheme,\
 
 macro @on_scaling {
 	WM_SIZE event DIALOGFORM_WM_SIZE
+	; WM_EXITSIZEMOVE event DIALOGFORM_WM_EXITSIZEMOVE
 } 
 
 macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
@@ -99,9 +100,43 @@ proc DIALOGFORM_WM_SIZE uses pbx, lpForm, lpParams, lpEventData
 	@call .form->scaleChilds()
 	@call [InvalidateRect]([.form.hWnd], NULL, 1)
 	; @call [UpdateWindow]([.form.hWnd])
+	@call [EnumChildWindows]([.form.hWnd], .invalidate_childs, NULL)
 	xor eax, eax
 	ret
+
+	proc .invalidate_childs, hWnd, lParam
+		@sarg @arg1
+		@call DLG::getPtr(@arg1)
+		test eax, eax
+			jz .return
+		test [pax + CONTROL.sData.flags], CONTROL.UNVALIDATABLE
+			jnz .return
+		@call [InvalidateRect]([hWnd], NULL, 1)
+		.return: 
+			mov eax, esp
+			ret
+	endp
+
 endp
+
+; proc DIALOGFORM_WM_EXITSIZEMOVE uses pbx, lpForm, lpParams, lpEventData
+; 	virtObj .form DIALOGFORM at pbx from @arg1
+; 	@call [InvalidateRect]([.form.hWnd], NULL, 1)
+; 	@call [EnumChildWindows]([.form.hWnd], .invalidate_childs, NULL)
+; 	ret
+; 	proc .invalidate_childs, hWnd, lParam
+; 		@sarg @arg1
+; 		@call DLG::getPtr(@arg1)
+; 		test eax, eax
+; 			jz .return
+; 		test [pax + CONTROL.sData.flags], CONTROL.UNVALIDATABLE
+; 			jnz .return
+; 		@call [InvalidateRect]([hWnd], NULL, 1)
+; 		.return: 
+; 			mov eax, esp
+; 			ret
+; 	endp
+; endp
 
 ; macro @on_ctlbtncolor{
 ; 	NM_CUSTOMDRAW notify COLORED_BUTTON_NM_CUSTOMDRAW

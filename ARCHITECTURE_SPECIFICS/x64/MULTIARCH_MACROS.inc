@@ -15,9 +15,9 @@ macro defargs@proc [arg] {
 		\}
 		match argname:type, arg \{ 
 			current@arg equ argname
-			if type in <qqword, dqword, tbyte, qword, pword, dword, word, byte>
+			argname equ ..arg
+			if [type] in <[qqword], [dqword], [tbyte], [qword], [pword], [dword], [word], [byte]>
 				label ..arg type
-				argname equ ..arg
 				if qqword eq type
 					dd ?,?,?,?,?,?,?,?
 				else if dqword eq type
@@ -30,7 +30,7 @@ macro defargs@proc [arg] {
 					dq ?
 				end if 
 			else
-				..arg type
+				argname type
 			end if
 		\}
 		match =current@arg,current@arg \{ 

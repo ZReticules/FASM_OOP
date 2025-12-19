@@ -1,13 +1,20 @@
 importlib kernel32,\
 	GetModuleHandleA
+
 importlib gdi32,\
 	BitBlt,\
 	CreateRectRgn,\
 	GetStockObject
+
 importlib shell32,\
 	DragQueryFileA
+
 importlib advapi32,\
 	RegGetValueA
+
+importlib user32,\
+	MessageBoxA,\
+	MessageBoxW
 
 define MAX_PATH 260
 
@@ -44,9 +51,32 @@ macro WND.msgBox lpText*, lpCaption=NULL, [args]{
 	\}
 	common
 	@call [MessageBoxA](a#hwndOwner, lpText, _lpCaption, a#dwStyle)
-	restore _lpCaption 
-	restore a#dwStyle 	
-	restore a#hwndOwner 	
+	; restore _lpCaption 
+	; restore a#dwStyle 	
+	; restore a#hwndOwner 	
+}
+
+macro WND.msgBoxW lpText*, lpCaption=NULL, [args]{
+	common
+	local a, _lpCaption
+	_lpCaption equ lpCaption
+	a#dwStyle equ MB_OK
+	a#hwndOwner equ NULL
+	match name:val, lpCaption\{
+		_lpCaption equ NULL
+		; restore a\#name
+		a\#name equ val
+	\}
+	forward
+	match name:val, args\{
+		; restore a\#name
+		a\#name equ val
+	\}
+	common
+	@call [MessageBoxW](a#hwndOwner, lpText, _lpCaption, a#dwStyle)
+	; restore _lpCaption 
+	; restore a#dwStyle 	
+	; restore a#hwndOwner 	
 }
 
 macro WND.setTimer uElapse, lpTimerFunc, nIDEvent=0, hWnd=NULL{

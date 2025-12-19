@@ -13,6 +13,7 @@ macro @control _control*, [argums]{
 	_y_sticker#a  	equ 0
 	_cx_sticker#a  	equ 0
 	_cy_sticker#a  	equ 0
+	_flags#a 		equ 0
 
 	_cname equ thislab
 	_ctype equ _control
@@ -32,22 +33,23 @@ macro @control _control*, [argums]{
 			_x#a, _y#a, _cx#a, _cy#a,\ 
 			_style#a, _style_ex#a, _text#a,\ 
 			<_x_sticker#a, _y_sticker#a, _cx_sticker#a, _cy_sticker#a>,\
+			_flags#a,\
 			_initvals#a
 	\}
 }
 
 macro specialfields_define_control name{
-	macro control@create cname, ctype, _x, _y, _cx, _cy, _style, _style_ex, _text, scale_flags, initvals&\{
+	macro control@create cname, ctype, _x, _y, _cx, _cy, _style, _style_ex, _text, scale_flags, flags, initvals&\{
 		match any, initvals\\{
 			cname ctype NONE, NONE, \
 				<<name#.\#cname\#._x, name#.\#cname\#._y, name#.\#cname\#._rx, name#.\#cname\#._ry>,\
 				ctype\#.events, ctype\#.notifications, ctype\#.hooks,\
-				<scale_flags>>, any
+				<scale_flags>, flags>, any
 		rept 0\\{\\} rept 1\\{
 			cname ctype NONE, NONE, \
 				<<name#.\#cname\#._x, name#.\#cname\#._y, name#.\#cname\#._rx, name#.\#cname\#._ry>,\
 				ctype\#.events, ctype\#.notifications, ctype\#.hooks,\
-				<scale_flags>>
+				<scale_flags>, flags>
 		\\}
 		name#@ControlStack equ cname
 		name#.\#cname\#._x = _x
