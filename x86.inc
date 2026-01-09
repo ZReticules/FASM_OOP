@@ -1,4 +1,5 @@
 __architecture fix x86
+NONE fix
 
 include "PreprocFunc.inc"
 include "Constructions\High-level.inc"

@@ -30,6 +30,7 @@ proc Utf8.fromWCharsz c, pWcharsz
 	@sarg @arg1
 	local lpBuf:POINTER, bufSize:DWORD
 	@call [WideCharToMultiByte](65001, 0, [pWcharsz], -1, NULL, 0, NULL, NULL)
+	inc eax
 	mov [bufSize], eax
 	@call CNV::alloc(pax)
 	mov [lpBuf], pax

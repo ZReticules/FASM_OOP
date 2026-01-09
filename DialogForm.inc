@@ -1,5 +1,7 @@
 @module DIALOGFORM
 
+	include "Winuser.inc"
+
 	struct DLG
 		setPtr 		dm this:inline	; (handle, value) -> void
 		getPtr 		dm this:inline	; (handle) -> ptr

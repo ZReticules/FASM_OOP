@@ -57,7 +57,6 @@
 	define GA_ROOTOWNER	3
 
 	define NULL 0
-	NONE fix
 
 	;button styles
 		define BS_SPLITBUTTON          0x0000000C

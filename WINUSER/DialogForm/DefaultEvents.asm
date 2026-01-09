@@ -98,7 +98,7 @@ proc DIALOGFORM_WM_SIZE uses pbx, lpForm, lpParams, lpEventData
 	; ; int3
 	; @call [EnumChildWindows]([.form.hWnd], DIALOGFORM.EnumChildsProc, addr NewRect)
 	@call .form->scaleChilds()
-	@call [InvalidateRect]([.form.hWnd], NULL, 1)
+	; @call [InvalidateRect]([.form.hWnd], NULL, 1)
 	; @call [UpdateWindow]([.form.hWnd])
 	@call [EnumChildWindows]([.form.hWnd], .invalidate_childs, NULL)
 	xor eax, eax

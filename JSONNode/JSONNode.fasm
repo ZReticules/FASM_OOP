@@ -186,10 +186,20 @@ proc JSONNode.__from_string c uses pbx psi, this, lpString, lpLen
 			switch [ctx.state]
 				case_default
 					@call ctx.result->getDouble()
+					cmp [ctx.result.sign], 0
+						je end_case
+					pcmpeqq xmm1, xmm1
+					psllq xmm1, 63
+					por xmm0, xmm1
 					jmp end_case
 				case JSONIterNumCtxState.integer
 					mov [.this.jType], JSONTypes.integer
 					movq xmm0, [ctx.result.intVal]
+					cmp [ctx.result.sign], 0
+						je end_case
+					pcmpeqq xmm1, xmm1
+					pxor xmm0, xmm1
+					psubq xmm0, xmm1
 			end_switch
 			; int3
 			movq [.this.value], xmm0

@@ -1,0 +1,12 @@
+@module IHTMLDocument
+
+include "IDispatch.inc"
+; "626FC520-A41E-11cf-A731-00A0C9082637"
+IID_IHTMLDocument @const GUID 0x626FC520,0xA41E,0x11cf,<0xA7,0x31,0x00,0xA0,0xC9,0x08,0x26,0x37>
+CLSID_HTMLDocument @const GUID 0x25336920,0x03F9,0x11CF,<0x8F,0xD0,0x00,0xAA,0x00,0x68,0x6F,0x13>
+
+struct IHTMLDocument IDispatch
+    get_Script              dm ?:virtual/std ; HRESULT get_Script(this, IDispatch **ppDisp)
+ends
+
+@endm

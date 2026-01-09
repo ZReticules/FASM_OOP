@@ -1,13 +1,8 @@
 @module IHTMLDocument2
 
-include "IDispatch.inc"
+include "IHTMLDocument.inc"
 
 IID_IHTMLDocument2 @const GUID 0x332C4425,0x26CB,0x11D0,<0xB4,0x83,0x00,0xC0,0x4F,0xD9,0x01,0x19>
-CLSID_HTMLDocument @const GUID 0x25336920,0x03F9,0x11CF,<0x8F,0xD0,0x00,0xAA,0x00,0x68,0x6F,0x13>
-
-struct IHTMLDocument IDispatch
-    get_Script              dm ?:virtual/std ; HRESULT get_Script(this, IDispatch **ppDisp)
-ends
 
 struct IHTMLDocument2 IHTMLDocument
     get_all                 dm ?:virtual/std ; HRESULT get_all(this, IHTMLElementCollection **ppColl)
