@@ -1,8 +1,10 @@
 importlib user32,\
 	GetWindowTextLengthA,\
 	GetWindowTextA,\
+	SetWindowTextA,\
 	GetWindowTextLengthW,\
 	GetWindowTextW,\
+	SetWindowTextW,\
 	SendMessageA,\
 	EnableWindow,\
 	ShowWindow,\
@@ -15,6 +17,9 @@ struct WINAPI_WINDOW
 	setText 	dm this:inline
 	getTextLen 	dm this:inline
 	getText 	dm this:inline
+	setTextW 	dm this:inline
+	getTextLenW dm this:inline
+	getTextW 	dm this:inline
 	setEnabled	dm this:inline
 	setVisible	dm this:inline
 	setFocus	dm this:inline
@@ -49,6 +54,24 @@ macro WINAPI_WINDOW.setText this, lpCstr{
 	local _this
 	inlineObj _this, this, pcx
 	@call [SetWindowTextA]([_this + WINAPI_WINDOW.hWnd], lpCstr)
+}
+
+macro WINAPI_WINDOW.getTextLenW this{
+	local _this
+	inlineObj _this, this, pcx
+	@call [GetWindowTextLengthW]([_this + WINAPI_WINDOW.hWnd])
+}
+
+macro WINAPI_WINDOW.getTextW this, lpWstr, nMaxCount{
+	local _this
+	inlineObj _this, this, pcx
+	@call [GetWindowTextW]([_this + WINAPI_WINDOW.hWnd], lpWstr, nMaxCount)
+}
+
+macro WINAPI_WINDOW.setTextW this, lpWstr{
+	local _this
+	inlineObj _this, this, pcx
+	@call [SetWindowTextW]([_this + WINAPI_WINDOW.hWnd], lpWstr)
 }
 
 macro WINAPI_WINDOW.setVisible this, bState{
