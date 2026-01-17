@@ -295,22 +295,22 @@ macro CNV.fill dest*, src*, size*, flags=0{
 		repeats = rem / 4
 		rem = rem mod 4
 		if repeats = 1
-			mov ecx, dword[_src]
+			mov eax, dword[_src]
 			_src_ = _src_ + 4
-			mov dword[_dest], ecx
+			mov dword[_dest], eax
 			_dest_ = _dest_ + 4
 		end if
 		repeats = rem / 2
 		rem = rem mod 2
 		if repeats = 1
-			movzx ecx, word[_src]
+			movzx eax, word[_src]
 			_src_ = _src_ + 2
-			mov word[_dest], cx
+			mov word[_dest], ax
 			_dest_ = _dest_ + 2
 		end if
 		if rem = 1
-			movzx ecx, byte[_src]
-			mov byte[_dest], cl
+			movzx eax, byte[_src]
+			mov byte[_dest], al
 		end if
 	else
 		@call c CNV.__fill(dest, src, size)

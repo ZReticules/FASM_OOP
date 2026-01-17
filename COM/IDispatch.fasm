@@ -1,0 +1,62 @@
+proc_noprologue
+
+proc IDispatch_s.QueryInterface, this:P_IDispatch_s, riid:P_GUID, ppvObject:POINTER
+; int3
+	@sarg @arg1
+	@larg pdx, @arg2, pax, @arg3
+	mov pointer[pax], NULL
+	
+	movups xmm0, xword[pdx]
+	movups xmm1, [IID_IUnknown]
+	pcmpeqq xmm1, xmm0
+	movhlps xmm2, xmm1
+	pand xmm1, xmm2
+
+	movups xmm1, [IID_IDispatch]
+	pcmpeqq xmm0, xmm1
+	movhlps xmm1, xmm0
+	pand xmm0, xmm1
+
+	por xmm0, xmm1
+	movq xmm0, xmm0
+
+	ptest xmm0, xmm0
+	jz @f
+		virtObj .this IDispatch_s at pcx from @arg1
+		mov pointer[pax], pcx
+		@call .this->AddRef()
+		mov eax, S_OK
+		ret
+	@@:
+	mov pointer[pax], NULL
+	mov eax, E_NOINTERFACE
+	ret
+endp
+
+proc IDispatch_s.GetTypeInfoCount, this, pctinfo:POINTER
+	@larg pdx, @arg2
+	mov dword[pdx], 0
+	mov eax, S_OK
+	ret
+endp
+
+proc IDispatch_s.GetTypeInfo, this, iTInfo:DWORD, lcid:DWORD, ppTInfo:POINTER
+	@larg pdx, @arg3
+	mov pointer[pdx], NULL
+	mov eax, DISP_E_BADINDEX
+	ret
+endp
+
+proc IDispatch_s.GetIDsOfNames, this, riid:P_GUID, rgszNames:POINTER, cNames:DWORD, lcid:DWORD, rgDispId:POINTER
+	mov pax, DISP_E_UNKNOWNNAME
+	ret
+endp
+
+proc IDispatch_s.Invoke, this, dispIdMember:DWORD, riid:P_GUID, lcid:DWORD, wFlags:WORD, \
+    									 pDispParams:P_DISPPARAMS, pVarResult:P_VARIANT, \
+    									 pExcepInfo:P_EXCEPINFO, puArgErr:POINTER
+	mov pax, DISP_E_MEMBERNOTFOUND
+	ret
+endp
+
+proc_resprologue

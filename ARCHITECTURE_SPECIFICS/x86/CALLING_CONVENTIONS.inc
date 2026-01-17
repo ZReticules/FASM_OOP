@@ -611,3 +611,14 @@ macro fill@dest_proc dest{
 		mov definition, eax
 	end if
 }
+
+macro __virtobj@call object, type, procName, methTable{
+	local any1
+	match [any1], object\{
+		mov pax, [object]
+		mov pax, [pax + type#.VTable]
+	rept 0\{\}rept 1\{
+		mov pax, [object + type#.VTable]
+	\}
+	call [pax + methTable#.#procName - methTable]
+} 

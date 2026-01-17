@@ -1,5 +1,5 @@
 @module IModalWindow
-	include "COM.inc"
+	include "IUnknown.inc"
 
 	struct IModalWindow IUnknown
 	    Show dm ?:virtual/std ; HRESULT Show(this, HWND hwndOwner)

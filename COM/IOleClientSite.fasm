@@ -1,0 +1,71 @@
+proc_noprologue
+
+proc IOleClientSite_s.QueryInterface, this:P_IOleClientSite_s, riid:P_GUID, ppvObject:POINTER
+	@sarg @arg1
+	@larg pdx, @arg2, pax, @arg3
+	mov pointer[pax], NULL
+	
+	movups xmm0, xword[pdx]
+	movups xmm1, [IID_IUnknown]
+	pcmpeqq xmm1, xmm0
+	movhlps xmm2, xmm1
+	pand xmm1, xmm2
+
+	movups xmm1, [IID_IOleClientSite]
+	pcmpeqq xmm0, xmm1
+	movhlps xmm1, xmm0
+	pand xmm0, xmm1
+
+	por xmm0, xmm1
+	movq xmm0, xmm0
+
+	ptest xmm0, xmm0
+	jz @f
+		virtObj .this IOleClientSite_s at pcx from @arg1
+		mov pointer[pax], pcx
+		@call .this->AddRef()
+		mov eax, S_OK
+		ret
+	@@:
+	mov pointer[pax], NULL
+	mov eax, E_NOINTERFACE
+	ret
+endp
+
+proc IOleClientSite_s.SaveObject, this
+; int3
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+proc IOleClientSite_s.GetMoniker, this, dwAssign:DWORD, dwWhichMoniker:DWORD, ppmk:POINTER
+	cmp @arg4, NULL
+	je @f
+		@larg pdx, @arg4
+		mov pointer[pdx], NULL
+	@@:
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+proc IOleClientSite_s.GetContainer, this, ppContainer:POINTER
+	cmp @arg2, NULL
+	je @f
+		@larg pdx, @arg2
+		mov pointer[pdx], NULL
+	@@:
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+IOleClientSite_s.ShowObject = IOleClientSite_s.SaveObject
+
+proc IOleClientSite_s.OnShowWindow, this, fShow:DWORD
+; int3
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+IOleClientSite_s.RequestNewObjectLayout = IOleClientSite_s.SaveObject
+
+proc_resprologue

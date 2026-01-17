@@ -1,0 +1,46 @@
+proc_noprologue
+
+proc IUnknown_s.QueryInterface, this:P_IUnknown_s, riid:P_GUID, ppvObject:POINTER
+	@sarg @arg1
+	@larg pdx, @arg2, pax, @arg3
+	mov pointer[pax], NULL
+	movups xmm0, xword[pdx]
+	movups xmm1, [IID_IUnknown]
+	pcmpeqq xmm0, xmm1
+	movhlps xmm1, xmm0
+	pand xmm0, xmm1
+	movq xmm0, xmm0
+	ptest xmm0, xmm0
+	jz @f
+		virtObj .this IUnknown_s at pcx from @arg1
+		mov pointer[pax], pcx
+		@call .this->AddRef()
+		mov eax, S_OK
+		ret
+	@@:
+	mov pointer[pax], NULL
+	mov eax, E_NOINTERFACE
+	ret
+endp
+
+proc IUnknown_s.AddRef, this:P_IUnknown_s
+	virtObj .this IUnknown_s at pcx from @arg1
+	lock inc [.this.refCount]
+	mov eax, [.this.refCount]
+	ret
+endp
+
+proc IUnknown_s.Release, this:P_IUnknown_s
+	virtObj .this IUnknown_s at pcx from @arg1
+	lock dec [.this.refCount]
+	cmp [.this.refCount], 0
+	@block jne @fb
+		@sarg @arg1
+		@call CNV::free(addr .this)
+		mov pcx, [this]
+	@endb 
+	mov eax, [.this.refCount]
+	ret
+endp
+
+proc_resprologue

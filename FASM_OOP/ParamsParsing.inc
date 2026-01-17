@@ -291,13 +291,14 @@ macro define@call{
 							inline@parse argums, _argums_
 						\\\\\\}
 						macro call arg1\\\\\\{
-							match [any1], _obj_addr\\\\\\\{
-								mov pax, [_obj_]
-								mov pax, [pax + ObjType\\\\#.VTable]
-							rept 0\\\\\\\{\\\\\\\}rept 1\\\\\\\{
-								mov pax, [_obj + ObjType\\\\#.VTable]
-							\\\\\\\}
-							call [pax + MethTable\\\\#.\\\\\#proc-MethTable]
+							__virtobj@call _obj_addr, ObjType, proc, MethTable
+							; match [any1], _obj_addr\\\\\\\{
+							; 	mov pax, [_obj_]
+							; 	mov pax, [pax + ObjType\\\\#.VTable]
+							; rept 0\\\\\\\{\\\\\\\}rept 1\\\\\\\{
+							; 	mov pax, [_obj + ObjType\\\\#.VTable]
+							; \\\\\\\}
+							; call [pax + MethTable\\\\#.\\\\\#proc-MethTable]
 						\\\\\\}
 						_call_conv\\\\\#call _argums_
 						purge call
@@ -326,6 +327,7 @@ macro define@call{
 				call_conv equ _call_conv
 			\\\}
 			match _Struct_, __Struct\\\{
+				use@table _Struct_\\\#.Table
 				argums equ _Struct_\\\#.Table\\\#.\\#proc
 				; match =virtual, proc\\#.Type\\\#_Struct_\\\\{
 				; 	argums equ call_conv pointer[argums]
@@ -387,6 +389,7 @@ macro define@call{
 				call_conv equ _call_conv
 			\\\}
 			match _Struct_, __Struct\\\{
+				use@table _Struct_\\\#.Table
 				argums equ _Struct_\\\#.Table\\\#.\\#proc
 				match =virtual, proc\\#.Type\\\#_Struct_\\\\{
 					argums equ call_conv pointer[argums]

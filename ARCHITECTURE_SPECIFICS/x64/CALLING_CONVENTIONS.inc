@@ -919,3 +919,8 @@ macro fill@dest_proc dest{
 		mov definition, rax
 	end if
 }
+
+macro __virtobj@call object, type, procName, methTable{
+	mov pax, [pcx + type#.VTable]
+	call [pax + methTable#.#procName - methTable]
+} 

@@ -1,0 +1,108 @@
+proc_noprologue
+
+proc IDocHostUIHandler_s.QueryInterface, this:P_IDocHostUIHandler_s, riid:P_GUID, ppvObject:POINTER
+	@sarg @arg1
+	@larg pdx, @arg2, pax, @arg3
+	mov pointer[pax], NULL
+	; int3
+	
+	movups xmm0, xword[pdx]
+	movups xmm1, [IID_IUnknown]
+	pcmpeqq xmm1, xmm0
+	movhlps xmm2, xmm1
+	pand xmm1, xmm2
+
+	movups xmm1, [IID_IDocHostUIHandler]
+	pcmpeqq xmm0, xmm1
+	movhlps xmm1, xmm0
+	pand xmm0, xmm1
+
+	por xmm0, xmm1
+	movq xmm0, xmm0
+
+	ptest xmm0, xmm0
+	jz @f
+		virtObj .this IDocHostUIHandler_s at pcx from @arg1
+		mov pointer[pax], pcx
+		@call .this->AddRef()
+		mov eax, S_OK
+		ret
+	@@:
+	
+	mov pointer[pax], NULL
+	mov eax, E_NOINTERFACE
+	ret
+endp
+
+proc IDocHostUIHandler_s.ShowContextMenu, this, dwID:DWORD, ppt:POINTER, pcmdtReserved:P_IUnknown, pdispReserved:P_IDispatch
+	mov eax, S_FALSE
+	ret
+endp
+
+proc IDocHostUIHandler_s.GetHostInfo, this, pInfo:POINTER
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+proc IDocHostUIHandler_s.ShowUI, this, dwID:DWORD, pActiveObject:POINTER, pCommandTarget:POINTER, \
+									pFrame:POINTER, pDoc:POINTER
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+proc IDocHostUIHandler_s.HideUI, this
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+IDocHostUIHandler_s.UpdateUI = IDocHostUIHandler_s.HideUI
+
+proc IDocHostUIHandler_s.EnableModeless, this, fEnable:DWORD
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+IDocHostUIHandler_s.OnDocWindowActivate = IDocHostUIHandler_s.EnableModeless
+
+IDocHostUIHandler_s.OnFrameWindowActivate = IDocHostUIHandler_s.EnableModeless
+
+proc IDocHostUIHandler_s.ResizeBorder, this, prcBorder:POINTER, pUIWindow:POINTER, fFrameWindow:DWORD
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+proc IDocHostUIHandler_s.TranslateAccelerator, this, lpMsg:POINTER, pguidCmdGroup:P_GUID, nCmdID:DWORD
+	mov eax, S_FALSE
+	ret
+endp
+
+proc IDocHostUIHandler_s.GetOptionKeyPath, this, pchKey:POINTER, dw_:DWORD
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+proc IDocHostUIHandler_s.GetDropTarget, this, pchKey:POINTER, ppDropTarget:POINTER
+	cmp @arg3, NULL
+	je @f
+		@larg pdx, @arg3
+		mov pointer[pdx], NULL
+	@@:
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+proc IDocHostUIHandler_s.GetExternal, this, ppDispatch:POINTER
+	cmp @arg2, NULL
+	je @f
+		@larg pdx, @arg2
+		mov pointer[pdx], NULL
+	@@:
+	mov eax, E_NOTIMPL
+	ret
+endp
+
+IDocHostUIHandler_s.TranslateUrl = IDocHostUIHandler_s.ResizeBorder
+
+IDocHostUIHandler_s.FilterDataObject = IDocHostUIHandler_s.GetDropTarget
+
+proc_resprologue

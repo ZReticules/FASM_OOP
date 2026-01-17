@@ -12,6 +12,9 @@ macro MStruct@GenMethods name{						;макрос для генерации ме
 		match =virtual, MethName\#.Type#name\\{
 			if used name#.Table
 				name#.Table.\\#MethName dptr MethName\\#.Value#name	;если метод не статический, значит виртуальный
+				; match any, name#.Table.\\#MethName\\\{
+				; 	display \\\`any, 0Ah
+				; \\\}
 			end if
 			restore name#@Virtual								;заодно здесь мы проверяем, нужно ли создавать для обьектов
 			name#@Virtual equ 1							;поле с указателем на таблицу виртуальных методов
@@ -20,6 +23,11 @@ macro MStruct@GenMethods name{						;макрос для генерации ме
 	match =1, name#.@abstract\{
 		end virtual
 	\}
+}
+
+macro use@table vtable{
+	local table_used
+	table_used = vtable
 }
 
 macro specialfields_define_default name{										;создаем макросы, которые позволят нам определять и
@@ -49,7 +57,7 @@ macro specialfields_define_default name{										;создаем макросы
 		\\}												;это работает, так как процедура это метка и доступна везде
 	\}
 
-	struc override NewVal{									;переопределеие метода
+	struc override NewVal\{									;переопределеие метода
 		irpv MethName, name#@MStack\\{				;перебираем стековую переменную по значению с самого первого
 														;подробнее irpv описан в документации
 			match =MethName, .\\\{						;находим метод, имя которого совпадает с переопределяемым
@@ -104,6 +112,8 @@ macro secialfields_inherit_default parent, name{
 	irpv ParentConst, parent#@ConStack\{
 		const ParentConst parent#.\#ParentConst\#@Type parent#.\#ParentConst\#@Value
 	\}
+	local parent_used
+	parent_used = parent#.used
 }
 
 macro specialfields_ends_default name{
@@ -165,6 +175,8 @@ macro specialfields_ends_default name{
 				\\\\}
 			\\\}
         \\}
+		\local struct_used
+		struct_used = name\#\\.used
 	\}
 	if defined name#.VTable
 		P_#name.VTable = name#.VTable
