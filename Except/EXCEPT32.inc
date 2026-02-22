@@ -56,4 +56,5 @@ macro Except.load_context {
 		mov ebx, dword[buf + 8]
 		procbuf_free buf
 	\}
+	restore Except@last_context
 }

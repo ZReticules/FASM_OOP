@@ -232,7 +232,7 @@
 	macro with [args]{
 		common
 		local with_name, ..break_with
-		define last@width with_name
+		define last@with with_name
 
 		break_with equ ..break_with
 		forward
@@ -241,8 +241,6 @@
 
 			local matched
 			match < _definits >(initvals [:|:], any\\{
-				restore rest
-				rest equ any1
 				match =name, name\\\{ 
 					locals
 						name Type _definits
@@ -294,13 +292,13 @@
 		break_with:
 		restore break_with
 		; purge ret
-		match last_with, last@width\{
+		match last_with, last@with\{
 			irpv del, last_with\#dels\\{
 				\\reverse
 				@call del->unmake()	
 			\\}
 		\}
-		restore last@width
+		restore last@with
 	}
 
 	; to unmake all layers of with

@@ -67,7 +67,7 @@
 	    parseInt		dm this			;(radix) -> i64
 
     	countChar  		dm this			;(wVal) -> i32
-    	findChar 		dm this			;(wVal) -> i32
+    	findChar 		dm this			;(index, wVal) -> i32
 	ends
 
 	include "String\String.fasm"
@@ -129,10 +129,10 @@
 	    parseInt		dm this			;(radix) -> i64
 
     	countWChar  	dm this			;(wVal) -> i32
-    	findWChar 		dm this			;(wVal) -> i32
+    	findWChar 		dm this			;(index, wVal) -> i32
 
     	findWChars 		dm this			;(pWChars, len) -> i32
-    	replaceWChars	dm this
+    	replaceWChars	dm this			;(index:DWORD, len:DWORD, new:P_WCHARS, len:DWORD)
     ends
 
     include "String\WString.fasm"

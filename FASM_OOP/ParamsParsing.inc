@@ -252,11 +252,7 @@ macro define@call{
 				define _obj
 				; restore argums
 				define argums
-			\\\} 
-			; match _call_conv _obj_, _obj\\\{
-			; 	define _obj _obj_
-			; 	; call_conv equ _call_conv
-			; \\\}
+			\\\}
 			match any1 [any2], _obj\\\{
 				define _obj any2
 				define _obj_addr [any2]
@@ -268,10 +264,6 @@ macro define@call{
 			\\\}
 			match _obj_|_obj_addr_|base_conv, _obj|_obj_addr|__obj_call \\\{
 				\\\local __type
-				; display \\\`_obj_, 0Ah
-				; match any, _obj_\\\#.BaseType\\\\{
-				; 	display \\\\`any, 0Ah
-				; \\\\}
 				match =_obj_\\\#.BaseType, _obj_\\\#.BaseType\\\\{
 					__type equ _obj_\\\#.Type
 				rept 0\\\\{\\\\}rept 1\\\\{

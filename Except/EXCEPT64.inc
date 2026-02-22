@@ -207,4 +207,5 @@ macro Except.load_context {
 		mov r15, qword[_buf + 48]
 		procbuf_free _buf
 	\}
+	restore Except@last_context
 }

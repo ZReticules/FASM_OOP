@@ -47,6 +47,10 @@ macro specialfields_define_default name{										;создаем макросы
 			.Value#name equ _val							;сразу закрепляем за ним значение(обработчик)
 			.Type#name equ type							;и тип - пока что только виртуальные и инлайн методы
 			define matched
+			; \\local _size
+			; _size = $
+			; %display_num _size, 10
+			; display 0ah
 		\\}
 		match =matched|_val, matched|__value\\{							;если тип не указан явно
 			.Value#name equ _val							;значит статический
@@ -123,12 +127,12 @@ macro specialfields_ends_default name{
 	name#@Virtual equ 0						;по умолчанию считаем, что таблица виртуальных методов не нужна
 	MStruct@GenMethods name					;при генерации определим так ли это
 	; restore oldstruct@action		
-	;здесь происходит переопределение стандартных
+	;здесь происходит дополнение стандартных
 	;создаваемых struct макросов
-	match =1, name#@Virtual\{
-		sizeof.#name = sizeof.#name + pointer.size
-		; vtable equ dd name\#.Table				;если нужно создать указатель на таблице виртуальных методов, добавляем константу
-	\}
+	; match =1, name#@Virtual\{
+	; 	sizeof.#name = sizeof.#name + pointer.size
+	; 	; vtable equ dd name\#.Table				;если нужно создать указатель на таблице виртуальных методов, добавляем константу
+	; \}
 	
 	struc name args&\{
 		\common

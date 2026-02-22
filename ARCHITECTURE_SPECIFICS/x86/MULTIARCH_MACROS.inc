@@ -70,46 +70,73 @@ macro endp {
 	restore arg@nums
 }
 
-macro @sarg args&{}
+rept 1{
+	local _mp1
+	macro @sarg [arg]\{
+		match _mp1, arg\#mem\\{
+			if arg in < eax ebx ecx edx esi edi esp ebp >
+				mov dword _mp1, arg
+			else if arg in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7>
+				movq qword _mp1, arg
+			end if
+		\\}
+	\}
+}
 
-macro @larg [dest, argmem]{
-	local origin, opcode
-	if dest in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7>
-		virtual
-			use64
-			origin = $	
-			
-			inc argmem
-			
-			load opcode byte from origin
-			
-			if opcode = 67h | opcode = 41h
-				load opcode byte from origin+1
-			end if
-			use32
-		end virtual
-		if opcode and 0F8h = 48h
-			movq dest, argmem
-		else if opcode = 66h
-			movd dest, argmem
-		else
-			display "invalid operand size"
-			err
+macro @larg [dest, arg]{
+	if arg in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7> | dest in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7>
+		if arg eq arg\#mem
+			movq dest, qword arg
+		else if ~dest eq arg
+			movq dest, arg
 		end if
-	else
-		if argmem eqtype qword [0]
-			movq xmm0, argmem
-			movq dest, xmm0
-		else
-			if dest eqtype eax
-				mov dest, argmem
-			else
-				mov eax, argmem
-				mov dest, eax
-			end if
+	else if arg in < eax ebx ecx edx esi edi esp ebp > | dest in < eax ebx ecx edx esi edi esp ebp >
+		if arg eq arg\#mem
+			mov dest, dword arg
+		else if ~dest eq arg
+			mov dest, arg
 		end if
 	end if
-}
+} 
+
+; macro @larg [dest, argmem]{
+; 	local origin, opcode
+; 	if dest in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7>
+; 		virtual
+; 			use64
+; 			origin = $	
+			
+; 			inc argmem
+			
+; 			load opcode byte from origin
+			
+; 			if opcode = 67h | opcode = 41h
+; 				load opcode byte from origin+1
+; 			end if
+; 			use32
+; 		end virtual
+; 		if opcode and 0F8h = 48h
+; 			movq dest, argmem
+; 		else if opcode = 66h
+; 			movd dest, argmem
+; 		else
+; 			display "invalid operand size"
+; 			err
+; 		end if
+; 	else
+; 		if argmem eqtype qword [0]
+; 			movq xmm0, argmem
+; 			movq dest, xmm0
+; 		else
+; 			if dest eqtype eax
+; 				mov dest, argmem
+; 			else
+; 				mov eax, argmem
+; 				mov dest, eax
+; 			end if
+; 		end if
+; 	end if
+; }
 
 ;USE_LOCAL
 ;USE_ESP

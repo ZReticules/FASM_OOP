@@ -176,7 +176,8 @@ proc Exception.__genVEH
 endp
 
 proc Exception.__delVEH
-	local result:POINTER
+	@call [TlsGetValue]([VEHStorage])
+	sub dword[pax + 4], sizeof.ExceptionSaveStruct
 	@call [TlsGetValue]([VEHCounter])
 	cmp pax, 1
 		jle .return

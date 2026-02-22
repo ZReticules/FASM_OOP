@@ -81,9 +81,10 @@
 	ends
 
 	include "Except\Except.fasm"
-
+	
+	local exceptionUsed
 	macro try \{
-		\local ..catch, ..no_except, exceptionUsed
+		\local ..catch, ..no_except
 		exceptionUsed = Exception.used
 		last@catch equ ..catch
 		last@no_except equ ..no_except
@@ -100,9 +101,8 @@
 		jmp last@no_except
 		last@catch:
 		Except.load_context
-		@call [TlsGetValue]([VEHStorage])
-		sub dword[pax + 4], sizeof.ExceptionSaveStruct
 		@call Exception::__delVEH() 
+		restore last@catch
 	\}
 
 	macro end_try \{
@@ -110,11 +110,9 @@
 		
 		jmp ..skip_noexcept
 		last@no_except:
-		@call [TlsGetValue]([VEHStorage])
-		sub dword[pax + 4], sizeof.ExceptionSaveStruct
 		@call Exception::__delVEH()
 
 		..skip_noexcept:
-		restore last@catch, last@no_except, last@hVEH, break_try
+		restore last@no_except, break_try
 	\}
 @endm

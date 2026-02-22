@@ -164,6 +164,9 @@ macro inlineObj name*, val*, reg{
 	match =addr any, val\{
 		name equ any
 	\}
+	match & any, val\{
+		name equ any
+	\}
 }
 
 macro virtObj args&{

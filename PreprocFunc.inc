@@ -83,3 +83,23 @@ macro %eq_ascii return, glob_lab, offset1, len1, offset2, len2{
 		end if
 	end repeat
 }
+
+match , {
+	local cntr, result
+	local _mp ; match param
+	macro %preproc_cmp resl, a, b\{
+		rept 1 cntr:(a) - (b)\\{
+			match =0, cntr\\\{
+				result equ EQ
+			\\\}
+			match -_mp, cntr\\\{
+				result equ LT
+			\\\}
+			match =result, result\\\{
+				result equ GT
+			\\\}
+		\\} 
+		resl equ result
+		restore result
+	\}
+}
