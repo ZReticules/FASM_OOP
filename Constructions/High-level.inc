@@ -246,7 +246,7 @@
 						name Type _definits
 					endl
 				\\\}
-				@call name->make(initvals
+				$call name::make(initvals
 				define matched
 			\\}
 			match =matched|< _definits > [:|:], matched|any\\{
@@ -263,7 +263,7 @@
 						name Type
 					endl
 				\\\}
-				@call name->make(initvals
+				$call name::make(initvals
 				define matched
 			\\}
 			match =matched|=name, matched|name\\{
@@ -295,7 +295,7 @@
 		match last_with, last@with\{
 			irpv del, last_with\#dels\\{
 				\\reverse
-				@call del->unmake()	
+				$call del::unmake()	
 			\\}
 		\}
 		restore last@with
@@ -306,7 +306,7 @@
 		irpv all_with, last@with\{
 			\reverse
 			irpv del, all_with\#dels\\{
-				@call del->unmake()	
+				$call del::unmake()	
 			\\}
 		\}
 	}
@@ -315,7 +315,7 @@
 	macro broke_with {
 		match this_with, last@with\{
 			irpv del, this_with\#dels\\{
-				@call del->unmake()	
+				$call del::unmake()	
 			\\}
 		\}
 	}
@@ -839,4 +839,352 @@
 		arg
 		common
 		restore @sb, @fb
+	}
+
+
+; new macros for .proc
+	rept 1{
+		local @$define_foreach_by_pattern
+		macro @$define_foreach_by_pattern\{
+			\local _mp1, _mp2
+			macro @$foreach_by_pattern action, pattern, datadef&\\{
+				match _mp1 pattern _mp2, datadef\\\{
+					action _mp1
+					@$define_foreach_by_pattern
+					@$foreach_by_pattern action, pattern, _mp2
+				rept 0\\\{\\\} rept 1\\\{
+					action datadef 
+				\\\}
+			\\}
+		\}
+		@$define_foreach_by_pattern
+		local datadef, callargs, _type, conv, mtable, object
+		local inline_result, _proc
+		local _mp1, _mp2, _mp3, _mp4, _mp5, _mp6, _mp7, _mp8, _mp9, _mp10, _mp11
+		macro define$call\{
+			\local redefined, result
+			macro $call args&\\{
+				define result
+				define datadef args
+				define conv std
+				define callargs
+				match _mp1 == _mp2, datadef\\\{
+					define result _mp1
+					define datadef _mp2
+				\\\}
+				match _mp1::_mp2(_mp3, datadef\\\{
+					match _mp4), _mp3\\\\{
+						define callargs _mp4
+					\\\\}
+					match _mp4)::_mp5, _mp3\\\\{
+						define callargs _mp4
+					\\\\}
+					define conv cdecl
+					match _mp4[_mp5], _mp1\\\\{
+						define conv _mp4
+						_type equ _mp5\\\\#.BaseType
+						; mtable equ _mp5\\\\#.Table
+						define object [_mp5]
+					rept 0 \\\\{\\\\}rept 1\\\\{
+						match _mp4 _mp5, _mp1\\\\\{
+							define conv _mp4
+							_type equ _mp5\\\\\#.Type
+							define object addr _mp5
+						rept 0\\\\\{\\\\\} rept 1\\\\\{
+							_type equ _mp1\\\#.Type
+							define object addr _mp1
+						\\\\\}
+					\\\\}
+					match [_mp4], _mp1\\\\{
+						define conv cdecl
+						_type equ _mp4\\\\#.BaseType
+						define object [_mp4]
+					\\\\}
+					match _mp4, _type\\\\{
+						mtable equ _mp4\\\\#.Table
+					\\\\}
+					match , callargs\\\\{
+						callargs equ object
+					rept 0 \\\\{\\\\} rept 1\\\\{
+						callargs equ object, callargs
+					\\\\}
+					match _mp4|_mp5|_mp6, _type|mtable|conv\\\\{
+						match =static | _mp7 | _mp8, _mp2\\\#.Type\\\\#_mp4 | @\\\\#_mp6\\\\#call | callargs\\\\\{
+							_mp7 _mp5\\\\#.\\\\#_mp2, _mp8
+						\\\\\}
+						match =virtual | _mp7 | _mp8, _mp2\\\#.Type\\\\#_mp4 | @\\\\#_mp6\\\\#call | callargs\\\\\{
+							macro call arg1\\\\\\{
+								__virtobj@call object, _mp4, _mp2, _mp5
+							\\\\\\}
+							_mp7 _mp5\\\\#.\\\\#_mp2, _mp8
+							purge call
+							define argums
+						\\\\\}
+						match =inline | _mp8 | _mp7, _mp2\\\#.Type\\\\#_mp4 | _mp2\\\#.Value\\\\#_mp4 | callargs\\\\\{
+							define$call
+							define redefined
+							_inline@parse inline_result, _mp7
+							match _mp9, inline_result\\\\\\{
+								_mp8 _mp9
+							\\\\\\}
+							restore __argscount__
+						\\\\\}
+						match =_mp2\\\#.Type\\\\#_mp4, _mp2\\\#.Type\\\\#_mp4\\\\\{
+							Unknown method \\\`_mp2 for structure \\\\`_mp4
+						\\\\\}
+					\\\\}
+					match _mp4)::_mp5, _mp3\\\\{
+						match =redefined, redefined\\\\\{
+							define$call
+						\\\\\}
+						@$foreach_by_pattern $call _mp1::, ::, _mp5
+					\\\\}
+					define datadef
+				\\\}
+				match _mp1|_mp2(_mp3, datadef\\\{
+					match _mp4), _mp3\\\\{
+						define callargs _mp4
+					\\\\}
+					define conv cdecl
+					match _mp4 _mp5, _mp1\\\\{
+						define conv _mp4
+						_type equ _mp5
+						mtable equ _mp5\\\\#.Table
+					rept 0\\\\{\\\\} rept 1\\\\{
+						_type equ _mp1
+						mtable equ _mp1\\\#.Table
+					\\\\}
+					match _mp4|_mp5|_mp6, _type|mtable|conv\\\\{
+						match =static | _mp7 | _mp8, _mp2\\\#.Type\\\\#_mp4 | @\\\\#_mp6\\\\#call | callargs\\\\\{
+							match , _mp8\\\\\\{
+								_mp7 _mp5\\\\#.\\\\#_mp2
+							rept 0 \\\\\\{\\\\\\} rept 1\\\\\\{
+								_mp7 _mp5\\\\#.\\\\#_mp2, _mp8
+							\\\\\\}
+						\\\\\}
+						match =virtual | _mp7 | _mp8 | _mp9, _mp2\\\#.Type\\\\#_mp4 | @\\\\#_mp6\\\\#call | _mp2\\\#.Value\\\\#_mp4 | callargs\\\\\{
+							use@table _mp4\\\\#.Table
+							match , _mp9\\\\\\{
+								_mp7 _mp8
+							rept 0\\\\\\{\\\\\\}rept 1\\\\\\{
+								_mp7 _mp8, _mp9
+							\\\\\\}
+						\\\\\}
+						match =inline | _mp7 | _mp8, _mp2\\\#.Type\\\\#_mp4 | _mp2\\\#.Value\\\\#_mp4 | callargs\\\\\{
+							define$call
+							define redefined
+							match , _mp8\\\\\\{
+								define __argscount__ 0
+								_mp7
+								restore __argscount__
+							rept 0 \\\\\\{\\\\\\} rept 1\\\\\\{
+								_inline@parse inline_result, _mp8
+								match _mp9, inline_result\\\\\\\{
+									_mp7 _mp9
+								\\\\\\\}
+								restore __argscount__
+							\\\\\\}
+						\\\\\}
+						match =_mp2\\\#.Type\\\\#_mp4, _mp2\\\#.Type\\\\#_mp4\\\\\{
+							Unknown method \\\`_mp2 for structure \\\\`_mp4
+						\\\\\}
+					\\\\}
+					define datadef
+				\\\}
+				match _mp1<_mp2>(_mp3, datadef\\\{
+					match _mp4), _mp3\\\\{
+						define callargs _mp4
+					\\\\}
+					define conv cdecl
+					match _mp4 _mp5, _mp1\\\\{
+						define conv _mp4
+						_proc equ _mp5
+					rept 0\\\\{\\\\} rept 1\\\\{
+						_proc equ _mp1
+					\\\\}
+					mtable equ _mp2\\\#.Table
+					match _mp4|_mp5|_mp6, _proc|mtable|conv\\\\{
+						match =static | _mp7 | _mp8, _mp4\\\\#.Type\\\#_mp2 | @\\\\#_mp6\\\\#call | callargs\\\\\{
+							match , _mp8\\\\\\{
+								_mp7 _mp5\\\\#.\\\\#_mp1
+							rept 0 \\\\\\{\\\\\\} rept 1\\\\\\{
+								_mp7 _mp5\\\\#.\\\\#_mp1, _mp8
+							\\\\\\}
+						\\\\\}
+						match =virtual | _mp7 | _mp8, _mp4\\\\#.Type\\\#_mp2 | @\\\\#_mp6\\\\#call | callargs\\\\\{
+							match _mp9=,_mp10, _mp8\\\\\\{
+								define object _mp9
+							rept 0\\\\\\{\\\\\\}rept 1\\\\\\{
+								define object _mp8
+							\\\\\\}
+							use@table _mp2\\\#.Table
+							macro call arg1\\\\\\{
+								__virtobj@call object, _mp2, _mp1, _mp5
+							\\\\\\}
+							_mp7 NULL, _mp8
+							purge call
+							define argums
+						\\\\\}
+						match =inline | _mp7 | _mp8, _mp4\\\\#.Type\\\#_mp2 | _mp4\\\\#.Value\\\#_mp2 | callargs\\\\\{
+							define$call
+							define redefined
+							match , _mp8\\\\\\{
+								define __argscount__ 0
+								_mp7
+								restore __argscount__
+							rept 0 \\\\\\{\\\\\\} rept 1\\\\\\{
+								_inline@parse inline_result, _mp8
+								match _mp9, inline_result\\\\\\\{
+									_mp7 _mp9
+								\\\\\\\}
+								restore __argscount__
+							\\\\\\}
+						\\\\\}
+						match =_mp4\\\\#.Type\\\#_mp2, _mp4\\\\#.Type\\\#_mp2\\\\\{
+							Unknown method \\\\`_mp4 for structure \\\`_mp2
+						\\\\\}
+					\\\\}
+					define datadef
+				\\\}
+				match _mp1(_mp2, datadef\\\{
+					match _mp3), _mp2\\\\{
+						define callargs _mp3
+					\\\\}
+					define _proc _mp1
+					define datadef _mp1
+					match _mp3[_mp4], datadef\\\\{
+						define conv _mp3
+						define _proc [_mp4]
+						define datadef
+					\\\\}
+					match [_mp3], datadef\\\\{
+						match =_mp3\\\\#.conv, _mp3\\\\#.conv\\\\\{rept 0\\\\\{\\\\\}match _mp4, _mp3\\\\#.conv\\\\\{
+							define conv _mp4
+						\\\\\}
+						define _proc [_mp3]
+						define datadef
+					\\\\}
+					match _mp3 _mp4, datadef\\\\{
+						define conv _mp3
+						define _proc _mp4
+						define datadef
+					\\\\}
+					match , datadef\\\\{rept 0\\\\{\\\\}match _mp3, datadef\\\\{
+						match =_mp3\\\\#.conv, _mp3\\\\#.conv\\\\\{rept 0\\\\\{\\\\\}match _mp4, _mp3\\\\#.conv\\\\\{
+							define conv _mp4
+						\\\\\}
+						define _proc _mp3
+						define datadef
+					\\\\}
+					match _mp3, conv\\\\{
+						match _mp4, callargs\\\\\{
+							@\\\\#_mp3\\\\#call _proc, _mp4
+						rept 0\\\\\{\\\\\}rept 1\\\\\{
+							@\\\\#_mp3\\\\#call _proc
+						\\\\\}
+					\\\\}
+					define datadef
+				\\\}
+				match _mp1|_mp2, result|conv\\\{
+					@get_result_\\\#_mp2 _mp1
+				\\\}
+			\\}
+		\}
+		define$call
+	}
+
+	rept 1{
+		local _mp1
+		local _start
+		macro $return val\{
+			\local _size
+			match _mp1, proc@name\\{
+				\\local _buf, src_type, src_def
+				match , val\\\{rept 0\\\{\\\}match _mp2, _mp1\\#.conv\\\{
+					_parse@arg src_type, src_def, val
+					@set_result@\\\#_mp2 src_type, src_def
+					if _size <> 0
+						@save_result@\\\#_mp2 _buf, src_type
+					end if
+					_start = $
+				\\\}
+				exit@with
+				match =last@catch, last@catch\\\{rept 0\\\{\\\}irp _mp1, last@catch\\\{
+					$call Exception|__delVEH()
+				\\\}
+				match , val\\\{rept 0\\\{\\\}match _mp2, _mp1\\#.conv\\\{
+					_size = $ - _start
+					if _size <> 0
+						@load_result@\\\#_mp2 _buf, src_type
+					end if
+				\\\}
+				ret
+			\\}
+		\}
+	}
+
+	rept 1{
+		local _mp1, _mp2, _mp3, _mp4, _mp5
+		local datadef
+		local _any1
+		macro .with [args]\{
+			\common
+			\local with_name, ..break_with
+			define last@with with_name
+
+			break_with equ ..break_with
+			\forward
+			match _mp1:_mp2 _mp3, args _any1\\{
+				match =unmake.Value\\#_mp2, unmake.Value\\#_mp2\\\{rept 0\\\{\\\}rept 1\\\{
+					with_name\#dels equ _mp1
+				\\\}
+				define datadef _mp3
+				.locals
+					_mp1 _mp2
+				.endl
+				match < _mp4 > _mp5, datadef\\\{
+					$call CNV|fill(addr _mp1, <const _mp2 _mp4>, sizeof.\\#_mp2)
+					define datadef _mp5
+				\\\}
+				match <> _mp4, datadef\\\{
+					$call CNV|fill(addr _mp1, <const _mp2>, sizeof.\\#_mp2)
+					define datadef _mp4
+				\\\}
+				match (_mp4) _any1, datadef\\\{
+					$call name::make(_mp4)
+				\\\}
+			\\}
+		\}
+
+		macro .end_with \{
+			break_with:
+			restore break_with
+			; purge ret
+			match _mp1, last@with\\{
+				irpv _mp2, _mp1\\#dels\\\{
+					\\\reverse
+					$call _mp2::unmake()	
+				\\\}
+			\\}
+			restore last@with
+		\}
+
+		; to unmake all layers of with
+		macro exit@with \{
+			irpv _mp1, last@with\\{
+				\\reverse
+				irpv _mp2, _mp1\\#dels\\\{
+					$call _mp2::unmake()	
+				\\\}
+			\\}
+		\}
+
+		; to unmake current layer of with
+		macro break@with \{
+			match _mp1, last@with\\{
+				irpv _mp2, _mp1\#dels\\\{
+					$call _mp2::unmake()	
+				\\\}
+			\\}
+		\}
 	}

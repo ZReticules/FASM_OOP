@@ -74,7 +74,7 @@ rept 1{
 	local _mp1
 	macro @sarg [arg]\{
 		match _mp1, arg\#mem\\{
-			if arg in < eax ebx ecx edx esi edi esp ebp >
+			if arg in < eax, ebx, ecx, edx, esi, edi, esp, ebp >
 				mov dword _mp1, arg
 			else if arg in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7>
 				movq qword _mp1, arg
@@ -90,7 +90,7 @@ macro @larg [dest, arg]{
 		else if ~dest eq arg
 			movq dest, arg
 		end if
-	else if arg in < eax ebx ecx edx esi edi esp ebp > | dest in < eax ebx ecx edx esi edi esp ebp >
+	else if arg in < eax, ebx, ecx, edx, esi, edi, esp, ebp > | dest in < eax, ebx, ecx, edx, esi, edi, esp, ebp >
 		if arg eq arg\#mem
 			mov dest, dword arg
 		else if ~dest eq arg

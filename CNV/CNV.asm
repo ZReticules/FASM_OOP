@@ -50,11 +50,11 @@ end if
 
 macro CNV._initHeap{
 	if used CNV._heap
-		@call [GetProcessHeap]()
+		$call [GetProcessHeap]()
 		mov [CNV._heap], pax
 	end if
 	if used CNV.argc | used CNV.argv
-		@call CNV::parseCMD(CNV.argv)
+		$call CNV|parseCMD(CNV.argv)
 		mov [CNV.argc], eax
 	end if
 }
@@ -62,19 +62,19 @@ macro CNV._initHeap{
 TLS_AddMacro CNV._initHeap
 
 macro CNV.alloc size, flags=HEAP_ZERO_MEMORY{
-	@call [HeapAlloc]([CNV._heap], flags, size)
+	$call [HeapAlloc]([CNV._heap], flags, size)
 }
 
 macro CNV.realloc lpMem, size, flags=HEAP_ZERO_MEMORY{
-	@call [HeapReAlloc]([CNV._heap], flags, lpMem, size)
+	$call [HeapReAlloc]([CNV._heap], flags, lpMem, size)
 }
 
 macro CNV.free lpMem, flags=0{
-	@call [HeapFree]([CNV._heap], flags, lpMem)
+	$call [HeapFree]([CNV._heap], flags, lpMem)
 }
 
 macro CNV.BMPFromFile path, x=0, y=0{
-	@call [LoadImageA](NULL, path, IMAGE_BITMAP, x, y, LR_LOADFROMFILE)
+	$call [LoadImageA](NULL, path, IMAGE_BITMAP, x, y, LR_LOADFROMFILE)
 }
 
 FILL_NO_SAVE	= 0
@@ -224,12 +224,12 @@ FILL_SAVE_DI 	= 2
 FILL_FORCEALIGN_SRC		= 4
 FILL_FORCEALIGN_DST		= 8
 FILL_FORCEALIGN_BOTH	= FILL_FORCEALIGN_SRC or FILL_FORCEALIGN_DST
-e = CNV.__fill
-proc CNV.__fill c uses pdi psi, dst, src, size
+
+.proc cdecl CNV.__fill(.dst, .src, .size) uses pdi psi 
 	@larg pdi, @arg1, psi, @arg2, pcx, @arg3
 	rep movsb
 	ret
-endp 
+.endp
 
 macro CNV.fill dest*, src*, size*, flags=0{
 	local repeats, rem, _src, _dest, matched, ..src, ..dest
@@ -313,7 +313,7 @@ macro CNV.fill dest*, src*, size*, flags=0{
 			mov byte[_dest], al
 		end if
 	else
-		@call c CNV.__fill(dest, src, size)
+		$call c CNV.__fill(dest, src, size)
 	end if 
 }
 
@@ -491,7 +491,7 @@ macro CNV.wstrmov dest*, src*, flags=STRMOV_SAVE_SI or STRMOV_SAVE_DI{
 }
 
 macro CNV.BMP2File hBmp, lpFname, bitCount=24{
-	@call CNV::BMPToFile(hBmp, lpFname, bitCount)
+	$call CNV|BMPToFile(hBmp, lpFname, bitCount)
 }
 
 MEMSET_NO_SAVE 		= 0
@@ -533,54 +533,107 @@ macro CNV.memset dst*, val*, countval*, sizeval = 1, flags = MEMSET_SAVE_RDI{
 }
 
 macro CNV.consoleToWin1251 {
-	@call [SetConsoleCP](1251)
-	@call [SetConsoleOutputCP](1251)
+	$call [SetConsoleCP](1251)
+	$call [SetConsoleOutputCP](1251)
 }
 macro CNV.consoleToUtf8 {
-	@call [SetConsoleCP](65001)
-	@call [SetConsoleOutputCP](65001)
+	$call [SetConsoleCP](65001)
+	$call [SetConsoleOutputCP](65001)
 }
 
 macro CNV.consoleToUtf16 {
-	@call [SetConsoleCP](65001)
-	@call [SetConsoleOutputCP](65001)
-	@call c [fileno]([stdout])
-	@call c [setmode](pax, 0x00040000)
-	@call c [fileno]([stdin])
-	@call c [setmode](pax, 0x00040000)
-	@call c [fileno]([stderr])
-	@call c [setmode](pax, 0x00040000)
-	@call c [setlocale](2, ".utf8")
+	$call [SetConsoleCP](65001)
+	$call [SetConsoleOutputCP](65001)
+	$call c [fileno]([stdout])
+	$call c [setmode](pax, 0x00040000)
+	$call c [fileno]([stdin])
+	$call c [setmode](pax, 0x00040000)
+	$call c [fileno]([stderr])
+	$call c [setmode](pax, 0x00040000)
+	$call c [setlocale](2, ".utf8")
 }
 
-proc_noprologue
+.proc_frame_mode_static
 
+
+struct BITMAPINFO
+	bmiHeader BITMAPINFOHEADER
+	bmiColors rptr 1
+ends
+
+.proc cdecl CNV.BMPToFile(.hBmp, .lpFname, .bitCount)
+	@sarg @arg1, @arg2, @arg3
+	.local .bmInfo:BITMAPINFO
+	$call CNV|fill(&.bmInfo, <const BITMAPINFO <sizeof.BITMAPINFOHEADER, 0, 0, 0, 0, 0>>, sizeof.BITMAPINFO)
+	.local .tmpDC:DWORD, .lpBmBits:DWORD
+	$call [GetDC](NULL)
+	mov [.tmpDC], eax
+	; mov [.bmInfo.bmiHeader.biBitCount], 24
+	$call [GetDIBits]([.tmpDC], [.hBmp], 0, 0, NULL, addr .bmInfo, DIB_RGB_COLORS)
+	test eax, eax
+	jnz @f
+		$call [ReleaseDC]([.tmpDC])
+		mov eax, 0
+		ret
+	@@:
+	$call CNV|alloc([.bmInfo.bmiHeader.biSizeImage])
+	mov [.lpBmBits], eax
+	mov [.bmInfo.bmiHeader.biCompression], BI_RGB 
+	mov eax, [.bitCount]
+	mov [.bmInfo.bmiHeader.biBitCount], ax
+	$call [GetDIBits]([.tmpDC], [.hBmp], 0, [.bmInfo.bmiHeader.biHeight], [.lpBmBits], addr .bmInfo, DIB_RGB_COLORS)
+	$call [ReleaseDC](NULL, [.tmpDC])
+
+	.local .bmfHeader:BITMAPFILEHEADER
+	$call CNV|fill(&.bmfHeader, <const BITMAPFILEHEADER "BM", ?, 0, 0, sizeof.BITMAPFILEHEADER + sizeof.BITMAPINFO>, sizeof.BITMAPFILEHEADER)
+	mov eax, [.bmInfo.bmiHeader.biSizeImage]
+	add eax, [.bmfHeader.bfOffBits]
+	mov [.bmfHeader.bfSize], eax
+
+	local .fHandle:DWORD
+	mov [.bmInfo.bmiHeader.biCompression], BI_RGB 
+	mov eax, [.bitCount]
+	mov [.bmInfo.bmiHeader.biBitCount], ax
+	; int3
+	; $call c [puts]([.lpFname])
+	$call [CreateFileA]([.lpFname], GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)
+	mov [.fHandle], eax
+	$call [WriteFile]([.fHandle], addr .bmfHeader, sizeof.BITMAPFILEHEADER, NULL, NULL)
+	$call [WriteFile]([.fHandle], addr .bmInfo, sizeof.BITMAPINFO, NULL, NULL)
+	$call [WriteFile]([.fHandle], [.lpBmBits], [.bmInfo.bmiHeader.biSizeImage], NULL, NULL)
+	$call [CloseHandle]([.fHandle])
+	$call CNV|free([.lpBmBits])
+	ret
+.endp
+
+proc_noprologue
 @arch_include "CNV"
+proc_resprologue
 
 macro CNV.i64ToStr lpBuf, num, radix{
-	@call CNV::i64ToStrVarchar(lpBuf, num, radix, 1)
+	$call CNV|i64ToStrVarchar(lpBuf, num, radix, 1)
 }
 
 macro CNV.i64ToWStr lpBuf, num, radix{
-	@call CNV::i64ToStrVarchar(lpBuf, num, radix, 2)
+	$call CNV|i64ToStrVarchar(lpBuf, num, radix, 2)
 }
 
 macro CNV.ui64ToStr lpBuf, num, radix{
-	@call CNV::ui64ToStrVarchar(lpBuf, num, radix, 1)
+	$call CNV|ui64ToStrVarchar(lpBuf, num, radix, 1)
 }
 
 macro CNV.ui64ToWStr lpBuf, num, radix{
-	@call CNV::ui64ToStrVarchar(lpBuf, num, radix, 2)
+	$call CNV|ui64ToStrVarchar(lpBuf, num, radix, 2)
 }
 
 ; next functions both returns count of chars 
-proc CNV.uintToStrVarchar c uses pbx psi, lpStr, num, radix, charSize
-	locals
-		buf 	dw 70 dup ?
-	endl
+.proc cdecl CNV.uintToStrVarchar(.lpStr, .num, .radix, .charSize) uses pbx psi
+	.locals
+		.buf 	rw 128
+	.endl
 	cmp @arg2, 0
 		je .zeroret
-	@sarg @arg1, @arg3, @arg4
+	@sarg @arg1, @arg4
 	@larg pax, @arg3
 	mov pbx, pax
 	dec pax
@@ -596,28 +649,28 @@ proc CNV.uintToStrVarchar c uses pbx psi, lpStr, num, radix, charSize
 		jle .decDigits
 			add edx, 7
 		.decDigits:
-		mov [buf + pcx], dx
-		add pcx, [charSize]
+		mov [.buf + pcx], dx
+		add pcx, [.charSize]
 	test eax, eax
 	jnz .loop1
 	mov psi, pcx
 
 	.migration_loop:
-		mov pdx, [lpStr]
-		mov ebx, dword[charSize]
+		mov pdx, [.lpStr]
+		mov ebx, dword[.charSize]
 		.loop2:
-			sub ecx, dword[charSize]
-			mov ax, [buf + pcx]
+			sub ecx, dword[.charSize]
+			mov ax, [.buf + pcx]
 			mov [pdx], ax
 			lea pdx, [pdx + pbx]
 		jnz .loop2
-		mov eax, dword[charSize]
+		mov eax, dword[.charSize]
 		.loop3:
 			dec eax
 			mov byte[pdx + pax], 0
 		jnz .loop3
 		mov pax, psi
-		bsr ecx, dword[charSize]
+		bsr ecx, dword[.charSize]
 		shr pax, cl
 		ret
 
@@ -635,8 +688,8 @@ proc CNV.uintToStrVarchar c uses pbx psi, lpStr, num, radix, charSize
 			jle .decDigits_binary
 				add ebx, 7
 			.decDigits_binary:
-			mov [buf + pdx], bx
-			add pdx, [charSize]
+			mov [.buf + pdx], bx
+			add pdx, [.charSize]
 		test eax, eax
 		jnz .loop4
 		mov pcx, pdx
@@ -648,55 +701,54 @@ proc CNV.uintToStrVarchar c uses pbx psi, lpStr, num, radix, charSize
 		mov dword[pcx], "0"
 		mov pax, 1
 		ret
-endp
+.endp
 
-proc CNV.intToStrVarchar c, lpStr, num, radix, charSize
+.proc cdecl CNV.intToStrVarchar(.lpStr, .num, .radix, .charSize)
 	@sarg @arg2
-	locals
-		sign dd 0
-	endl
+	.local .sign:DWORD
+	mov [.sign], 0
 	cmp @arg2, 0
 	jns .positive
 		@larg pcx, @arg1, pax, @arg4
-		mov [sign], 1
+		mov [.sign], 1
 		mov word[pcx], '-'
 		neg @arg2
 		add @arg1, pax
 	.positive:
-	@call c CNV.uintToStrVarchar(@arg1, @arg2, @arg3, @arg4)
+	$call c CNV.uintToStrVarchar(@arg1, @arg2, @arg3, @arg4)
 	lea edx, [eax + 1]
-	cmp [sign], 0
+	cmp [.sign], 0
 		cmovne eax, edx
 	ret
-endp
+.endp
 
 macro CNV.intToStr lpBuf, num, radix{
-	@call CNV::intToStrVarchar(lpBuf, num, radix, 1)
+	$call CNV|intToStrVarchar(lpBuf, num, radix, 1)
 }
 
 macro CNV.intToWStr lpBuf, num, radix{
-	@call CNV::intToStrVarchar(lpBuf, num, radix, 2)
+	$call CNV|intToStrVarchar(lpBuf, num, radix, 2)
 }
 
 macro CNV.uintToStr lpBuf, num, radix{
-	@call CNV::uintToStrVarchar(lpBuf, num, radix, 1)
+	$call CNV|uintToStrVarchar(lpBuf, num, radix, 1)
 }
 
 macro CNV.uintToWStr lpBuf, num, radix{
-	@call CNV::uintToStrVarchar(lpBuf, num, radix, 2)
+	$call CNV|uintToStrVarchar(lpBuf, num, radix, 2)
 }
 
 ; len CAN`T be -1
-proc CNV.strVarcharToI64 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix:DWORD, charSize
+.proc cdecl CNV.strVarcharToI64(.lpStr, .len:DWORD, .radix:DWORD, .charSize) uses pbx psi pdi pbp
     @sarg @arg1, @arg2, @arg3, @arg4
     @larg pax, @arg3
 
-    local maxDigit:DWORD, isNeg:DWORD
+    .local .maxDigit:DWORD, .isNeg:DWORD
     lea edx, [eax + "0"]
     lea ecx, [eax + "A" - 10]
     cmp edx, "9" + 1
         cmova edx, ecx
-    mov [maxDigit], edx
+    mov [.maxDigit], edx
 
     mov pbp, .mul
     mov edx, eax
@@ -704,24 +756,24 @@ proc CNV.strVarcharToI64 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix:DWORD, 
     test eax, edx
     jnz .no_power_two
         mov pbp, .shift
-        bsr eax, [radix]
+        bsr eax, [.radix]
     .no_power_two:
-    mov [radix], eax
+    mov [.radix], eax
 
-    mov eax, [len]
-    mov ecx, dword[charSize]
+    mov eax, [.len]
+    mov ecx, dword[.charSize]
     bsf ecx, ecx
     shl eax, cl
-    mov pdi, [lpStr]
+    mov pdi, [.lpStr]
     add pdi, pax
 
-    mov pbx, [lpStr]
-    mov ecx, [radix]
-    mov edx, 2
+    mov pbx, [.lpStr]
+    mov ecx, [.radix]
+    mov edx, [.charSize]
     xor esi, esi
-    cmp word[pbx], "-"
+    cmp byte[pbx], "-"
         cmove esi, edx
-    mov [isNeg], esi
+    mov [.isNeg], esi
     add pbx, psi
     
     xor eax, eax
@@ -735,7 +787,7 @@ proc CNV.strVarcharToI64 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix:DWORD, 
         case u +"a" ... +"f"
             and edi, 0DFh
             jmp start_case
-        case u +"0" ... [maxDigit]
+        case u +"0" ... [.maxDigit]
             jmp pbp
             .after_digit:
             lea esi, [edi - "A" + 10]
@@ -744,7 +796,7 @@ proc CNV.strVarcharToI64 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix:DWORD, 
                 cmova edi, esi
             add eax, edi
             adc edx, 0
-            add pbx, [charSize]
+            add pbx, [.charSize]
             cmp pbx, pdi
             	je end_case
             movzx edi, byte[pbx]
@@ -752,10 +804,10 @@ proc CNV.strVarcharToI64 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix:DWORD, 
     end_switch
     ; mov pcx, pax
     ; neg pcx
-    cmp [isNeg], 0
+    cmp [.isNeg], 0
         je .return
     match =x64, __architecture{
-        neg pax                    
+        neg rax                    
     }
     match =x86, __architecture{
         movd xmm0, eax
@@ -773,49 +825,49 @@ proc CNV.strVarcharToI64 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix:DWORD, 
 
     .mul:
         xchg ecx, edx
-        @call edx:eax = CNV::ui64mul(ecx:eax, 0:edx)
-        mov ecx, dword[radix]
+        $call edx:eax = CNV|ui64mul(ecx:eax, 0:edx)
+        mov ecx, dword[.radix]
         jmp .after_digit
 
     .shift:
         shld edx, eax, cl
         shl eax, cl
         jmp .after_digit
-endp
+.endp
 
 ; len can be -1
-proc CNV.strToI64 c uses pbx psi pdi, lpStr, len, radix
+.proc cdecl CNV.strToI64(.lpStr, .len, .radix)
 	@sarg @arg1, @arg2, @arg3
 	cmp @arg2, -1
 	jne @f
-		@call [len] = CNV::strlen(@arg1)
+		$call [.len] = CNV|strlen(@arg1)
 	@@:
-	@call CNV::strVarcharToI64([lpStr], [len], [radix], 1)
+	$call CNV|strVarcharToI64([.lpStr], [.len], [.radix], 1)
 	ret
-endp
+.endp
 
 ; len can be -1
-proc CNV.wstrToI64 c uses pbx psi pdi, lpStr, len, radix
+.proc cdecl CNV.wstrToI64(.lpStr, .len, .radix)
 	@sarg @arg1, @arg2, @arg3
 	cmp @arg2, -1
 	jne @f
-		@call [len] = CNV::wstrlen(@arg1)
+		$call [.len] = CNV|wstrlen(@arg1)
 	@@:
-	@call CNV::strVarcharToI64([lpStr], [len], [radix], 2)
+	$call CNV|strVarcharToI64([.lpStr], [.len], [.radix], 2)
 	ret
-endp
+.endp
 
 ; len CAN`T be -1 
-proc CNV.strVarcharToI32 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix, charSize
+.proc cdecl CNV.strVarcharToI32(.lpStr, .len:DWORD, .radix, .charSize) uses pbx psi pdi pbp
     @sarg @arg1, @arg2, @arg3, @arg4
     @larg pax, @arg3
 
-    local maxDigit:DWORD, isNeg:DWORD
+    .local .maxDigit:DWORD, .isNeg:DWORD
     lea edx, [eax + "0"]
     lea ecx, [eax + "A" - 10]
     cmp edx, "9" + 1
         cmova edx, ecx
-    mov [maxDigit], edx
+    mov [.maxDigit], edx
 
     mov pbp, .mul
     mov edx, eax
@@ -823,25 +875,24 @@ proc CNV.strVarcharToI32 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix, charSi
     test eax, edx
     jnz .no_power_two
         mov pbp, .shift
-        bsr eax, [radix]
+        bsr eax, [.radix]
     .no_power_two:
-    mov [radix], eax
+    mov [.radix], eax
 
-    mov eax, [len]
-    mov ecx, dword[charSize]
+    mov eax, [.len]
+    mov ecx, dword[.charSize]
     bsf ecx, ecx
     shl eax, cl
-    mov pdi, [lpStr]
+    mov pdi, [.lpStr]
     add pdi, pax
 
-    ; @call WString::getLpWChars([this])
-    mov pbx, [lpStr]
-    mov ecx, [radix]
-    mov edx, 2
+    mov pbx, [.lpStr]
+    mov ecx, [.radix]
+    mov edx, [.charSize]
     xor esi, esi
-    cmp word[pbx], "-"
+    cmp byte[pbx], "-"
         cmove esi, edx
-    mov [isNeg], esi
+    mov [.isNeg], esi
     add pbx, psi
     
     xor eax, eax
@@ -855,7 +906,7 @@ proc CNV.strVarcharToI32 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix, charSi
         case u +"a" ... +"f"
             and edi, 0DFh
             jmp start_case
-        case u +"0" ... [maxDigit]
+        case u +"0" ... [.maxDigit]
             jmp pbp
             .after_digit:
             lea esi, [edi - "A" + 10]
@@ -863,7 +914,7 @@ proc CNV.strVarcharToI32 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix, charSi
             cmp edi, 9
                 cmova edi, esi
             add eax, edi
-            add pbx, [charSize]
+            add pbx, [.charSize]
             cmp pbx, pdi
             	je end_case
             movzx edi, byte[pbx]
@@ -871,7 +922,7 @@ proc CNV.strVarcharToI32 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix, charSi
     end_switch
     ; mov pcx, pax
     ; neg pcx
-    cmp [isNeg], 0
+    cmp [.isNeg], 0
         je .return
     neg eax
     .return: ret
@@ -883,32 +934,33 @@ proc CNV.strVarcharToI32 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix, charSi
     .shift:
         shl eax, cl
         jmp .after_digit
-endp
+.endp
 
-proc CNV.strToI32 c uses pbx psi pdi, lpStr, len, radix
+.proc cdecl CNV.strToI32(.lpStr, .len, .radix) uses pbx psi pdi
 	@sarg @arg1, @arg2, @arg3
 	cmp @arg2, -1
 	jne @f
-		@call [len] = CNV::strlen(@arg1)
+		$call [.len] = CNV|strlen(@arg1)
 	@@:
-	@call CNV::strVarcharToI32([lpStr], [len], [radix], 1)
+	$call CNV|strVarcharToI32([.lpStr], [.len], [.radix], 1)
 	ret
-endp
+.endp
 
-proc CNV.wstrToI32 c uses pbx psi pdi, lpStr, len, radix
+.proc cdecl CNV.wstrToI32(.lpStr, .len, .radix) uses pbx psi pdi
 	@sarg @arg1, @arg2, @arg3
 	cmp @arg2, -1
 	jne @f
-		@call [len] = CNV::wstrlen(@arg1)
+		$call [.len] = CNV|wstrlen(@arg1)
 	@@:
-	@call CNV::strVarcharToI32([lpStr], [len], [radix], 2)
+	$call CNV|strVarcharToI32([.lpStr], [.len], [.radix], 2)
 	ret
-endp
+.endp
 
-proc CNV.ui32sqrt c uses pbx psi pdi, num:POINTER
+.proc cdecl CNV.ui32sqrt(.num:POINTER) uses pbx psi pdi
 	@larg pax, @arg1
 	bsr pcx, pax
 		jz .return
+
 	and ecx, 0FEh
 	xor edx, edx
 	xchg pdx, pax
@@ -923,17 +975,21 @@ proc CNV.ui32sqrt c uses pbx psi pdi, num:POINTER
 		shr psi, cl
 		cmp pdi, psi
 		lea esi, [eax + 1]
-			cmovbe eax, esi
-			cmovbe pbx, pdi
+		cmovbe eax, esi
+		cmovbe pbx, pdi
 	sub ecx, 2
 	jns @b
 	.return: ret
-endp
+.endp
 
-proc CNV.ui32pow c, num, exp:DWORD
-	@sarg @arg1, @arg2
-	mov ecx, [exp]
-	mov pdx, [num]
+.proc cdecl CNV.ui32pow(.num, .exp:DWORD)
+	match =x64, __architecture{
+		xchg rcx, rdx
+	}
+	match =x86, __architecture{
+		mov ecx, [.exp]
+		mov edx, [.num]
+	}
 	mov eax, 1
 	.pow_loop:
 		test ecx, 1
@@ -945,14 +1001,15 @@ proc CNV.ui32pow c, num, exp:DWORD
 	test ecx, ecx
 	jnz .pow_loop
 	ret
-endp
+.endp
 
-proc_resprologue
+.proc_frame_mode_previous
+.proc_frame_mode_standard
 
-proc CNV.parseCMD c uses pbx, lpArgv:POINTER
+.proc cdecl CNV.parseCMD(.lpArgv:POINTER) uses pbx
 	@sarg @arg1
-	local lpArgMem:POINTER
-	@call [GetCommandLineA]()
+	.local .lpArgMem:POINTER
+	$call [GetCommandLineA]()
 	mov pdx, pax
 	xor ecx, ecx
 	mov ebx, 1
@@ -993,15 +1050,29 @@ proc CNV.parseCMD c uses pbx, lpArgv:POINTER
 		inc pbx
 		push pdx
 	@@:
-	@call CNV::alloc(addr pbx * pointer.size)
-	mov [lpArgMem], pax
+	match =x64, __architecture{
+		test pbx, 1
+		jz @f
+			sub rsp, 8
+		@@:
+	}
+	$call CNV|alloc(addr pbx * pointer.size)
+	match =x64, __architecture{
+		test pbx, 1
+		jz @f
+			add rsp, 8
+		@@:
+	}
+	mov [.lpArgMem], pax
 	mov ecx, ebx
 	@@:
 		pop pointer[pax + (pcx - 1) * pointer.size]
 	loop @b
-	mov pdx, [lpArgMem]
-	mov pcx, [lpArgv]
+	mov pdx, [.lpArgMem]
+	mov pcx, [.lpArgv]
 	mov [pcx], pdx
 	mov eax, ebx
 	ret
-endp
+.endp
+
+.proc_frame_mode_previous

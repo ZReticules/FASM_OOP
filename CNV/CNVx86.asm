@@ -45,68 +45,21 @@
 ; 	ret
 ; endp
 
-struct BITMAPINFO
-	bmiHeader BITMAPINFOHEADER
-	bmiColors dd 1 dup(?)
-ends
-
-proc CNV.BMPToFile c, hBmp, lpFname, bitCount
-	local <bmInfo:BITMAPINFO <sizeof.BITMAPINFOHEADER, 0, 0, 0, 0, 0>>
-	local tmpDC:DWORD, lpBmBits:DWORD
-	@call [GetDC](NULL)
-	mov [tmpDC], eax
-	; mov [bmInfo.bmiHeader.biBitCount], 24
-	@call [GetDIBits]([tmpDC], [hBmp], 0, 0, NULL, addr bmInfo, DIB_RGB_COLORS)
-	test eax, eax
-	jnz @f
-		@call [ReleaseDC]([tmpDC])
-		mov eax, 0
-		ret
-	@@:
-	@call CNV::alloc([bmInfo.bmiHeader.biSizeImage])
-	mov [lpBmBits], eax
-	mov [bmInfo.bmiHeader.biCompression], BI_RGB 
-	mov eax, [bitCount]
-	mov [bmInfo.bmiHeader.biBitCount], ax
-	@call [GetDIBits]([tmpDC], [hBmp], 0, [bmInfo.bmiHeader.biHeight], [lpBmBits], addr bmInfo, DIB_RGB_COLORS)
-	@call [ReleaseDC](NULL, [tmpDC])
-
-	local <bmfHeader:BITMAPFILEHEADER "BM", ?, 0, 0, sizeof.BITMAPFILEHEADER+sizeof.BITMAPINFO>
-	mov eax, [bmInfo.bmiHeader.biSizeImage]
-	add eax, [bmfHeader.bfOffBits]
-	mov [bmfHeader.bfSize], eax
-
-	local fHandle:DWORD
-	mov [bmInfo.bmiHeader.biCompression], BI_RGB 
-	mov eax, [bitCount]
-	mov [bmInfo.bmiHeader.biBitCount], ax
-	; int3
-	; @call c [puts]([lpFname])
-	@call [CreateFileA]([lpFname], GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)
-	mov [fHandle], eax
-	@call [WriteFile]([fHandle], addr bmfHeader, sizeof.BITMAPFILEHEADER, NULL, NULL)
-	@call [WriteFile]([fHandle], addr bmInfo, sizeof.BITMAPINFO, NULL, NULL)
-	@call [WriteFile]([fHandle], [lpBmBits], [bmInfo.bmiHeader.biSizeImage], NULL, NULL)
-	@call [CloseHandle]([fHandle])
-	@call CNV::free([lpBmBits])
-	ret
-endp
-
-proc CNV.ui64div c uses pbx, result:POINTER, dividend:QWORD, divisor:QWORD
+.proc cdecl CNV.ui64div(.p_result:POINTER, .dividend:QWORD, .divisor:QWORD) uses pbx
 	virtObj .result:arg Divq at pbx from @arg1
-	@call CNV::fill(addr .result, addr dividend, 16)
-	bsr edx, dword[divisor + 4]
+	$call CNV|fill(addr .result, addr .dividend, 16)
+	bsr edx, dword[.divisor + 4]
 		jz .QD_div
-	bsr ecx, dword[dividend + 4]
+	bsr ecx, dword[.dividend + 4]
 		jz .lazy_ret
 	cmp edx, ecx
 		ja .lazy_ret
-	movq xmm0, [divisor]
-	movq xmm1, [dividend]
+	movq xmm0, [.divisor]
+	movq xmm1, [.dividend]
 	jnz .no_equal_powers
 		pcmpgtq xmm0, xmm1
 		movd eax, xmm0
-		movq xmm0, [divisor]
+		movq xmm0, [.divisor]
 		test eax, eax
 			jnz .lazy_ret
 	.no_equal_powers:
@@ -145,12 +98,12 @@ proc CNV.ui64div c uses pbx, result:POINTER, dividend:QWORD, divisor:QWORD
 	ret
 
 	.QD_div:
-		mov ecx, dword[divisor]
-		mov eax, dword[dividend + 4]
+		mov ecx, dword[.divisor]
+		mov eax, dword[.dividend + 4]
 		xor edx, edx
 		div ecx
 		mov dword[.result.result + 4], eax
-		mov eax, dword[dividend]
+		mov eax, dword[.dividend]
 		div ecx
 		mov dword[.result.result], eax
 		mov dword[.result.reminder], edx
@@ -168,17 +121,17 @@ proc CNV.ui64div c uses pbx, result:POINTER, dividend:QWORD, divisor:QWORD
 	; @const_align equ 16
 	.one @const dq 1
 	; restore @const_align
-endp
+.endp
 	
-proc CNV.ui64sqrt c, num:QWORD
+.proc cdecl CNV.ui64sqrt(.num:QWORD) 
 	xor eax, eax
-	bsr ecx, dword[num + 4]
+	bsr ecx, dword[.num + 4]
 	jnz .no_check_low
-		@jret CNV.ui32sqrt()
+		jmp CNV.ui32sqrt
 	.no_check_low:
 	add ecx, 32
 	and ecx, 0FEh
-	movq xmm4, [num]
+	movq xmm4, [.num]
 	pxor xmm5, xmm5
 	@@:
 		shl eax, 1
@@ -187,7 +140,7 @@ proc CNV.ui64sqrt c, num:QWORD
 		movq xmm1, xmm5	;xmm1 = (eax + 1) * (eax + 1)
 		movd xmm2, eax
 		paddq xmm1, xmm2
-		lea edx, [eax+1]
+		lea edx, [eax + 1]
 		movd xmm2, edx
 		paddq xmm1, xmm2
 
@@ -204,24 +157,20 @@ proc CNV.ui64sqrt c, num:QWORD
 	sub ecx, 2
 	jns @b
 	.return: ret
-endp
+.endp
 
 
-proc CNV.ui64ToStrVarchar c uses pbx psi pdi pbp, lpStr, num:QWORD, radix, charSize
-	locals
-		buf 	dw 70 dup ?
-	endl
-	cmp dword[num + 4], 0
+.proc cdecl CNV.ui64ToStrVarchar(.lpStr, .num:QWORD, .radix, .charSize) uses pbx psi pdi pbp
+	.local .buf[128]:WORD
+	cmp dword[.num + 4], 0
 		je .only_low
-	mov ebx, [radix]
-	; @sarg @arg1, @arg3
-	; @larg pax, @arg3
+	mov ebx, [.radix]
 	mov pcx, pbx
 	dec pcx
 	and pcx, pbx
 		jz .power_of_two
-	mov edi, dword[num + 4]
-	mov ebp, dword[num]
+	mov edi, dword[.num + 4]
+	mov ebp, dword[.num]
 	xor psi, psi
 	.loop1:
 		xor edx, edx
@@ -237,35 +186,35 @@ proc CNV.ui64ToStrVarchar c uses pbx psi pdi pbp, lpStr, num:QWORD, radix, charS
 		jle .decDigits
 			add edx, 7
 		.decDigits:
-		mov [buf + psi], dx
-		add psi, [charSize]
+		mov [.buf + psi], dx
+		add psi, [.charSize]
 	test eax, eax
 	jnz .loop1
 	mov pcx, psi
 	
 	.migration_loop:
-		mov pdx, [lpStr]
-		mov ebx, dword[charSize]
+		mov pdx, [.lpStr]
+		mov ebx, dword[.charSize]
 		.loop2:
-			sub ecx, dword[charSize]
-			mov ax, [buf + pcx]
+			sub ecx, dword[.charSize]
+			mov ax, [.buf + pcx]
 			mov [pdx], ax
 			lea pdx, [pdx + pbx]
 		jnz .loop2
-		mov eax, dword[charSize]
+		mov eax, dword[.charSize]
 		.loop3:
 			dec eax
 			mov byte[pdx + pax], 0
 		jnz .loop3
 		mov pax, psi
-		bsr ecx, dword[charSize]
+		bsr ecx, dword[.charSize]
 		shr pax, cl
 		ret
 
 	.power_of_two:
 		; @larg pdx, @arg1
-		mov eax, dword[num]
-		mov edx, dword[num + 4]
+		mov eax, dword[.num]
+		mov edx, dword[.num + 4]
 		xor psi, psi
 		bsr pcx, pbx
 		.loop4:
@@ -279,8 +228,8 @@ proc CNV.ui64ToStrVarchar c uses pbx psi pdi pbp, lpStr, num:QWORD, radix, charS
 			jle .decDigits_binary
 				add ebx, 7
 			.decDigits_binary:
-			mov [buf + psi], bx
-			add psi, [charSize]
+			mov [.buf + psi], bx
+			add psi, [.charSize]
 		test eax, eax
 		jnz .loop4
 		mov pcx, psi
@@ -288,93 +237,93 @@ proc CNV.ui64ToStrVarchar c uses pbx psi pdi pbp, lpStr, num:QWORD, radix, charS
 		jmp .migration_loop
 
 	.only_low:
-		@call CNV::uintToStrVarchar([lpStr], dword[num], [radix], [charSize])
+		$call CNV|uintToStrVarchar([.lpStr], dword[.num], [.radix], [.charSize])
 		ret
-endp
+.endp
 
-proc CNV.i64ToStrVarchar c, lpStr, num:QWORD, radix, charSize
-	locals
-		sign dd 0
-	endl
-	cmp dword[num+4], 0
+.proc cdecl CNV.i64ToStrVarchar(.lpStr, .num:QWORD, .radix, .charSize)
+	.local .sign:DWORD
+	mov [.sign], 0
+	cmp dword[.num+4], 0
 	jns .positive
-		mov [sign], 1
-		mov ecx, [lpStr]
+		mov [.sign], 1
+		mov ecx, [.lpStr]
 		mov byte[pcx], '-'
-		neg dword[num]
-		adc dword[num + 4], 0
-		neg dword[num + 4]
-		mov eax, dword[charSize]
-		add [lpStr], eax
+		neg dword[.num]
+		adc dword[.num + 4], 0
+		neg dword[.num + 4]
+		mov eax, dword[.charSize]
+		add [.lpStr], eax
 	.positive:
-	@call c CNV.ui64ToStrVarchar(@arg1, @arg2, @arg3, @arg4)
+	$call c CNV.ui64ToStrVarchar([.lpStr], [.num], [.radix], [.charSize])
 	lea ecx, [eax + 1]
-	cmp [sign], 0
-		cmovne eax, ecx
+	cmp [.sign], 0
+	cmovne eax, ecx
 	ret
-endp
+.endp
 
-proc CNV.ui64mul c, a:QWORD, b:QWORD
-	locals 
-		buf rq 4
-		dest dq ?, ?
-	endl
-	movq xmm1, [b]
-	movq xmm0, [a]
+.proc cdecl CNV.ui64mul(.a:QWORD, .b:QWORD)
+	.local .buf[4]:QWORD, .dest[2]:QWORD
+	movq xmm1, [.b]
+	movq xmm0, [.a]
 
 	pshufd xmm0, xmm0, 01000100b
 	vpmovzxdq ymm0, xmm0
 	pshufd xmm1, xmm1, 01010000b
 	vpmovzxdq ymm1, xmm1
 	vpmuludq ymm0, ymm0, ymm1
-	vmovups yword[buf], ymm0
+	vmovups yword[.buf], ymm0
 	
-	movq [dest], xmm0
+	movq [.dest], xmm0
 	
-	mov eax, dword[buf + 8]
-	mov edx, dword[buf + 12]
-	add dword[dest + 4], eax
-	adc dword[dest + 8], edx
-	adc dword[dest + 12], 0
+	mov eax, dword[.buf + 8]
+	mov edx, dword[.buf + 12]
+	add dword[.dest + 4], eax
+	adc dword[.dest + 8], edx
+	adc dword[.dest + 12], 0
 
-	mov eax, dword[buf + 16]
-	mov edx, dword[buf + 20]
-	add dword[dest + 4], eax
-	adc dword[dest + 8], edx
-	adc dword[dest + 12], 0
+	mov eax, dword[.buf + 16]
+	mov edx, dword[.buf + 20]
+	add dword[.dest + 4], eax
+	adc dword[.dest + 8], edx
+	adc dword[.dest + 12], 0
 	
 	vextractf128 xmm0, ymm0, 1
 	psrldq xmm0, 8
 	pslldq xmm0, 8
-	movups xmm1, xword[dest]
+	movups xmm1, xword[.dest]
 	paddq xmm0, xmm1
 	movd eax, xmm0
 	psrldq xmm0, 4
 	movd edx, xmm0
 	ret
-endp
+.endp
 
-proc CNV.ui64pow c uses pbx, num:QWORD, exp:DWORD
+.proc cdecl CNV.ui64pow(.num:QWORD, .exp:DWORD) uses pbx
 	; @sarg @arg1, @arg2
-	local result:dq 1, xmm0_save:QWORD
+	.local .result:dq 1, .xmm0_save:QWORD
+	pcmpeqq xmm0, xmm0
+	pxor xmm1, xmm1
+	psubq xmm1, xmm0
+	movq [.result], xmm1
 
-	mov ebx, [exp]
-	movq xmm0, [num]
+	mov ebx, [.exp]
+	movq xmm0, [.num]
 	.pow_loop:
 		test ebx, 1
 		jz .no_mul
-			movq [xmm0_save], xmm0
-			@call [result] = CNV::ui64mul([result], qword xmm0)
-			movq xmm0, [xmm0_save]
+			movq [.xmm0_save], xmm0
+			$call [.result] = CNV|ui64mul([.result], qword xmm0)
+			movq xmm0, [.xmm0_save]
 		.no_mul:
-		@call qword xmm0 = CNV::ui64mul(qword xmm0, qword xmm0)
+		$call qword xmm0 = CNV|ui64mul(qword xmm0, qword xmm0)
 		shr ebx, 1
 	test ebx, ebx
 	jnz .pow_loop
-	mov eax, dword[result]
-	mov edx, dword[result + 4]
+	mov eax, dword[.result]
+	mov edx, dword[.result + 4]
 	ret
-endp
+.endp
 
 if used CMV.i32ToStr
 	CMV.i32ToStr = CNV.intToStr

@@ -133,9 +133,9 @@
 				mov [stderr], pax
 			\\}
 			match =ucrtbase, dllname\\{
-				@call [stdin] = c [__acrt_iob_func](0)
-				@call [stdout] = c [__acrt_iob_func](1)
-				@call [stderr] = c [__acrt_iob_func](2)
+				$call [stdin] = c [__acrt_iob_func](0)
+				$call [stdout] = c [__acrt_iob_func](1)
+				$call [stderr] = c [__acrt_iob_func](2)
 			\\}
 		end if
 	\}
