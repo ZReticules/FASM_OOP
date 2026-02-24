@@ -717,9 +717,9 @@ proc CNV.strVarcharToI64 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix:DWORD, 
 
     mov pbx, [lpStr]
     mov ecx, [radix]
-    mov edx, 2
+    mov edx, [charSize]
     xor esi, esi
-    cmp word[pbx], "-"
+    cmp byte[pbx], "-"
         cmove esi, edx
     mov [isNeg], esi
     add pbx, psi
@@ -837,9 +837,9 @@ proc CNV.strVarcharToI32 c uses pbx psi pdi pbp, lpStr, len:DWORD, radix, charSi
     ; @call WString::getLpWChars([this])
     mov pbx, [lpStr]
     mov ecx, [radix]
-    mov edx, 2
+    mov edx, [charSize]
     xor esi, esi
-    cmp word[pbx], "-"
+    cmp byte[pbx], "-"
         cmove esi, edx
     mov [isNeg], esi
     add pbx, psi
