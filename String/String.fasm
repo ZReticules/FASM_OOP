@@ -1,15 +1,13 @@
-proc_noprologue
-
-define DW_BE_PSIZE (pointer.size * 01000000h)
+.proc_frame_mode_static
 
 macro String.print this, fp=[stdout]{
-    @call String::getLpChars(this)
-    @call c [fputs](pax, fp)
+    $call getLpChars<String>(this)
+    $call c [fputs](pax, fp)
 }
 
 macro String.println this{
-    @call String::getLpChars(this)
-    @call c [puts](pax)
+    $call getLpChars<String>(this)
+    $call c [puts](pax)
 }
 
 macro String.getLpChars this{
@@ -35,16 +33,16 @@ macro String.flush this{
     local _this
     inlineObj _this, this, pcx
     mov [_this + String.len], 0
-    @call String::getLpChars(this)
+    $call getLpChars<String>(this)
     mov pointer[pax], 0
 }
 
 macro String.input this{
-    @call String::read(this, [stdin])
+    $call read<String>(this, [stdin])
 }
 
 macro String.realloc this, size, minify=0{
-    @call String::reallocParam(this, size, minify)
+    $call reallocParam<String>(this, size, minify)
 }
 
 ; proc String_input c, this
@@ -75,8 +73,8 @@ macro String.realloc this, size, minify=0{
 ;     ret
 ; endp
 
-proc String.make c uses pbx, this, size
-    virtObj .this:arg String at pbx from @arg1
+.proc cdecl String.make(.pthis, .size) uses pbx
+    virtObj .this String at pbx from @arg1
     @larg pdx, @arg2
     mov [.this.len], 0
     cmp edx, String.SHORT_STRING_LEN
@@ -88,23 +86,24 @@ proc String.make c uses pbx, this, size
         bswap edx
         mov [.this.__size], edx
         bswap edx
-        @call CNV::alloc(addr edx + 1)
+        $call CNV|alloc(addr edx + 1)
         mov [.this.__lpChars], pax
+        mov byte[pax], 0
         ret
-endp
+.endp
 
-proc String.reallocParam c uses pbx, this, size, minify
-    virtObj .this:arg String at pbx from @arg1
+.proc cdecl String.reallocParam(.pthis, .size, .minify) uses pbx
+    virtObj .this String at pbx from @arg1
     @larg pdx, @arg2
-    local memBuf:POINTER
+    .local .memBuf:POINTER
     
-    switch @arg3
-        case 0
-            mov eax, [.this.__size]
-            bswap eax
-            cmp eax, edx
-                jae .return
-    end_switch
+    cmp @arg3, 0
+    jne @f
+        mov eax, [.this.__size]
+        bswap eax
+        cmp eax, edx
+            jae .return
+    @@:
     cmp edx, String.SHORT_STRING_LEN
     seta al
     mov ecx, [.this.__size]
@@ -127,45 +126,44 @@ proc String.reallocParam c uses pbx, this, size, minify
         ret
 
     .dest_low:
-        bswap edx
-        mov [.this.__size], edx
-        bswap edx
-        @call [memBuf] = CNV::alloc(addr edx + 1)
-        @call CNV::fill(pax, addr .this.__lpChars, String.SHORT_STRING_LEN)
-        mov pax, [memBuf]
+        mov eax, edx
+        bswap eax
+        mov [.this.__size], eax
+        $call [.memBuf] = CNV|alloc(addr edx + 1)
+        $call CNV|fill(pax, addr .this.__lpChars, String.SHORT_STRING_LEN)
+        mov pax, [.memBuf]
         mov [.this.__lpChars], pax
         .return: ret
 
     .src_low:
         mov [.this.__size], String.SHORT_STRING_LEN_BE
         mov pax, [.this.__lpChars]
-        mov [memBuf], pax
-        @call CNV::fill(addr .this.__lpChars, pax, String.SHORT_STRING_LEN)
+        mov [.memBuf], pax
+        $call CNV|fill(addr .this.__lpChars, pax, String.SHORT_STRING_LEN)
         cmp [.this.len], String.SHORT_STRING_LEN
         jb .no_resize
             mov [.this.len], String.SHORT_STRING_LEN
         .no_resize:
-        @call CNV::free([memBuf])
+        $call CNV|free([.memBuf])
         ret
 
     .no_low:
-        bswap edx
-        mov [.this.__size], edx
-        bswap edx
+        mov eax, edx
+        bswap eax
+        mov [.this.__size], eax
         cmp [.this.len], edx
         jb .no_cut
             mov [.this.len], edx
         .no_cut:
-        @call CNV::realloc([.this.__lpChars], addr edx + 1)
+        $call CNV|realloc([.this.__lpChars], addr edx + 1)
         mov [.this.__lpChars], pax
         mov edx, [.this.len]
         mov byte[pax + pdx], 0
         ret
-endp
+.endp
 
-proc String.unmake c, this
-    @sarg @arg1
-    virtObj .this:arg String at pcx from @arg1
+.proc cdecl String.unmake(.pthis)
+    virtObj .this String at pcx from @arg1
     xor pax, pax
     xchg pax, [.this.__lpChars]
     mov [.this.len], 0
@@ -173,14 +171,14 @@ proc String.unmake c, this
     bswap edx
     mov [.this.__size], String.SHORT_STRING_LEN_BE
     cmp edx, String.SHORT_STRING_LEN
-    jbe .no_free
-        @call CNV::free(pax)
-    .no_free:
+    @block jbe @fb
+        $call CNV|free(pax)
+    @endb
     ret
-endp
+.endp
 
-proc String.fromChars c uses pbx psi pdi, this, lpChars, bCount
-    virtObj .this:arg String at pbx from @arg1
+.proc cdecl String.fromChars(.pthis, .lpChars, .bCount) uses pbx psi pdi
+    virtObj .this String at pbx from @arg1
     cmp @arg3, 0
         je .zero_bytes
     @sarg @arg2, @arg3
@@ -190,110 +188,110 @@ proc String.fromChars c uses pbx psi pdi, this, lpChars, bCount
         @call CNV::strlen(@arg2)
         test pax, pax
             jz .zero_bytes
-        mov [bCount], pax
+        mov [.bCount], pax
     .no_asciiz:
     mov edx, [.this.__size]
     bswap edx
     cmp eax, edx
     jbe .no_realloc
-        @call .this->realloc([bCount])
+        $call .this::realloc([.bCount])
     .no_realloc:
     ; mov eax, [.this.__size]
-    @call pdi = .this->getLpChars()
-    mov psi, [lpChars]
-    mov pcx, [bCount]
+    $call pdi = .this::getLpChars()
+    mov psi, [.lpChars]
+    mov pcx, [.bCount]
     mov [.this.len], ecx
     rep movsb
     mov byte[pdi], 0
     ret
 
     .zero_bytes:
-        @call .this->flush()
+        $call .this::flush()
         ret
-endp
+.endp
 
-proc String.addChars c uses pbx psi pdi, this, lpChars, bCount
+.proc cdecl String.addChars(.pthis, .lpChars, .bCount) uses pbx psi pdi
     cmp @arg3, 0
         je .return
-    virtObj .this:arg String at pbx from @arg1
+    virtObj .this String at pbx from @arg1
     @sarg @arg2, @arg3
     @larg pax, @arg3
     cmp eax, -1
     jne .no_asciiz
-        @call CNV::strlen(@arg2)
+        $call CNV|strlen(@arg2)
         test pax, pax
             jz .return
-        mov [bCount], pax
+        mov [.bCount], pax
     .no_asciiz:
     add eax, [.this.len]
     mov edx, [.this.__size]
     bswap edx
     cmp eax, edx
     jbe .no_realloc
-        @call .this->realloc(addr eax + 1)
+        $call .this::realloc(addr eax + 1)
     .no_realloc:
-    @call .this->getLpChars()
+    $call .this::getLpChars()
     mov edi, [.this.len]
     add pdi, pax
-    mov psi, [lpChars]
-    mov pcx, [bCount]
+    mov psi, [.lpChars]
+    mov pcx, [.bCount]
     add [.this.len], ecx
     rep movsb
     mov byte[pdi], 0
     .return: ret
-endp
+.endp
 
-proc String.fromString c uses psi, this, lpString
-    virtObj .other:arg String at psi from @arg2
+.proc cdecl String.fromString(.pthis, .lpString) uses psi
+    virtObj .other String at psi from @arg2
     @sarg @arg1
-    @call .other->getLpChars()
-    @call String::fromChars([this], pax, [.other.len])
+    $call .other::getLpChars()
+    $call fromChars<String>([.pthis], pax, [.other.len])
     ret
-endp
+.endp
 
-proc String.addString c uses psi, this, lpString
-    virtObj .other:arg String at psi from @arg2
+.proc cdecl String.addString(.pthis, .lpString) uses psi
+    virtObj .other String at psi from @arg2
     @sarg @arg1
-    @call .other->getLpChars()
-    @call String::addChars([this], pax, [.other.len])
+    $call .other::getLpChars()
+    $call addChars<String>([.pthis], pax, [.other.len])
     ret
-endp
+.endp
 
-proc String.slice c uses psi pdi pbx, this, source, _start, _end
-    virtObj .this:arg String at pdi from @arg1
-    virtObj .src:arg String at psi from @arg2
+.proc cdecl String.slice(.pthis, .source, .start, .end) uses psi pdi pbx
+    virtObj .this String at pdi from @arg1
+    virtObj .src String at psi from @arg2
     @sarg @arg3, @arg4
-    cmp dword[_start], 0
+    cmp dword[.start], 0
     jge .no_neg_low
         mov eax, [.src.len]
-        add dword[_start], eax
-        cmp dword[_start], 0
+        add dword[.start], eax
+        cmp dword[.start], 0
         jg .no_out_low_bound
-            mov [_start], 0
+            mov [.start], 0
         .no_out_low_bound:
     .no_neg_low:
-    cmp dword[_end], 0
+    cmp dword[.end], 0
     jge .no_neg_high
         mov eax, [.src.len]
-        add dword[_end], eax
-        cmp dword[_end], 0
+        add dword[.end], eax
+        cmp dword[.end], 0
         jg .no_out_high_bound
-            mov [_end], 0
+            mov [.end], 0
         .no_out_high_bound:
     .no_neg_high:
-    mov ebx, dword[_end]
+    mov ebx, dword[.end]
     cmp ebx, [.src.len]
         cmova ebx, [.src.len]
-    sub ebx, dword[_start]
+    sub ebx, dword[.start]
         jbe .empty
     cmp ebx, [.this.len]
     jbe .no_realloc
-        @call .this->realloc(ebx)
+        $call .this::realloc(ebx)
     .no_realloc:
-    @call .src->getLpChars()
+    $call .src::getLpChars()
     mov psi, pax
-    add psi, [_start]
-    @call .this->getLpChars()
+    add psi, [.start]
+    $call .this::getLpChars()
     mov [.this.len], ebx
     mov pdi, pax
     mov pcx, pbx
@@ -302,39 +300,39 @@ proc String.slice c uses psi pdi pbx, this, source, _start, _end
     ret
 
     .empty:
-        @call .this->flush()
+        $call .this::flush()
         ret
-endp
+.endp
 
-proc String.fromChar c uses pdi, this, bVal, bCount
+.proc cdecl String.fromChar(.pthis, .bVal, .bCount) uses pdi
     cmp @arg3, 0
         je .flush
-    virtObj .this:arg String at pdi from @arg1
+    virtObj .this String at pdi from @arg1
     @sarg @arg2, @arg3
     @larg pax, @arg3
     mov edx, [.this.__size]
     bswap edx
     cmp edx, eax
     jae .no_realloc
-        @call .this->realloc(pax)
+        $call .this::realloc(pax)
     .no_realloc:
-    @call .this->getLpChars()
-    mov pcx, [bCount]
+    $call .this::getLpChars()
+    mov pcx, [.bCount]
     mov [.this.len], ecx
     mov pdi, pax
-    mov pax, [bVal]
+    mov pax, [.bVal]
     rep stosb
     mov byte[pdi], 0
     ret
     .flush:
-        @call String::flush(@arg1)
+        $call flush<String>(@arg1)
         ret
-endp
+.endp
 
-proc String.addChar c uses pdi, this, bVal, bCount
+.proc cdecl String.addChar(.pthis, .bVal, .bCount) uses pdi
     cmp @arg3, 0
         je .return
-    virtObj .this:arg String at pdi from @arg1
+    virtObj .this String at pdi from @arg1
     @sarg @arg2, @arg3
     @larg pax, @arg3
     add eax, [.this.len]
@@ -342,44 +340,44 @@ proc String.addChar c uses pdi, this, bVal, bCount
     bswap edx
     cmp edx, eax
     jae .no_realloc
-        @call .this->realloc(pax)
+        $call .this::realloc(pax)
     .no_realloc:
-    @call .this->getLpChars()
+    $call .this::getLpChars()
     mov edx, [.this.len]
-    mov pcx, [bCount]
+    mov pcx, [.bCount]
     add [.this.len], ecx
     lea pdi, [pax + pdx]
-    mov pax, [bVal]
+    mov pax, [.bVal]
     rep stosb
     mov byte[pdi], 0
     .return: ret
-endp
+.endp
 
-proc String.fromInt c uses pbx psi, this, num, radix, isSigned
+.proc cdecl String.fromInt(.pthis, .num, .radix, .isSigned) uses pbx psi
     @sarg @arg2, @arg3
     @larg psi, @arg4
 
-    virtObj .this:arg String at pbx from @arg1
+    virtObj .this String at pbx from @arg1
 
     and psi, 1
     mov edx, [.this.__size]
     bswap edx
     cmp edx, 66
     jae .no_realloc
-        @call .this->realloc(65)
+        $call .this::realloc(65)
     .no_realloc:
-    @call .this->getLpChars()
-    @call c [.funcs + psi * pointer.size](pax, [num], [radix], 1)
+    $call .this::getLpChars()
+    $call c [.funcs + psi * pointer.size](pax, [.num], [.radix], 1)
     mov [.this.len], eax
     ret
 
     .funcs dptr CNV.uintToStrVarchar, CNV.intToStrVarchar
-endp
+.endp
 
-proc String.addInt c uses pbx psi, this, num, radix, isSigned
+.proc cdecl String.addInt(.pthis, .num, .radix, .isSigned) uses pbx psi
     @sarg @arg2, @arg3
     @larg psi, @arg4
-    virtObj .this:arg String at pbx from @arg1
+    virtObj .this String at pbx from @arg1
 
     mov eax, [.this.len]
     add eax, 66
@@ -387,44 +385,44 @@ proc String.addInt c uses pbx psi, this, num, radix, isSigned
     bswap edx
     cmp eax, edx
     jbe .no_realloc
-        @call .this->realloc(pax)
+        $call .this::realloc(pax)
     .no_realloc:
-    @call .this->getLpChars()
+    $call .this::getLpChars()
     mov ecx, [.this.len]
     add pcx, pax
     and psi, 1
-    @call c [.funcs + psi * pointer.size](pcx, [num], [radix], 1)
+    $call c [.funcs + psi * pointer.size](pcx, [.num], [.radix], 1)
     add [.this.len], eax
     ret
 
     .funcs dptr CNV.uintToStrVarchar, CNV.intToStrVarchar
-endp
+.endp
 
-proc String.fromInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
+.proc cdecl String.fromInt64(.pthis, .num:QWORD, .radix, .isSigned) uses pbx psi
     @sarg @arg2, @arg3
     @larg psi, @arg4
 
-    virtObj .this:arg String at pbx from @arg1
+    virtObj .this String at pbx from @arg1
 
     and psi, 1
     mov edx, [.this.__size]
     bswap edx
     cmp edx, 66
     jae .no_realloc
-        @call .this->realloc(65)
+        $call .this::realloc(65)
     .no_realloc:
-    @call .this->getLpChars()
-    @call c [.funcs + psi * pointer.size](pax, [num], [radix], 1)
+    $call .this::getLpChars()
+    $call c [.funcs + psi * pointer.size](pax, [.num], [.radix], 1)
     mov [.this.len], eax
     ret
 
     .funcs dptr CNV.ui64ToStrVarchar, CNV.i64ToStrVarchar
-endp
+.endp
 
-proc String.addInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
+.proc cdecl String.addInt64(.pthis, .num:QWORD, .radix, .isSigned) uses pbx psi
     @sarg @arg2, @arg3
     @larg psi, @arg4
-    virtObj .this:arg String at pbx from @arg1
+    virtObj .this String at pbx from @arg1
 
     mov eax, [.this.len]
     add eax, 66
@@ -432,389 +430,33 @@ proc String.addInt64 c uses pbx psi, this, num:QWORD, radix, isSigned
     bswap edx
     cmp eax, edx
     jbe .no_realloc
-        @call .this->realloc(pax)
+        $call .this::realloc(pax)
     .no_realloc:
-    @call .this->getLpChars()
+    $call .this::getLpChars()
     mov ecx, [.this.len]
     add pcx, pax
     and psi, 1
-    @call c [.funcs + psi * pointer.size](pcx, [num], [radix], 1)
+    $call c [.funcs + psi * pointer.size](pcx, [.num], [.radix], 1)
     add [.this.len], eax
     ret
 
     .funcs dptr CNV.ui64ToStrVarchar, CNV.i64ToStrVarchar
-endp
+.endp
 
-; proc String.sprintf c uses psi pbx pdi pbp, this, fmtstr, vargs, v3, v4
-;     @sarg @arg1, @arg2, @arg3, @arg4
-;     @larg psi, @arg2
-;     virtObj .this:arg String at pbx from @arg1 
-;     locals 
-;         buf String 0, 0, 0
-;         result String
-;     endl
-;     mov edx, [.this.__size]
-;     bswap edx
-;     @call result->make(edx)
-;     @call buf->make(256)
-;     xor pbp, pbp
-;     mov pdi, psi
-;     .loop1:
-;         ; mov eax, [result.len]
-;         movzx eax, byte[psi]
-;         cmp eax, "%"
-;             je .fmt
-;         inc psi
-;     cmp al, 0
-;     jne .loop1
-;     sub psi, pdi
-;     dec psi
-;     @call result->addChars(pdi, psi)
-;     @call .this->unmake()
-;     @call buf->unmake()
-;     @call CNV::fill(addr .this, addr result, sizeof.String, FILL_NO_SAVE)
-;     ret
-
-;     .types:
-;         dptr .character
-;         dptr .decimal
-;         dptr .unsigned
-;         dptr .hex
-;         dptr .oct
-;         dptr .asciiz
-;         dptr .String
-;         dptr .float
-;         dptr .float
-;         dptr ?
-;         dptr ?
-;         dptr ?
-;         dptr ?
-;         dptr ?
-;         dptr ?
-;         dptr .percent
-
-;     .fmt:
-;         locals
-;             flags       dd 0x0040
-;             width       dd -1
-;             precision   dd -1
-;             uns_base    dd ?
-;             numeric_len dd ?
-;             numeric_buf db 64 dup(?)
-;             pDouble     ParsedDouble
-;         endl
-
-;         sub psi, pdi
-;         test psi, psi
-;         jz .no_bytes
-;             @call result->addChars(pdi, psi);->print()
-;             ; @call c [puts]("")
-;         .no_bytes:
-;         @call buf->flush()
-;         movzx eax, byte[pdi + psi + 1]
-;         add pdi, 2
-;         ; mov ecx, eax          ; ecx - type
-;         ; and ecx, 0xF
-;         test eax, FSTR_HAS_FLAGS
-;         jz .no_flags
-;             movzx edx, byte[pdi + psi]
-;             mov [flags], edx
-;             inc pdi
-;         .no_flags:
-;         test eax, FSTR_HAS_WIDTH
-;         jz .no_width
-;             mov edx, [pdi + psi]
-;             lea pcx, [pbp + pointer.size]
-;             cmp edx, -2
-;             cmove edx, dword[vargs + pbp]
-;             cmove ebp, ecx
-;             mov [width], edx
-;             add pdi, 4
-;         .no_width:
-;         test eax, FSTR_HAS_PRECISION
-;         jz .no_precision
-;             mov edx, [pdi + psi]
-;             lea pcx, [pbp + pointer.size]
-;             cmp edx, -2
-;             cmove edx, dword[vargs + pbp]
-;             cmove ebp, ecx
-;             mov [precision], edx
-;             add pdi, 4
-;         .no_precision:
-;         and eax, 0xF
-;         jmp pointer[.types + eax * pointer.size]
-
-;     .end_fmt:
-;         cmp [width], -1
-;         je .after_correct
-;         mov eax, [buf.len]
-;         cmp [width], eax
-;         jb .after_correct
-;             sub [width], eax
-;             test [flags], FSTR_MINUS_FLAG
-;             jz .no_reverse
-;                 @call result->addString(addr buf)
-;                 @call result->addChar(+" ", [width])
-;                 add psi, pdi
-;                 mov pdi, psi
-;                 jmp .loop1
-;             .no_reverse:
-;             @call result->addChar(+" ", [width])
-;         .after_correct:
-;         ; @call buf->getLpChars()
-;         ; @call c [printf]("%d:%s\n", [buf.len], pax)
-;         @call result->addString(addr buf);->print()
-;         ; @call c [puts]("")
-;         add psi, pdi
-;         mov pdi, psi
-;         jmp .loop1
-
-
-;     .character:
-;         cmp [precision], -1
-;         jne .no_char_precision
-;             mov [precision], 1
-;         .no_char_precision:
-;         @call buf->fromChar([vargs + pbp], [precision])
-;         add pbp, pointer.size
-;         jmp .end_fmt
-
-;     .decimal:
-;         mov eax, [flags]
-;         and eax, FSTR_SIZE
-;         switch [flags]
-;             case FSTR_SIZE_QWORD
-;                 test dword[vargs + pbp + 4], 80000000h
-;                 match =x86, __architecture{
-;                         jz .no_dec_neg
-;                     @call buf->fromChar(+"-", 1)
-;                     neg [vargs + pbp]
-;                     adc [vargs + pbp + 4], 0
-;                     neg [vargs + pbp + 4]
-;                     jmp .check_precision
-;                 }
-;                 match =x64, __architecture{
-;                     jmp end_case
-;                 }
-;             case FSTR_SIZE_BYTE
-;                 test dword[vargs + pbp], 80h
-;                 jmp end_case
-;             case FSTR_SIZE_WORD
-;                 test dword[vargs + pbp], 8000h
-;                 jmp end_case
-;             case_default
-;                 test dword[vargs + pbp], 80000000h
-;         end_switch
-;         jz .no_dec_neg
-;             @call buf->fromChar(+"-", 1)
-;             neg [vargs + pbp]
-;             jmp .check_precision
-;         .no_dec_neg:
-;             xor edx, edx
-;             mov eax, "+"
-;             test [flags], FSTR_PLUS_FLAG
-;             cmovnz edx, eax
-;             mov eax, " "
-;             test [flags], FSTR_SPACE_FLAG
-;             cmovnz edx, eax
-;             test edx, edx
-;             jz .no_dec_start
-;                 @call buf->fromChar(edx, 1)
-;             .no_dec_start:
-;         .check_precision:
-;         ; @call CNV::uintToStr(addr numeric_buf, [vargs + pbp], 10)
-
-;         mov [uns_base], 10
-;         jmp .unumeric
-
-;     .unsigned:
-;         mov [uns_base], 10
-;         jmp .unumeric
-
-;     .hex:
-;         mov [uns_base], 16
-;         jmp .unumeric
-
-;     .oct:
-;         mov [uns_base], 8
-;         ; jmp .unumeric
-
-;     .unumeric:
-;         mov eax, [flags]
-;         and eax, FSTR_SIZE
-;         switch [flags]
-;             match =x86, __architecture{
-;                 case FSTR_SIZE_QWORD
-;                     @call CNV::ui64ToStr(addr numeric_buf, qword[vargs + pbp], [uns_base])
-;                     add pbp, 8
-;                     jmp .check_precision_unumeric
-;             }
-;             case FSTR_SIZE_BYTE
-;                 movzx pax, byte[vargs + pbp]
-;                 add pbp, pointer.size
-;                 jmp end_case
-;             case FSTR_SIZE_WORD
-;                 movzx pax, word[vargs + pbp]
-;                 add pbp, pointer.size
-;                 jmp end_case
-;             case_default
-;                 mov pax, pointer[vargs + pbp]
-;                 add pbp, pointer.size
-;         end_switch
-;         @call CNV::uintToStr(addr numeric_buf, pax, [uns_base])
-
-;         .check_precision_unumeric:
-;         cmp [precision], -1
-;         je .no_uns_precision
-;         cmp eax, [precision]
-;         ja .no_uns_precision
-;             mov [numeric_len], eax
-;             sub [precision], eax
-;             @call buf->addChar(+"0", [precision])
-;             mov eax, [numeric_len]
-;         .no_uns_precision:
-
-;         @call buf->addChars(addr numeric_buf, eax)
-;         jmp .end_fmt
-
-;     .asciiz:
-;         ; mov eax, -1
-
-;         ; cmp eax, -1
-;         ; je .no_asciiz_precision
-;         @call CNV::strlen([vargs + pbp])
-;         cmp eax, [precision]
-;             cmova eax, [precision]
-;         ; .no_asciiz_precision:
-;         @call buf->fromChars([vargs + pbp], eax)
-;         add pbp, pointer.size
-;         jmp .end_fmt
-
-;     .String:
-;         ; mov eax, [precision]
-;         cmp [precision], -1
-;         je .no_string_precision
-;         mov pax, [vargs + pbp]
-;         mov ecx, [pax + String.len]
-;         cmp ecx, [precision]
-;         jbe .no_string_precision
-;             @call String::getLpChars([vargs + pbp])
-;             mov pdx, pax
-;             @call buf->fromChars(pdx, [precision])
-;             add pbp, pointer.size
-;             jmp .end_fmt
-;         .no_string_precision:
-
-;         @call buf->fromString([vargs + pbp])
-;         add pbp, pointer.size
-;         jmp .end_fmt
-
-;     .percent:
-;         @call buf->fromChar(+"%", 1)
-;         jmp .end_fmt
-
-;     .float:
-;         virtual at uns_base
-;             .normalization dd ?
-;         end virtual
-;         mov edx, 6
-;         mov ecx, 1
-;         sub eax, 7
-;         test eax, eax
-;             cmovnz edx, ecx
-;         mov [.normalization], edx
-;         mov eax, [flags]
-;         and eax, FSTR_SIZE
-;         switch [flags]
-;             case FSTR_SIZE_WORD
-;                 test dword[vargs + pbp], 0x8000
-;                 lahf
-;                 and dword[vargs + pbp], 0x7FFF
-;                 vcvtph2ps xmm0, qword[vargs + pbp]
-;                 cvtss2sd xmm0, xmm0
-;                 add pbp, pointer.size
-;                 jmp end_case
-;             case FSTR_SIZE_QWORD
-;                 test dword[vargs + pbp + 4], 0x80000000
-;                 lahf
-;                 and dword[vargs + pbp + 4], 0x7FFFFFFF
-;                 movq xmm0, qword[vargs + pbp]
-;                 add pbp, 8
-;                 jmp end_case
-;             case_default
-;                 test dword[vargs + pbp], 0x80000000
-;                 lahf
-;                 and dword[vargs + pbp], 0x7FFFFFFF
-;                 cvtss2sd xmm0, dword[vargs + pbp]
-;                 add pbp, pointer.size
-;         end_switch
-;         movq qword[numeric_buf], xmm0
-;         sahf
-;         jz .no_float_neg
-;             @call buf->fromChar(+"-", 1)
-;             jmp .check_precision_float
-;         .no_float_neg:
-;             xor edx, edx
-;             mov eax, "+"
-;             test [flags], FSTR_PLUS_FLAG
-;             cmovnz edx, eax
-;             mov eax, " "
-;             test [flags], FSTR_SPACE_FLAG
-;             cmovnz edx, eax
-;             test edx, edx
-;             jz .no_float_start
-;                 @call buf->fromChar(edx, 1)
-;             .no_float_start:
-;         .check_precision_float:
-;         mov edx, 5
-;         mov eax, [precision]
-;         cmp [precision], -1
-;         cmove eax, edx
-;         @call pDouble->parseDouble(double [numeric_buf], eax, [.normalization])
-;         movq xmm0, [pDouble.fracVal]
-;         movsx eax, [pDouble.sign]
-;         cmp eax, 0
-;         jl .error_num
-;             @call buf->addInt64([pDouble.intVal], 10, 0)
-;             movq xmm0, [pDouble.fracVal]
-;             ptest xmm0, xmm0
-;             jz @f
-;                 @call buf->addChar(+".", 1)->addChar(+"0", [pDouble.order])->addInt64([pDouble.fracVal], 10, 0)
-;             @@:
-;             cmp [pDouble.expVal], 0
-;             je @f
-;                 @call buf->addChar(+"e", 1)
-;                 movsx pax, [pDouble.expVal]
-;                 @call buf->addInt(pax, 10, 1)
-;             @@:
-;             jmp .end_fmt
-;         .error_num:
-;         ; mov pax, _inf
-;         shr pax, 1
-;         and pax, 1
-;         @call buf->addChars(pointer[.errors + pax * pointer.size], 3)
-;         jmp .end_fmt
-
-;         .inf @const db "inf"
-;         .nan @const db "NaN"
-;         .errors @const dptr .nan, .inf
-; endp
-
-proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
-    @sarg @arg1, @arg2, @arg3
+.proc cdecl String.vsprintf(.pthis, .fmtstr, .vlist) uses psi pbx pdi pbp
+    virtObj .this String at pbx from @arg1 
     @larg psi, @arg2, pbp, @arg3
-    virtObj .this:arg String at pbx from @arg1 
-    locals 
-        buf String 0, 0, 0
-        result String
-    endl
+    .locals 
+        .buf     String
+        .result  String
+    .endl
+
     mov edx, [.this.__size]
     bswap edx
-    @call result->make(edx)
-    @call buf->make(256)
+    $call .result::make(edx)
+    $call .buf::make(256)
     mov pdi, psi
     .loop1:
-        ; mov eax, [result.len]
         movzx eax, byte[psi]
         cmp eax, "%"
             je .fmt
@@ -823,10 +465,10 @@ proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
     jne .loop1
     sub psi, pdi
     dec psi
-    @call result->addChars(pdi, psi)
-    @call .this->unmake()
-    @call buf->unmake()
-    @call CNV::fill(addr .this, addr result, sizeof.String, FILL_NO_SAVE)
+    $call .result::addChars(pdi, psi)
+    $call .this::unmake()
+    $call .buf::unmake()
+    $call CNV|fill(addr .this, addr .result, sizeof.String, FILL_NO_SAVE)
     ret
 
     .types:
@@ -848,23 +490,23 @@ proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
         dptr .percent
 
     .fmt:
-        locals
-            flags       dd 0x0040
-            width       dd -1
-            precision   dd -1
-            uns_base    dd ?
-            numeric_len dd ?
-            numeric_buf db 64 dup(?)
-            pDouble     ParsedDouble
-        endl
+        .locals
+            .flags       rd 1
+            .width       rd 1
+            .precision   rd 1
+            .uns_base    rd 1
+            .numeric_len rd 1
+            .numeric_buf rb 128
+            .pDouble     ParsedDouble
+        .endl
+        $call CNV|fill(addr .flags, <const dd 0x0040, -1, -1>, 12)
 
         sub psi, pdi
         test psi, psi
         jz .no_bytes
-            @call result->addChars(pdi, psi);->print()
-            ; @call c [puts]("")
+            $call .result::addChars(pdi, psi)
         .no_bytes:
-        @call buf->flush()
+        $call .buf::flush()
         movzx eax, byte[pdi + psi + 1]
         add pdi, 2
         ; mov ecx, eax          ; ecx - type
@@ -872,7 +514,7 @@ proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
         test eax, FSTR_HAS_FLAGS
         jz .no_flags
             movzx edx, byte[pdi + psi]
-            mov [flags], edx
+            mov [.flags], edx
             inc pdi
         .no_flags:
         test eax, FSTR_HAS_WIDTH
@@ -882,7 +524,7 @@ proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
             cmp edx, -2
             cmove edx, dword[pbp]
             cmove ebp, ecx
-            mov [width], edx
+            mov [.width], edx
             add pdi, 4
         .no_width:
         test eax, FSTR_HAS_PRECISION
@@ -892,56 +534,53 @@ proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
             cmp edx, -2
             cmove edx, dword[pbp]
             cmove ebp, ecx
-            mov [precision], edx
+            mov [.precision], edx
             add pdi, 4
         .no_precision:
         and eax, 0xF
         jmp pointer[.types + eax * pointer.size]
 
     .end_fmt:
-        cmp [width], -1
+        cmp [.width], -1
         je .after_correct
-        mov eax, [buf.len]
-        cmp [width], eax
+        mov eax, [.buf.len]
+        cmp [.width], eax
         jb .after_correct
-            sub [width], eax
-            test [flags], FSTR_MINUS_FLAG
+            sub [.width], eax
+            test [.flags], FSTR_MINUS_FLAG
             jz .no_reverse
-                @call result->addString(addr buf)
-                @call result->addChar(+" ", [width])
+                $call .result::addString(addr .buf)
+                $call .result::addChar(+" ", [.width])
                 add psi, pdi
                 mov pdi, psi
                 jmp .loop1
             .no_reverse:
-            @call result->addChar(+" ", [width])
+            $call .result::addChar(+" ", [.width])
         .after_correct:
-        ; @call buf->getLpChars()
-        ; @call c [printf]("%d:%s\n", [buf.len], pax)
-        @call result->addString(addr buf);->print()
-        ; @call c [puts]("")
+        $call .result::addString(addr .buf)
         add psi, pdi
         mov pdi, psi
         jmp .loop1
 
 
     .character:
-        cmp [precision], -1
+        cmp [.precision], -1
         jne .no_char_precision
-            mov [precision], 1
+            mov [.precision], 1
         .no_char_precision:
-        @call buf->fromChar(pointer[pbp], [precision])
+        $call .buf::fromChar(pointer[pbp], [.precision])
         add pbp, pointer.size
         jmp .end_fmt
 
     .decimal:
-        mov eax, [flags]
+        mov eax, [.flags]
         and eax, FSTR_SIZE
-        switch [flags]
+        switch [.flags]
             case FSTR_SIZE_QWORD
                 test dword[pbp + 4], 80000000h
                 match =x86, __architecture{
                         jz .no_dec_neg
-                    @call buf->fromChar(+"-", 1)
+                    $call .buf::fromChar(+"-", 1)
                     neg pointer[pbp]
                     adc pointer[pbp + 4], 0
                     neg pointer[pbp + 4]
@@ -960,46 +599,46 @@ proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
                 test dword[pbp], 80000000h
         end_switch
         jz .no_dec_neg
-            @call buf->fromChar(+"-", 1)
+            $call .buf::fromChar(+"-", 1)
             neg pointer[pbp]
             jmp .check_precision
         .no_dec_neg:
             xor edx, edx
             mov eax, "+"
-            test [flags], FSTR_PLUS_FLAG
+            test [.flags], FSTR_PLUS_FLAG
             cmovnz edx, eax
             mov eax, " "
-            test [flags], FSTR_SPACE_FLAG
+            test [.flags], FSTR_SPACE_FLAG
             cmovnz edx, eax
             test edx, edx
             jz .no_dec_start
-                @call buf->fromChar(edx, 1)
+                $call .buf::fromChar(edx, 1)
             .no_dec_start:
         .check_precision:
-        ; @call CNV::uintToStr(addr numeric_buf, [pbp], 10)
+        ; $call CNV|uintToStr(addr .numeric_buf, [pbp], 10)
 
-        mov [uns_base], 10
+        mov [.uns_base], 10
         jmp .unumeric
 
     .unsigned:
-        mov [uns_base], 10
+        mov [.uns_base], 10
         jmp .unumeric
 
     .hex:
-        mov [uns_base], 16
+        mov [.uns_base], 16
         jmp .unumeric
 
     .oct:
-        mov [uns_base], 8
+        mov [.uns_base], 8
         ; jmp .unumeric
 
     .unumeric:
-        mov eax, [flags]
+        mov eax, [.flags]
         and eax, FSTR_SIZE
-        switch [flags]
+        switch [.flags]
             match =x86, __architecture{
                 case FSTR_SIZE_QWORD
-                    @call CNV::ui64ToStr(addr numeric_buf, qword[pbp], [uns_base])
+                    $call CNV|ui64ToStr(addr .numeric_buf, qword[pbp], [.uns_base])
                     add pbp, 8
                     jmp .check_precision_unumeric
             }
@@ -1015,60 +654,55 @@ proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
                 mov pax, pointer[pbp]
                 add pbp, pointer.size
         end_switch
-        @call CNV::uintToStr(addr numeric_buf, pax, [uns_base])
+        $call CNV|uintToStr(addr .numeric_buf, pax, [.uns_base])
 
         .check_precision_unumeric:
-        cmp [precision], -1
+        cmp [.precision], -1
         je .no_uns_precision
-        cmp eax, [precision]
+        cmp eax, [.precision]
         ja .no_uns_precision
-            mov [numeric_len], eax
-            sub [precision], eax
-            @call buf->addChar(+"0", [precision])
-            mov eax, [numeric_len]
+            mov [.numeric_len], eax
+            sub [.precision], eax
+            $call .buf::addChar(+"0", [.precision])
+            mov eax, [.numeric_len]
         .no_uns_precision:
 
-        @call buf->addChars(addr numeric_buf, eax)
+        $call .buf::addChars(addr .numeric_buf, eax)
         jmp .end_fmt
 
     .asciiz:
-        ; mov eax, -1
-
-        ; cmp eax, -1
-        ; je .no_asciiz_precision
-        @call CNV::strlen(pointer[pbp])
-        cmp eax, [precision]
-            cmova eax, [precision]
-        ; .no_asciiz_precision:
-        @call buf->fromChars(pointer[pbp], eax)
+        $call CNV|strlen(pointer[pbp])
+        cmp eax, [.precision]
+            cmova eax, [.precision]
+        $call .buf::fromChars(pointer[pbp], eax)
         add pbp, pointer.size
         jmp .end_fmt
 
     .String:
-        ; mov eax, [precision]
-        cmp [precision], -1
+        ; mov eax, [.precision]
+        cmp [.precision], -1
         je .no_string_precision
         mov pax, [pbp]
         mov ecx, [pax + String.len]
-        cmp ecx, [precision]
+        cmp ecx, [.precision]
         jbe .no_string_precision
-            @call String::getLpChars(pointer[pbp])
+            $call getLpChars<String>(pointer[pbp])
             mov pdx, pax
-            @call buf->fromChars(pdx, [precision])
+            $call .buf::fromChars(pdx, [.precision])
             add pbp, pointer.size
             jmp .end_fmt
         .no_string_precision:
 
-        @call buf->fromString(pointer[pbp])
+        $call .buf::fromString(pointer[pbp])
         add pbp, pointer.size
         jmp .end_fmt
 
     .percent:
-        @call buf->fromChar(+"%", 1)
+        $call .buf::fromChar(+"%", 1)
         jmp .end_fmt
 
     .float:
-        virtual at uns_base
+        virtual at .uns_base
             .normalization dd ?
         end virtual
         mov edx, 6
@@ -1077,9 +711,9 @@ proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
         test eax, eax
             cmovnz edx, ecx
         mov [.normalization], edx
-        mov eax, [flags]
+        mov eax, [.flags]
         and eax, FSTR_SIZE
-        switch [flags]
+        switch [.flags]
             case FSTR_SIZE_WORD
                 test dword[pbp], 0x8000
                 lahf
@@ -1102,114 +736,114 @@ proc String.vsprintf c uses psi pbx pdi pbp, this, fmtstr, vlist
                 cvtss2sd xmm0, dword[pbp]
                 add pbp, pointer.size
         end_switch
-        movq qword[numeric_buf], xmm0
+        movq qword[.numeric_buf], xmm0
         sahf
         jz .no_float_neg
-            @call buf->fromChar(+"-", 1)
+            $call .buf::fromChar(+"-", 1)
             jmp .check_precision_float
         .no_float_neg:
             xor edx, edx
             mov eax, "+"
-            test [flags], FSTR_PLUS_FLAG
+            test [.flags], FSTR_PLUS_FLAG
             cmovnz edx, eax
             mov eax, " "
-            test [flags], FSTR_SPACE_FLAG
+            test [.flags], FSTR_SPACE_FLAG
             cmovnz edx, eax
             test edx, edx
             jz .no_float_start
-                @call buf->fromChar(edx, 1)
+                $call .buf::fromChar(edx, 1)
             .no_float_start:
         .check_precision_float:
         mov edx, 5
-        mov eax, [precision]
-        cmp [precision], -1
+        mov eax, [.precision]
+        cmp [.precision], -1
         cmove eax, edx
-        @call pDouble->parseDouble(double [numeric_buf], eax, [.normalization])
-        movq xmm0, [pDouble.fracVal]
-        movsx eax, [pDouble.sign]
+        $call .pDouble::parseDouble(double [.numeric_buf], eax, [.normalization])
+        movq xmm0, [.pDouble.fracVal]
+        movsx eax, [.pDouble.sign]
         cmp eax, 0
         jl .error_num
             cmp [.normalization], 1
             jne .no_exp_key
-            cmp dword[pDouble.intVal + 4], 0
+            cmp dword[.pDouble.intVal + 4], 0
             jne .no_exp_key
-            cmp dword[pDouble.intVal], 0
+            cmp dword[.pDouble.intVal], 0
             jne .no_exp_key
-                @call [numeric_len] = CNV::ui64ToStr(addr numeric_buf, [pDouble.fracVal], 10)
-                @call CNV::ui64pow(qword 10, addr pax - 1)
+                $call [.numeric_len] = CNV|ui64ToStr(addr .numeric_buf, [.pDouble.fracVal], 10)
+                $call CNV|ui64pow(qword 10, addr pax - 1)
                 ; int3
-                @call CNV::ui64div(addr pDouble, [pDouble.fracVal], qword_result)
-                @call CNV::ui64ToStr(addr numeric_buf, [pDouble.fracVal], 10)
+                $call CNV|ui64div(addr .pDouble, [.pDouble.fracVal], qword_result)
+                $call CNV|ui64ToStr(addr .numeric_buf, [.pDouble.fracVal], 10)
                 inc eax
-                sub eax, [numeric_len]
-                sub [pDouble.order], eax
-                dec [pDouble.expVal]
+                sub eax, [.numeric_len]
+                sub [.pDouble.order], eax
+                dec [.pDouble.expVal]
             .no_exp_key:
-            @call buf->addInt64([pDouble.intVal], 10, 0)
-            movq xmm0, [pDouble.fracVal]
+            $call .buf::addInt64([.pDouble.intVal], 10, 0)
+            movq xmm0, [.pDouble.fracVal]
             ptest xmm0, xmm0
             jz @f
-                @call buf->addChar(+".", 1)->addChar(+"0", [pDouble.order])->addInt64([pDouble.fracVal], 10, 0)
+                $call .buf::addChar(+".", 1)::addChar(+"0", [.pDouble.order])::addInt64([.pDouble.fracVal], 10, 0)
             @@:
-            cmp [pDouble.expVal], 0
+            cmp [.pDouble.expVal], 0
             je @f
-                @call buf->addChar(+"e", 1)
-                movsx pax, [pDouble.expVal]
-                @call buf->addInt(pax, 10, 1)
+                $call .buf::addChar(+"e", 1)
+                movsx pax, [.pDouble.expVal]
+                $call .buf::addInt(pax, 10, 1)
             @@:
             jmp .end_fmt
         .error_num:
         ; mov pax, _inf
         shr pax, 1
         and pax, 1
-        @call buf->addChars(pointer[.errors + pax * pointer.size], 3)
+        $call .buf::addChars(pointer[.errors + pax * pointer.size], 3)
         jmp .end_fmt
 
         .inf @const db "inf"
         .nan @const db "NaN"
         .errors @const dptr .nan, .inf
-endp
+.endp
 
-proc String.sprintf c, this, fmtstr, va_args, arg4
+.proc cdecl String.sprintf(.pthis, .fmtstr, .va_args, .arg4)
     @sarg @arg3, @arg4
-    @call c String.vsprintf(@arg1, @arg2, addr va_args)
+    $call c String.vsprintf(@arg1, @arg2, &.va_args)
     ret
-endp
+.endp
 
-proc String.streamRead c uses pbx psi pdi pbp, this, fp, delimiter:DWORD, delimiter_callback, eof_callback, lParam
+.proc cdecl String.streamRead(.pthis, .fp, .delimiter:DWORD, .delimiter_callback, .eof_callback, .lParam) uses pbx psi pdi pbp
     .len_buf = 4096
-    @sarg @arg2, @arg3, @arg4
+    @sarg @arg3, @arg4
     @larg pbp, @arg2
-    virtObj .this:arg String at pbx from @arg1
-    local saveAx:DWORD
-
+    virtObj .this String at pbx from @arg1
+    
+    .local .saveAx:DWORD
     xor psi, psi
     .string_realloc:
-        @call .this->getLpChars()
+        $call .this::getLpChars()
         mov pdi, pax
         .read_chars:
-            @call c [fgetc](pbp)
+            $call c [fgetc](pbp)
             switch eax
-                case 0xFFFFFFFF, 0x1A, [delimiter]
-                    mov [saveAx], eax
+                case 0xFFFFFFFF, 0x1A, [.delimiter]
+                    mov [.saveAx], eax
                     mov edx, 0x1A
                     cmp eax, 0xFFFFFFFF
                     cmove eax, edx
                     cmp eax, 0x1A
                     sete al
-                    cmp [delimiter_callback + pax * pointer.size], NULL
-                        cmove eax, [saveAx]
+                    cmp [.delimiter_callback + pax * pointer.size], NULL
+                        cmove eax, [.saveAx]
                         je end_case
 
                     mov byte[pdi + psi], 0
                     mov [.this.len], esi
 
-                    mov psi, [delimiter_callback + pax * pointer.size]
-                    @call c psi(addr .this, [lParam])
+                    mov psi, [.delimiter_callback + pax * pointer.size]
+                    $call c psi(addr .this, [.lParam])
                     xor esi, esi
                     test eax, eax
                         jz .return
-                    mov eax, [saveAx]
+                    mov eax, [.saveAx]
             end_switch
             mov byte[pdi + psi], al
             inc psi
@@ -1217,51 +851,50 @@ proc String.streamRead c uses pbx psi pdi pbp, this, fp, delimiter:DWORD, delimi
         bswap edx
         cmp esi, edx
         jl .read_chars
-        ; @call c [puts]("1) ")
-        ; @call .this->println()
-        ; @call c [puts]("2) ")
+        ; $call c [puts]("1) ")
+        ; $call .this::println()
+        ; $call c [puts]("2) ")
         mov [.this.len], esi
-        @call .this->realloc(addr pdx + .len_buf)
+        $call .this::realloc(addr pdx + .len_buf)
     jmp .string_realloc
 
     .return: ret
-endp
+.endp
 
-proc String.read c, this, fp
-    virtObj .this:arg String at pcx from @arg1
-    local result:POINTER
-    @call .this->streamRead(@arg2, 0Ah, .newLineCallback, .eofCallback, addr result)
-    mov pax, [result]
+.proc cdecl String.read(.pthis, .fp)
+    virtObj .this String at pcx from @arg1
+    .local .result:POINTER
+    $call .this::streamRead(@arg2, 0Ah, .new_line_callback, .eof_callback, &.result)
+    mov pax, [.result]
     ret
-endp
 
-proc .eofCallback c string, lParam
-    @larg pax, @arg2
-    mov pax, [lParam]
-    mov pointer[pax], -1
-    mov eax, 0
-    ret
-endp
+    .proc cdecl .eof_callback(.p_string, .lParam)
+        @larg pax, @arg2
+        mov pointer[pax], -1
+        mov eax, 0
+        ret
+    .endp
 
-proc .newLineCallback c string, lParam
-    @larg pcx, @arg1, \
-        pdx, @arg2
-    mov eax, [pcx + String.len]
-    mov [pdx], pax 
-    mov eax, 0
-    ret
-endp
+    .proc cdecl .new_line_callback(.p_string, .lParam)
+        @larg pcx, @arg1, \
+            pdx, @arg2
+        mov eax, [pcx + String.len]
+        mov [pdx], pax 
+        mov eax, 0
+        ret
+    .endp
+.endp
 
-proc String.parseInt c uses pbx psi pdi pbp, this, radix
+.proc cdecl String.parseInt(.pthis, .radix) uses pbx psi pdi pbp
     @sarg @arg1, @arg2
     @larg pax, @arg2
 
-    local maxDigit:DWORD, isNeg:DWORD
+    .local .maxDigit:DWORD, .isNeg:DWORD
     lea edx, [eax + "0"]
     lea ecx, [eax + "A" - 10]
     cmp edx, "9" + 1
         cmova edx, ecx
-    mov [maxDigit], edx
+    mov [.maxDigit], edx
 
     mov pbp, .mul
     mov edx, eax
@@ -1269,18 +902,18 @@ proc String.parseInt c uses pbx psi pdi pbp, this, radix
     test eax, edx
     jnz .no_power_two
         mov pbp, .shift
-        bsr pax, [radix]
+        bsr pax, [.radix]
     .no_power_two:
-    mov [radix], pax
+    mov [.radix], pax
 
-    @call String::getLpChars([this])
+    $call getLpChars<String>([.pthis])
     mov pbx, pax
-    mov pcx, [radix]
+    mov pcx, [.radix]
     mov edx, 1
     xor esi, esi
     cmp byte[pbx], "-"
         cmove esi, edx
-    mov [isNeg], esi
+    mov [.isNeg], esi
     add pbx, psi
 
     xor eax, eax
@@ -1292,7 +925,7 @@ proc String.parseInt c uses pbx psi pdi pbp, this, radix
         case_default
             ; mov pcx, pax
             ; neg pcx
-            cmp [isNeg], 0
+            cmp [.isNeg], 0
                 je .return
             match =x64, __architecture{
                 neg pax                    
@@ -1313,7 +946,7 @@ proc String.parseInt c uses pbx psi pdi pbp, this, radix
         case u +"a" ... +"f"
             and edi, 0DFh
             jmp start_case
-        case u +"0" ... [maxDigit]
+        case u +"0" ... [.maxDigit]
             jmp pbp
             .after_digit:
             lea esi, [edi - "A" + 10]
@@ -1330,66 +963,64 @@ proc String.parseInt c uses pbx psi pdi pbp, this, radix
     .mul:
         ; int3
         xchg ecx, edx
-        @call CNV::ui64mul(ecx:eax, 0:edx)
-        mov ecx, dword[radix]
+        $call CNV|ui64mul(ecx:eax, 0:edx)
+        mov ecx, dword[.radix]
         jmp .after_digit
 
     .shift:
         shld edx, eax, cl
         shl eax, cl
         jmp .after_digit
-endp
+.endp
 
-proc String.cmpWChars c uses psi pdi, this, lpChars, wCount
+.proc cdecl String.cmpChars(.pthis, .lpChars, .bCount) uses psi pdi
     @sarg @arg2
-    virtObj .this:arg String at psi from @arg1
+    virtObj .this String at psi from @arg1
     @larg pcx, @arg3
-    ; int3
     cmp pcx, -1
     jne .len_isset
-        @call CNV::wstrlen(@arg2, STRLEN_REZULT_CX or STRLEN_NO_SAVE)
+        $call CNV|wstrlen(@arg2, STRLEN_REZULT_CX or STRLEN_NO_SAVE)
     .len_isset:
     cmp ecx, [.this.len]
-        cmova ecx, [.this.len]
+    cmova ecx, [.this.len]
     inc pcx
-    mov [wCount], pcx
-    @call psi = .this->getLpWChars()
-    mov pdi, [lpChars]
-    mov pcx, [wCount]
-    repe cmpsw
+    mov [.bCount], pcx
+    $call psi = .this::getLpWChars()
+    mov pdi, [.lpChars]
+    mov pcx, [.bCount]
+    repe cmpsb
     lahf
     ret
-endp
+.endp
 
-proc String.cmpWString c uses psi pdi, this, other
-    virtObj .this:arg WString at psi from @arg1
-    virtObj .other:arg WString at pdi from @arg2
-    local wCount:POINTER
+.proc String.cmpString(.pthis, .pother) uses psi pdi
+    virtObj .this String at psi from @arg1
+    virtObj .other String at pdi from @arg2
+    .local .wCount:POINTER
     mov ecx, [.other.len]
     cmp ecx, [.this.len]
         cmova ecx, [.this.len]
     inc pcx
-    mov [wCount], pcx
-    @call .this->getLpWChars()
+    mov [.wCount], pcx
+    $call .this::getLpChars()
     mov psi, pax
-    @call .other->getLpWChars()
+    $call .other::getLpChars()
     mov pdi, pax
-    mov pcx, [wCount]
-    repe cmpsw
+    mov pcx, [.wCount]
+    repe cmpsb
     lahf
     ret
-endp
+.endp
 
-proc WString.countChar c uses pdi, this, wVal
+.proc cdecl String.countChar(.pthis, .bVal) uses pdi
     @sarg @arg2
     virtObj .this String at pdi from @arg1
     
-    @call .this->getLpChars()
+    $call .this::getLpChars()
     mov ecx, [.this.len]
     mov pdi, pax
-    movzx eax, word[wVal]
+    movzx eax, byte[.bVal]
     mov edx, -1
-
     @@:
         repne scasb
         inc edx
@@ -1397,19 +1028,19 @@ proc WString.countChar c uses pdi, this, wVal
     jnz @b
     mov eax, edx
     ret
-endp
+.endp
 
-proc WString.findChar c uses pdi, this, startIndex, wVal
+.proc cdecl String.findChar(.pthis, .startIndex, .bVal) uses pdi
     @sarg @arg2, @arg3
     virtObj .this String at pdi from @arg1
     
-    @call .this->getLpChars()
+    $call .this::getLpChars()
     mov ecx, [.this.len]
     mov edx, ecx
-    sub ecx, dword[startIndex]
+    sub ecx, dword[.startIndex]
     mov pdi, pax
-    add pdi, [startIndex]
-    movzx eax, word[wVal]
+    add pdi, [.startIndex]
+    movzx eax, byte[.bVal]
     repne scasb
     sub edx, ecx
     dec edx
@@ -1417,15 +1048,14 @@ proc WString.findChar c uses pdi, this, startIndex, wVal
     cmp byte[pdi], 0
         cmovne eax, edx
     ret
-endp
+.endp
 
-proc_resprologue
-
+.proc_frame_mode_previous
 
 ; proc String.streamRead c uses pbx psi pdi, this, fp, delimiter:DWORD, delimiter_callback, eof_callback, lParam
 ;     .len_buf = 4096
 ;     @sarg @arg2, @arg3, @arg4
-;     virtObj .this:arg String at pbx from @arg1
+;     virtObj .this String at pbx from @arg1
 ;     local callback:POINTER, saveAx:DWORD
 
 ;     @call .this->getLpChars()

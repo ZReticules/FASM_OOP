@@ -20,7 +20,7 @@
 		; const @abstract equ 0
 
 		const SHORT_STRING_LEN = 24
-		const SHORT_STRING_LEN_BE = WString.SHORT_STRING_LEN * 01000000h
+		const SHORT_STRING_LEN_BE = String.SHORT_STRING_LEN * 01000000h
 
 	    len     dd ?
 	    union

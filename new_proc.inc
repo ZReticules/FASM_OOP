@@ -254,6 +254,14 @@ rept 1 {
 				\\\\}
 				define _def ..bytes
 			\\\}
+			match -_mp1, src\\\{
+				define _type pointer lit
+				define _def src
+			\\\}
+			match +_mp1, src\\\{
+				define _type pointer lit
+				define _def src
+			\\\}
 			match =_type _mp1 _mp2, _type src\\\{
 				match [_mp3], _mp2\\\\{
 					define _type _mp1 mem
