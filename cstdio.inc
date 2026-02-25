@@ -2,7 +2,7 @@
 
 	local dllname
 	dllname equ ucrtbase
-	match =ucrt, ucrt\{
+	match =UCRT, UCRT\{
 		dllname equ msvcrt
 	\}
 

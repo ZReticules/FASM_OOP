@@ -7,9 +7,9 @@
 		expVal 	dw ?
 		sign 	dw ?
 
-		parseDouble 	dm this
-		parseDouble_2	dm this
-		getDouble 		dm this
+		parseDouble 	dm this ; (.pthis, .num:QWORD, .precision:DWORD, .normalization:DWORD)
+		parseDouble_old	dm this ; (.pthis, .num:QWORD)
+		getDouble 		dm this ; (.pthis)
 	ends
 
 	local intLen, tenPow
@@ -106,26 +106,23 @@
 		jnz ..scale_label
 	\}
 
-	proc_noprologue
+	.proc_frame_mode_static
 
-	proc ParsedDouble.parseDouble c uses pbx pdi, this, num:QWORD, precision:DWORD, normalization:DWORD
-		virtObj .this:arg ParsedDouble at pbx from @arg1
+	.proc cdecl ParsedDouble.parseDouble(.pthis, .num:QWORD, .precision:DWORD, .normalization:DWORD) uses pbx pdi
+		virtObj .this ParsedDouble at pbx from @arg1
 		@sarg @farg2, @arg3, @arg4
-		; .max_default @const dq 1.0e5	; jae
-		; .min_default @const dq 1.0e-5	; lbe
-		locals
-			intBuf 		dq ?
-			floatBuf 	dt ?
-		endl
+		.locals
+			.intBuf 	dq ?
+			.floatBuf 	dt ?
+		.endl
 
-		@call CNV::memset(addr .this, 0, sizeof.ParsedDouble, 1, MEMSET_NO_SAVE)
-		; int3
-		mov eax, dword[num + 4]
+		$call CNV|memset(addr .this, 0, sizeof.ParsedDouble, 1, MEMSET_NO_SAVE)
+		mov eax, dword[.num + 4]
 		mov edx, eax
 		and eax, 7FF00000h
 		cmp eax, 7FF00000h
 			je .error_num
-		fld [num]
+		fld [.num]
 		fldz
 		fucomip st0, st1
 			je .return
@@ -134,16 +131,16 @@
 			mov [.this.sign], 1
 		.no_neg:
 		; @call CNV::ui32pow(10, @arg4)
-		scaleTen64 [normalization]
-		movq [intBuf], xmm0
+		scaleTen64 [.normalization]
+		movq [.intBuf], xmm0
 		; fld qword[.max_default]
-		fild [intBuf]
+		fild [.intBuf]
 		fld st0
-		fstp [floatBuf]
+		fstp [.floatBuf]
 		fucomip st0, st1
 			jb .higner
 		; fld qword[.min_default]
-		fld [floatBuf]
+		fld [.floatBuf]
 		fld1
 		fdivrp st1, st0
 		fucomip st0, st1
@@ -153,44 +150,44 @@
 		fisttp [.this.intVal]
 		fild [.this.intVal]
 		fsubp st1, st0
-		fstp [floatBuf]
+		fstp [.floatBuf]
 		mov edx, dword[.this.intVal + 4]
 		mov eax, dword[.this.intVal]
 		call int64Len
 
 		xor edx, edx
-		xchg [precision], edx
+		xchg [.precision], edx
 		sub edx, ecx
 		jle .no_fract
-			mov [precision], edx
+			mov [.precision], edx
 
 			
 			scaleTen64 edx
-			movq [intBuf], xmm0
+			movq [.intBuf], xmm0
 
-			mov edx, [precision]
-			fld [floatBuf]
-			fild [intBuf]
+			mov edx, [.precision]
+			fld [.floatBuf]
+			fild [.intBuf]
 			fmulp st1, st0
 			fld st0
-			fstp [floatBuf]
+			fstp [.floatBuf]
 			fistp [.this.fracVal]
-			mov edx, [precision]
-			mov [precision], 0
+			mov edx, [.precision]
+			mov [.precision], 0
 			movq xmm0, [.this.fracVal]
 			ptest xmm0, xmm0
 			jz .no_fract
-				mov [precision], edx
+				mov [.precision], edx
 				mov eax, dword[.this.fracVal]
 				mov edx, dword[.this.fracVal + 4]
-				call .downZeros
-				sub [precision], eax
+				call .down_zeros
+				sub [.precision], eax
 				movq [.this.fracVal], xmm0
 				mov eax, dword[.this.fracVal]
 				mov edx, dword[.this.fracVal + 4]
 				call int64Len
 
-				sub [precision], ecx
+				sub [.precision], ecx
 				jns .no_incorrect_round
 					match =x86, __architecture\{
 						add dword[.this.intVal], 1
@@ -201,7 +198,7 @@
 					\}
 					mov eax, dword[.this.fracVal]
 					mov edx, dword[.this.fracVal + 4]
-					call .downZeros
+					call .down_zeros
 					movq [.this.fracVal], xmm0
 					mov eax, 1
 					movd xmm1, eax
@@ -210,7 +207,7 @@
 						jz .no_fract
 					pxor xmm0, xmm0
 					movq [.this.fracVal], xmm0
-					mov [precision], 0
+					mov [.precision], 0
 					jmp .no_fract
 				.no_incorrect_round:
 				je .no_zeros
@@ -221,15 +218,15 @@
 						; if we have 0 in integer part, then we must recalculate ten shift
 						; because there may be not enough valuable numbers
 						; mov edi, [.this.fracVal]
-						scaleTen64 [precision]
-						movq [intBuf], xmm0
-						fld [floatBuf]
-						fild [intBuf]
+						scaleTen64 [.precision]
+						movq [.intBuf], xmm0
+						fld [.floatBuf]
+						fild [.intBuf]
 						fmulp st1, st0
-						fistp [intBuf]
+						fistp [.intBuf]
 						mov eax, dword[.this.fracVal]
 						mov edx, dword[.this.fracVal + 4]
-						call .downZeros
+						call .down_zeros
 						movq xmm1, xmm0
 						movq xmm0, [.this.fracVal]
 						movq [.this.fracVal], xmm1
@@ -243,12 +240,12 @@
 						pcmpeqq xmm0, xmm1
 						ptest xmm0, xmm0
 							jnz .no_fract
-						inc [precision]
+						inc [.precision]
 						.round_no_change:
 					.no_prec_incorrect:
 				.no_zeros:
 		.no_fract:
-		mov eax, [precision] 
+		mov eax, [.precision] 
 		mov [.this.order], eax
 		.return: ret
 		.lower:
@@ -272,21 +269,21 @@
 				cmovnz eax, ecx
 			lea ecx, [eax - 2]
 			and edx, 0FFFFFh
-			or edx, dword[num]
+			or edx, dword[.num]
 			test edx, edx
 				cmovnz eax, ecx
 			mov [.this.sign], ax
 			ret
 
 		; procedure to eliminate pointless zeros after fractional part
-		.downZeros:
+		.proc .down_zeros
 			mov dword[psp - 8], -1
 			; movd xmm0, eax
 			; movd xmm1, edx
 			movd xmm2, eax
 			movd xmm3, edx
 			mov ecx, 10
-			.down_zeros:
+			@block
 				movq xmm0, xmm2
 				movq xmm1, xmm3
 				inc dword[psp - 8]
@@ -298,31 +295,33 @@
 				div ecx
 				movd xmm2, eax
 			test edx, edx
-			jz .down_zeros
+			@block jz @sb
 			pslldq xmm1, 4
 			paddq xmm0, xmm1
 			mov eax, dword[psp - 8]
-			ret 0
-	endp
+			ret
+		.endp
+	.endp
 
-	proc ParsedDouble.parseDouble_2 c uses pbx pdi, this, num:QWORD
-		virtObj .this:arg ParsedDouble at pbx from @arg1
+	.proc cdecl ParsedDouble.parseDouble_old(.pthis, .num:QWORD) uses pbx pdi
+		virtObj .this ParsedDouble at pbx from @arg1
 		@sarg @farg2, @arg3, @arg4
 		.max_default @const dq 1.0e9	; jae
 		.min_default @const dq 1.0e8	; lbe
-		locals
-			precision 	dd 9
-			intBuf 		dd ?
-			floatBuf 	dt ?
-		endl
+		.locals
+			.precision 	rd 1
+			.intBuf 	rd 1
+			.floatBuf 	rt 1
+		.endl
+		mov [.precision], 9
 
-		@call CNV::memset(addr .this, 0, sizeof.ParsedDouble, MEMSET_NO_SAVE)
-		mov eax, dword[num + 4]
+		$call CNV|memset(addr .this, 0, sizeof.ParsedDouble, MEMSET_NO_SAVE)
+		mov eax, dword[.num + 4]
 		mov edx, eax
 		and eax, 7FF00000h
 		cmp eax, 7FF00000h
 			je .error_num
-		fld [num]
+		fld [.num]
 		fldz
 		fucomip st0, st1
 			je .return
@@ -341,44 +340,44 @@
 		fisttp [.this.intVal]
 		fild [.this.intVal]
 		fsubp st1, st0
-		fstp [floatBuf]
+		fstp [.floatBuf]
 		; mov eax, [.this.intVal]
 		; call intLen
 
-		; mov edx, [precision]
-		fld [floatBuf]
-		; mov [intBuf], 1000000000
+		; mov edx, [.precision]
+		fld [.floatBuf]
+		; mov [.intBuf], 1000000000
 		fld qword[.max_default]
 		fmulp st1, st0
 		fld st0
-		fstp [floatBuf]
+		fstp [.floatBuf]
 		fistp [.this.fracVal]
-		mov edx, [precision]
-		mov [precision], 0
+		mov edx, [.precision]
+		mov [.precision], 0
 		cmp [.this.fracVal], 0
 		je .no_fract
-			mov [precision], edx
+			mov [.precision], edx
 			mov eax, [.this.fracVal]
-			call .downZeros
-			sub [precision], eax
+			call .down_zeros
+			sub [.precision], eax
 			mov [.this.fracVal], edi
 			mov eax, [.this.fracVal]
 			call intLen
 
-			sub [precision], ecx
+			sub [.precision], ecx
 			jns .no_incorrect_round
 				inc [.this.intVal]
 				mov eax, [.this.fracVal]
-				call .downZeros
+				call .down_zeros
 				mov [.this.fracVal], edi
 				mov eax, [.this.fracVal]
 				xor edx, edx
 				cmp edi, 1
 				cmove eax, edx
 				mov [.this.fracVal], eax
-				mov eax, [precision]
+				mov eax, [.precision]
 				cmove eax, edx
-				mov [precision], eax
+				mov [.precision], eax
 				jmp .no_fract
 			.no_incorrect_round:
 			je .no_zeros
@@ -388,26 +387,26 @@
 					; if we have 0 in integer part, then we must recalculate ten shift
 					; because there may be not enough valuable numbers
 					mov edi, [.this.fracVal]
-					scaleTen [precision]
-					mov [intBuf], eax
-					fld [floatBuf]
-					fild [intBuf]
+					scaleTen [.precision]
+					mov [.intBuf], eax
+					fld [.floatBuf]
+					fild [.intBuf]
 					fmulp st1, st0
 					fistp [.this.fracVal]
 					mov eax, edi
 					xchg eax, [.this.fracVal]
-					call .downZeros
+					call .down_zeros
 					xchg [.this.fracVal], edi
 					cmp edi, 1
 					jne .round_no_change
 					cmp [.this.fracVal], 1
 					je .round_no_change
-						inc [precision]
+						inc [.precision]
 					.round_no_change:
 				.no_prec_incorrect:
 			.no_zeros:
 		.no_fract:
-		mov eax, [precision] 
+		mov eax, [.precision] 
 		mov [.this.order], eax
 		.return: ret
 		.lower:
@@ -433,54 +432,51 @@
 				cmovnz eax, ecx
 			lea ecx, [eax - 2]
 			and edx, 0FFFFFh
-			or edx, dword[num]
+			or edx, dword[.num]
 			test edx, edx
 				cmovnz eax, ecx
 			mov [.this.sign], ax
 			ret
 
 		; procedure to eliminate pointless zeros after fractional part
-		.downZeros:
+		.proc .down_zeros
 			mov dword[psp - 8], -1
 			mov edi, eax
 			mov ecx, 10
-			.down_zeros:
+			@block
 				mov edi, eax
 				inc dword[psp - 8]
 				xor edx, edx
 				div ecx
 			test edx, edx
-			jz .down_zeros
+			@block jz @sb
 			mov eax, dword[psp - 8]
-			ret 0
-	endp
+			ret
+		.endp
+	.endp
 
-	proc ParsedDouble.getDouble c uses pdi, this
-		virtObj .this:arg ParsedDouble at pdi from @arg1
-		locals 
-			ftox dq ?
-			cvtBuf dq ?
-		endl
+	.proc cdecl ParsedDouble.getDouble(.pthis) uses pdi
+		virtObj .this ParsedDouble at pdi from @arg1
+		.local .ftox:QWORD, .cvtBuf:QWORD
 		; int3
 		mov eax, dword[.this.fracVal]
 		mov edx, dword[.this.fracVal + 4]
 		call int64Len
 		add ecx, [.this.order]
 		; @call CNV::ui32pow(10, ecx)
-		mov dword[ftox], ecx
-		fild dword[ftox]
+		mov dword[.ftox], ecx
+		fild dword[.ftox]
 		call tenPow
-		fstp [ftox]
-		; mulsd xmm0, [ftox]
-		movq xmm1, [ftox]
-		movq xmm0, [.this.fracVal]
+		fstp [.ftox]
+		; mulsd xmm0, [.ftox]
+		movq xmm1, [.ftox]
 		match =x64, __architecture\{
 			cvtsi2sd xmm0, [.this.fracVal]
 		\}
 		match =x86, __architecture\{
 			fild [.this.fracVal]
-			fstp [cvtBuf]
-			movq xmm0, [cvtBuf]
+			fstp [.cvtBuf]
+			movq xmm0, [.cvtBuf]
 		\}
 		divsd xmm0, xmm1
 		match =x64, __architecture\{
@@ -488,23 +484,22 @@
 		\}
 		match =x86, __architecture\{
 			fild [.this.intVal]
-			fstp [cvtBuf]
-			movq xmm0, [cvtBuf]
+			fstp [.cvtBuf]
+			movq xmm1, [.cvtBuf]
 		\}
 		addsd xmm0, xmm1
 		fild [.this.expVal]
 		call tenPow
-		fstp [ftox]
-		mulsd xmm0, [ftox]
+		fstp [.ftox]
+		mulsd xmm0, [.ftox]
 		cmp [.this.sign], 0
 		je @f
-			; int3
 			pcmpeqq xmm1, xmm1
 			psllq xmm1, 63
 			por xmm0, xmm1
 		@@:
-		ret
-	endp
+		$return double xmm0
+	.endp
 
 	; proc ParsedDouble.fromChars c uses pbx, this, lpCstr, len
 	; 	virtObj .this ParsedDouble at pbx from @arg1
@@ -519,6 +514,6 @@
 	; 	ret
 	; endp
 
-	proc_resprologue
+	.proc_frame_mode_previous
 
 @endm

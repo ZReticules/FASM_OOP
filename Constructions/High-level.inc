@@ -1151,7 +1151,10 @@
 					define datadef _mp4
 				\\\}
 				match (_mp4) _any1, datadef\\\{
-					$call name::make(_mp4)
+					$call _mp1::make(_mp4)
+				\\\}
+				match () _any1, datadef\\\{
+					$call _mp1::make()
 				\\\}
 			\\}
 		\}

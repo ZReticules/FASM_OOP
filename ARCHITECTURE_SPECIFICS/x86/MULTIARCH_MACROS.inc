@@ -85,7 +85,7 @@ rept 1{
 
 macro @larg [dest, arg]{
 	if arg in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7> | dest in <xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7>
-		if arg eq arg\#mem
+		if arg eq arg#mem
 			movq dest, qword arg
 		else if ~dest eq arg
 			movq dest, arg

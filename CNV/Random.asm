@@ -1,4 +1,4 @@
-proc_noprologue
+.proc_frame_mode_static
 
 macro Random.make this, seed{
 	inlineObj _this, this, pcx
@@ -64,13 +64,13 @@ macro Random.make this, seed{
 
 macro Random.next this, min, max{
 	match =3, __argscount__\{
-		@call c Random.__next(this, min, max)
+		$call c Random.__next(this, min, max)
 	\}
 	match =2, __argscount__\{
-		@call c Random.__next(this, 0, min)
+		$call c Random.__next(this, 0, min)
 	\}
 	match =1, __argscount__\{
-		@call c Random.__next(this, INT_MIN, INT_MAX)
+		$call c Random.__next(this, INT_MIN, INT_MAX)
 	\}
 }
 
@@ -84,9 +84,10 @@ macro Random.unmake this{}
 ; 	return state -> a = x ; 
 ; }  
 
-proc Random.__next c, this:POINTER, min:DWORD, max:DWORD
+.proc cdecl Random.__next(.pthis:POINTER, .min:DWORD, .max:DWORD)
 	virtObj .this:arg Random from @arg1
-	@sarg @arg2
+	@larg xmm0, @arg2, xmm1, @arg3
+	
 	mov eax, [.this.__seed]
 	mov edx, eax
 	shl eax, 13
@@ -98,14 +99,15 @@ proc Random.__next c, this:POINTER, min:DWORD, max:DWORD
 	shl eax, 5
 	xor eax, edx
 	mov [.this.__seed], eax
-	mov pcx, @arg3
-	sub ecx, [min]
+
+	psubd xmm1, xmm0
+	movd ecx, xmm1
 	xor edx, edx
 	div ecx
-	mov eax, [min]
+	movd eax, xmm0
 	add eax, edx
 	ret
-endp
+.endp
 
 macro Random64.make this, seed{
 	inlineObj _this, this, pcx
@@ -191,22 +193,23 @@ macro Random64.make this, seed{
 
 macro Random64.next this, min, max{
 	match =3, __argscount__\{
-		@call c Random64.__next(this, min, max)
+		$call c Random64.__next(this, min, max)
 	\}
 	match =2, __argscount__\{
-		@call c Random64.__next(this, 0, min)
+		$call c Random64.__next(this, qword 0, min)
 	\}
 	match =1, __argscount__\{
-		@call c Random64.__next(this, qword INT64_MIN, qword INT64_MAX)
+		$call c Random64.__next(this, qword INT64_MIN, qword INT64_MAX)
 	\}
 }
 
 macro Random64.unmake this{}
 
 match =x64, __architecture{
-	proc Random64.__next, this, min, max
-		virtObj .this:arg Random64
+	.proc Random64.__next(.pthis, .min:QWORD, .max:QWORD)
+		virtObj .this:arg Random64 at rcx from @arg1
 		mov r9, rdx
+
 		mov rax, [.this.__seed]
 		mov rdx, rax
 		shl rax, 7
@@ -215,20 +218,21 @@ match =x64, __architecture{
 		shr rax, 9
 		xor rax, rdx
 		mov [.this.__seed], rax
+
 		sub r8, r9
 		xor edx, edx
 		div r8
 		add rdx, r9
 		mov rax, rdx
 		ret
-	endp
+	.endp
 }
 
 match =x86, __architecture{
-	proc Random64.__next c, this, min:QWORD, max:QWORD
-		virtObj .this:arg Random64 from [this]
+	.proc cdecl Random64.__next(.pthis, .min:QWORD, .max:QWORD)
+		virtObj .this:arg Random64 from [.pthis]
 
-		\local result:Divq 
+		\.local .result:Divq 
 		movq xmm1, [.this.__seed]
 		movq xmm2, xmm1
 		psllq xmm1, 7
@@ -237,18 +241,18 @@ match =x86, __architecture{
 		psrlq xmm1, 9
 		pxor xmm1, xmm2
 		movq [.this.__seed], xmm1
-		movq xmm2, [max]
-		movq xmm3, [min]
+		movq xmm2, [.max]
+		movq xmm3, [.min]
 		psubq xmm2, xmm3
-		@call c CNV.ui64div(addr result, qword xmm1, qword xmm2)
-		movq xmm1, [result.reminder]
-		movq xmm0, [min]
+		$call CNV|ui64div(&.result, qword xmm1, qword xmm2)
+		movq xmm1, [.result.reminder]
+		movq xmm0, [.min]
 		paddq xmm1, xmm0
 		movd eax, xmm1
 		psrlq xmm1, 32
 		movd edx, xmm1
 		ret
-	endp
+	.endp
 }
 
-proc_resprologue
+.proc_frame_mode_previous

@@ -301,7 +301,7 @@
 
 .proc cdecl CNV.ui64pow(.num:QWORD, .exp:DWORD) uses pbx
 	; @sarg @arg1, @arg2
-	.local .result:dq 1, .xmm0_save:QWORD
+	.local .result:QWORD, .xmm0_save:QWORD
 	pcmpeqq xmm0, xmm0
 	pxor xmm1, xmm1
 	psubq xmm1, xmm0

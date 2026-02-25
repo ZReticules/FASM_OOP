@@ -50,6 +50,7 @@
 	    addChar     	dm this
 	    fromInt     	dm this			;(num, radix, isSigned)
 	    addInt      	dm this
+	    
 	    match =x64, __architecture\{
 	    	fromInt64 	dm String.fromInt
 	    	addInt64 	dm String.addInt
