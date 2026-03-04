@@ -403,6 +403,9 @@ rept 1 {
 			..bytes @const _mp1
 			define _results ..bytes
 		\\}
+		match &_mp1, args\\{
+			define _results addr _mp1
+		\\}
 		match =_type _mp1=,_mp2, _type args\\{
 			\\local ..bytes
 			define _type pointer lit

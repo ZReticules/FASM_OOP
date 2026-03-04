@@ -105,14 +105,14 @@ rept 1{
 		%preproc_cmp cmpres, argn, 4
 		match =GT, cmpres\\{
 			if adef relativeto 0
-				mov [args_start + stack_space - stack_counter], adef
+				mov qword[args_start + stack_space - stack_counter], adef
 			irp reg, rax, rcx, rdx, rbx, rsi, rdi, rsp, rbp, r8, r9, r10, r11, r12, r13, r14, r15\\\{
 				else if adef relativeto reg & adef - reg = 0
-					mov [args_start + stack_space - stack_counter], reg
+					mov qword[args_start + stack_space - stack_counter], reg
 			\\\}
 			else
 				lea r11, [adef]
-				mov [args_start + stack_space - stack_counter], r11
+				mov qword[args_start + stack_space - stack_counter], r11
 			end if
 		rept 0\\{\\}rept 1\\{
 			if ~ (adef relativeto reg_qword_\#argn & adef - reg_qword_\#argn = 0)
