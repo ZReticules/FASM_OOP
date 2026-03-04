@@ -1,10 +1,6 @@
-@module STATIC
+struct STATIC CONTROL
+	const CType equ "Static"
+	setImage 	dm this:inline
+ends
 
-	struct STATIC CONTROL
-		const CType equ "Static"
-		setImage 	dm this:inline
-	ends
-
-	include "STATIC.asm"
-
-@endm
+include "STATIC.asm"

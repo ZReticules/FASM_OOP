@@ -1,4 +1,4 @@
-proc_noprologue
+.proc_frame_mode_static
 
 importlib kernel32, \
 	MultiByteToWideChar,\
@@ -7,71 +7,71 @@ importlib kernel32, \
 importlib oleaut32,\
 	SysAllocString
 
-proc Utf8.toSysString c, lpChars, len
+.proc cdecl Utf8.toSysString(.lpChars, .len)
 	@sarg @arg1, @arg2
-	local lpBuf:POINTER, bufSize:DWORD, result:POINTER
+	.local .lpBuf:POINTER, .bufSize:DWORD, .result:POINTER
 
-	@call [MultiByteToWideChar](65001, 0, @arg1, @arg2, NULL, 0)
-	mov [bufSize], eax
+	$call [MultiByteToWideChar](65001, 0, @arg1, @arg2, NULL, 0)
+	mov [.bufSize], eax
 	inc eax
 	shl pax, 1
-	@call [lpBuf] = CNV::alloc(pax)
-	@call [MultiByteToWideChar](65001, 0, [lpChars], [len], [lpBuf], [bufSize])
-	mov eax, [bufSize]
-	mov pdx, [lpBuf]
+	$call [.lpBuf] = CNV|alloc(pax)
+	$call [MultiByteToWideChar](65001, 0, [.lpChars], [.len], [.lpBuf], [.bufSize])
+	mov eax, [.bufSize]
+	mov pdx, [.lpBuf]
 	mov word[pdx + pax * 2], 0
-	@call [result] = [SysAllocString]([lpBuf])
-	@call CNV::free([lpBuf])
-	mov pax, [result]
+	$call [.result] = [SysAllocString]([.lpBuf])
+	$call CNV|free([.lpBuf])
+	mov pax, [.result]
 	ret
-endp
+.endp
 
-proc Utf8.fromWCharsz c, pWcharsz
+.proc cdecl Utf8.fromWCharsz(.pWcharsz)
 	@sarg @arg1
-	local lpBuf:POINTER, bufSize:DWORD
-	@call [WideCharToMultiByte](65001, 0, [pWcharsz], -1, NULL, 0, NULL, NULL)
+	.local .lpBuf:POINTER, .bufSize:DWORD
+	$call [WideCharToMultiByte](65001, 0, [.pWcharsz], -1, NULL, 0, NULL, NULL)
 	inc eax
-	mov [bufSize], eax
-	@call CNV::alloc(pax)
-	mov [lpBuf], pax
-	@call [WideCharToMultiByte](65001, 0, [pWcharsz], -1, pax, [bufSize], NULL, NULL)
-	mov pax, [lpBuf]
+	mov [.bufSize], eax
+	$call CNV|alloc(pax)
+	mov [.lpBuf], pax
+	$call [WideCharToMultiByte](65001, 0, [.pWcharsz], -1, pax, [.bufSize], NULL, NULL)
+	mov pax, [.lpBuf]
 	ret
-endp
+.endp
 
-proc Utf8.iterate c uses pbx psi pdi pbp, lpStr, len, func, lParam
+.proc cdecl Utf8.iterate(.lpStr, .len, .func, .lParam) uses pbx psi pdi pbp
 	@larg psi, @arg1, pdx, @arg2
 	@sarg @arg3, @arg4
 
-	local ctx:Utf8.IterContext, lpSmb:POINTER
+	.local .ctx:Utf8.IterContext, .lpSmb:POINTER
 
 	lea pbx, [psi + pdx]
 	@block
 		xor eax, eax
 		xor ebp, ebp
 		mov edx, 0xFF
-		mov [lpSmb], psi
+		mov [.lpSmb], psi
 		; int3
-		mov [ctx.smbSize], 1
+		mov [.ctx.smbSize], 1
 		lodsb
 		switch eax
 			case_default
-				; @call c [putws](L "Некорректный кодпоинт")
+				; $call c [putws](L "Некорректный кодпоинт")
 				cmp psi, pbx
 					jne @sb
 			case 0
-				inc [ctx.smbSize]
-				@call c [func]([lpSmb], 0, [lParam], addr ctx)
+				inc [.ctx.smbSize]
+				$call c [.func]([.lpSmb], 0, [.lParam], addr .ctx)
 				jmp .return
 			case +0xF0 ... +0xF7
-				inc [ctx.smbSize]
+				inc [.ctx.smbSize]
 				and eax, 0x07
 				shl eax, 18
 				or ebp, eax
 				mov edx, 0x3F
 				lodsb
 			case +0xE0 ... +0xEF
-				inc [ctx.smbSize]
+				inc [.ctx.smbSize]
 				mov ecx, 0x0F
 				cmp edx, 0xFF
 					cmove edx, ecx
@@ -81,7 +81,7 @@ proc Utf8.iterate c uses pbx psi pdi pbp, lpStr, len, func, lParam
 				mov edx, 0x3F
 				lodsb
 			case +0xC0 ... +0xDF
-				inc [ctx.smbSize]
+				inc [.ctx.smbSize]
 				mov ecx, 0x1F
 				cmp edx, 0xFF
 					cmove edx, ecx
@@ -94,19 +94,19 @@ proc Utf8.iterate c uses pbx psi pdi pbp, lpStr, len, func, lParam
 				and eax, edx
 				or ebp, eax
 		end_switch
-		mov [ctx.skipBytes], 0
-		@call c [func]([lpSmb], ebp, [lParam], addr ctx)
-		cmp [ctx.skipBytes], 0
+		mov [.ctx.skipBytes], 0
+		$call c [.func]([.lpSmb], ebp, [.lParam], addr .ctx)
+		cmp [.ctx.skipBytes], 0
 		@block < je @fb >
-			mov psi, [lpSmb]
-			add psi, [ctx.skipBytes]
+			mov psi, [.lpSmb]
+			add psi, [.ctx.skipBytes]
 		@endb
 		test eax, eax
 			jz .return
 	cmp psi, pbx
 	@endb < jne @sb >
 	.return: ret 
-endp
+.endp
 
 macro asciiToHex bReg{
 	local ..lab1, ..lab2
@@ -120,19 +120,18 @@ macro asciiToHex bReg{
 	end_switch
 }
 
-proc Utf8.unEsc c, dest, src, srcLen
+.proc cdecl Utf8.unEsc(.dest, .src, .srcLen)
 	@sarg @arg1
-	local ctx[2]:POINTER
+	.local .ctx[2]:POINTER
 	@larg pax, @arg1, pcx, @arg2, pdx, @arg3
-	mov [ctx], pax
+	mov [.ctx], pax
 	xor pax, pax
-	mov [ctx + pointer.size], pax
-	@call Utf8::iterate(pcx, pdx, .utf8_callback, addr ctx)
-	mov pax, [ctx + pointer.size]
+	mov [.ctx + pointer.size], pax
+	$call Utf8|iterate(pcx, pdx, .utf8_callback, addr .ctx)
+	mov pax, [.ctx + pointer.size]
 	ret
 
-	proc .utf8_callback c uses pbx, lpSmb, codepoint:DWORD, lpCtx, lpUCtx
-		; int3
+	.proc cdecl .utf8_callback(.lpSmb, .codepoint:DWORD, .lpCtx, .lpUCtx) uses pbx
 		virtObj .uctx Utf8.IterContext at pbx from @arg4
 		switch @arg2
 			case '\'
@@ -141,6 +140,8 @@ proc Utf8.unEsc c, dest, src, srcLen
 				and eax, 0xFF
 				
 				mov [.uctx.skipBytes], 2
+				; int3
+				; mov pax, pointer[pdx + pointer.size]
 				inc pointer[pdx + pointer.size]
 				
 				switch eax
@@ -329,7 +330,7 @@ proc Utf8.unEsc c, dest, src, srcLen
 								add pointer[pdx], 4
 								mov pdx, [pdx]
 								mov dword[pdx - 4], eax
-								jmp end_case
+								; jmp end_case
 						end_switch
 						jmp end_case
 					case_default
@@ -369,9 +370,9 @@ proc Utf8.unEsc c, dest, src, srcLen
 		.return:
 			mov eax, esp
 			ret
-	endp
-endp
+	.endp
+.endp
 
 purge asciiToHex
 
-proc_resprologue
+.proc_frame_mode_previous

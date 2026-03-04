@@ -5,19 +5,19 @@
 	include "Except.inc"
 
 	JSONTypes enum \
-		number,\
-		string,\
-		bool,\
-		array,\
-		object,\
-		null,\
-		parse_string,\
-		integer
+		NUMBER,\
+		STRING,\
+		BOOL,\
+		ARRAY,\
+		OBJECT,\
+		NULL,\
+		PARSE_STRING,\
+		INTEGER
 
 	struct JSONNode_unaligned
 		union
 			struct
-				subNodes		rptr 1
+				subNodes		P_SimpleDict
 				selectedNode	rptr 1
 			ends
 			struct
@@ -66,11 +66,11 @@
 
 
 	JSONRetCodes enum \
-		success,\
-		unusedType,\
-		unknownType,\
-		invalidKey,\
-		failed
+		SUCCESS,\
+		UNUSED_TYPE,\
+		UNKNOWN_TYPE,\
+		INVALID_KEY,\
+		FAILED
 
 	include "JSONNode\JSONNode.fasm"
 @endm

@@ -183,23 +183,21 @@ SIID enum\
 	CASE,\
 	MAX_ICONS = 181
 
-proc_noprologue
+.proc_frame_mode_static
 
-proc WND.getStockIcon c, ICONID
+.proc cdecl WND.getStockIcon(.iconId)
 	@larg pcx, @arg1
-	local stockInfo:SHSTOCKICONINFO
-	@call [SHGetStockIconInfo](pcx, SHGSI_ICON or SHGSI_ICONLOCATION, addr stockInfo) 
+	.local .stockInfo:SHSTOCKICONINFO
+	$call [SHGetStockIconInfo](pcx, SHGSI_ICON or SHGSI_ICONLOCATION, addr .stockInfo) 
 	mov edx, 0
 	test eax, eax
+	mov pax, [.stockInfo.hIcon]
 	cmovnz eax, edx
-	jnz .error
-		mov pax, [stockInfo.hIcon]
-	.error:
 	ret
-endp
+.endp
 
 macro WND.deleteStockIcon hIcon{
-	@call [DestroyIcon](hIcon)
+	$call [DestroyIcon](hIcon)
 }
 
-proc_resprologue
+.proc_frame_mode_previous

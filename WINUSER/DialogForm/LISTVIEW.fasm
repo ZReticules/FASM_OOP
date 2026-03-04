@@ -1,117 +1,113 @@
-proc_noprologue
-
 macro LISTVIEW.insertColumn this, index, pLvColumn{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_INSERTCOLUMN, index, pLvColumn)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_INSERTCOLUMN, index, pLvColumn)
 }
 
 macro LISTVIEW.setColumn this, index, pLvColumn{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETCOLUMNA, index, pLvColumn)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETCOLUMNA, index, pLvColumn)
 }
 
 macro LISTVIEW.setColumnWidth this, index, width{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETCOLUMNWIDTH, index, width)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETCOLUMNWIDTH, index, width)
 }
 
 macro LISTVIEW.insertItem this, pLvItem{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_INSERTITEM, NULL, pLvItem)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_INSERTITEM, NULL, pLvItem)
 }
 
 macro LISTVIEW.setItemText this, index, pLvItem{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETITEMTEXT, index, pLvItem)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETITEMTEXT, index, pLvItem)
 }
 
 macro LISTVIEW.setItem this, index, pLvItem{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETITEM, index, pLvItem)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETITEM, index, pLvItem)
 }
 
 macro LISTVIEW.setColumnW this, index, pLvColumn{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageW]([_this + LISTVIEW.hWnd], LVM_SETCOLUMNW, index, pLvColumn)
+	$call [SendMessageW]([_this + LISTVIEW.hWnd], LVM_SETCOLUMNW, index, pLvColumn)
 }
 
 macro LISTVIEW.setItemTextW this, index, pLvItem{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageW]([_this + LISTVIEW.hWnd], LVM_SETITEMTEXTW, index, pLvItem)
+	$call [SendMessageW]([_this + LISTVIEW.hWnd], LVM_SETITEMTEXTW, index, pLvItem)
 }
 
 macro LISTVIEW.deleteAllItems this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_DELETEALLITEMS, NULL, NULL)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_DELETEALLITEMS, NULL, NULL)
 }
 
 macro LISTVIEW.getItemsCount this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_GETITEMCOUNT, NULL, NULL)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_GETITEMCOUNT, NULL, NULL)
 }
 
 macro LISTVIEW.setBkColor this, colorref{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETBKCOLOR, NULL, colorref)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETBKCOLOR, NULL, colorref)
 }
 
 macro LISTVIEW.setTextColor this, colorref{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETTEXTCOLOR, NULL, colorref)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETTEXTCOLOR, NULL, colorref)
 }
 
 macro LISTVIEW.setTextBkColor this, colorref{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETTEXTBKCOLOR, NULL, colorref)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETTEXTBKCOLOR, NULL, colorref)
 }
 
 macro LISTVIEW.setUnicodeFormat this, enabled{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETUNICODEFORMAT, enabled, NULL)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_SETUNICODEFORMAT, enabled, NULL)
 }
 
 macro LISTVIEW.getHeader this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_GETHEADER, NULL, NULL)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_GETHEADER, NULL, NULL)
 }
 
 macro LISTVIEW.setExtendedStyle this, mask, styles{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([.form.chatsView.hWnd], LVM_SETEXTENDEDLISTVIEWSTYLE, mask, styles)
+	$call [SendMessageA]([.form.chatsView.hWnd], LVM_SETEXTENDEDLISTVIEWSTYLE, mask, styles)
 }
 
 macro LISTVIEW.getExtendedStyle this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([.form.chatsView.hWnd], LVM_GETEXTENDEDLISTVIEWSTYLE, NULL, NULL)
+	$call [SendMessageA]([.form.chatsView.hWnd], LVM_GETEXTENDEDLISTVIEWSTYLE, NULL, NULL)
 }
 
 macro LISTVIEW.getItem this, pLvItem{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_GETITEM, NULL, pLvItem)
+	$call [SendMessageA]([_this + LISTVIEW.hWnd], LVM_GETITEM, NULL, pLvItem)
 }
 
 macro LISTVIEW.getItemW this, pLvItem{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SendMessageW]([_this + LISTVIEW.hWnd], LVM_GETITEM, NULL, pLvItem)
+	$call [SendMessageW]([_this + LISTVIEW.hWnd], LVM_GETITEM, NULL, pLvItem)
 }
-
-proc_resprologue

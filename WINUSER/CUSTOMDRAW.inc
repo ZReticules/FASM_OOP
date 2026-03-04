@@ -23,13 +23,13 @@ define MPI_DISABLED		3
 define MPI_DISABLEDHOT	4
 
 struct NMCUSTOMDRAW
-	hdr NMHDR
-	dwDrawStage dptr ?
-	hdc dptr ?
-	rc RECT
-	dwItemSpec dptr ?
-	uItemState dptr ?;
-	lItemlParam dptr ?
+	hdr 		NMHDR
+	dwDrawStage rptr 1
+	hdc 		rptr 1
+	rc 			RECT
+	dwItemSpec 	rptr 1
+	uItemState 	rptr 1
+	lItemlParam rptr 1
 ends
 
 define CDRF_DODEFAULT          0x00000000

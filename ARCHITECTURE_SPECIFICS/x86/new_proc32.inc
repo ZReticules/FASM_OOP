@@ -212,37 +212,72 @@ rept 1{
 	local litval
 	macro @set_std_qword_lit src\{
 		litval = qword src
-		mov eax, litval and 0xFFFFFFFF
-		mov edx, litval shr 32
+		if litval and 0xFFFFFFFF = 0
+			xor eax, eax
+		else
+			mov eax, litval and 0xFFFFFFFF
+		end if
+		if litval shr 32 = 0
+			xor edx, edx
+		else
+			mov edx, litval shr 32
+		end if
 	\}
 	macro @set_std_dword_lit src\{
 		litval = dword src
-		mov eax, litval
+		if litval = 0
+			xor eax, eax
+		else
+			mov eax, litval
+		end if
 	\}
 	macro @set_std_word_lit src\{
 		litval = word src
-		mov eax, litval
+		if litval = 0
+			xor eax, eax
+		else
+			mov eax, litval
+		end if
 	\}
 	macro @set_std_byte_lit src\{
 		litval = byte src
-		mov eax, litval
+		if litval = 0
+			xor eax, eax
+		else
+			mov eax, litval and 0xFFFFFFFF
+		end if
 	\}
-	local ..lits
 	macro @set_std_double_lit src\{
+		\local ..lits
 		litval = qword src
-		..lits @const dq litval
-		fld qword[..lits]
+		if litval = 0
+			fldz
+		else if litval = 1.0
+			fld1
+		else
+			..lits @const dq litval
+			fld qword[..lits]
+		end if
 	\}
+	local fcmplit1
+	fcmplit1 = dword 1.0
 	macro @set_std_float_lit src\{
+		\local ..lits
 		litval = dword src
-		..lits @const dd litval
-		fld dword[..lits]
+		if litval = 0
+			fldz
+		else if litval = fcmplit1
+			fld1
+		else
+			..lits @const dd litval
+			fld dword[..lits]
+		end if
+
 	\}
 	macro @set_std_real_lit src\{
 		procbuf_alloc floatbuf, 4
-		litval = word src
-		..lits @const dd litval
-		movd xmm0, dword[..lits]
+		mov eax, litval
+		movd xmm0, eax
 		vcvtph2ps xmm0, xmm0
 		movd dword[floatbuf], xmm0
 		fld dword[floatbuf]

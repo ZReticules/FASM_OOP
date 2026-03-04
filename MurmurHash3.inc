@@ -1,21 +1,20 @@
 @module MurmurHash3
 
-proc_noprologue
+.proc_frame_mode_static
 
-proc MurmurHash3 c uses pbx pdi psi, lpKey, keyLen: DWORD, seed
-	@sarg @arg1, @arg3
+.proc cdecl MurmurHash3(.lpKey, .keyLen:DWORD, .seed) uses pbx pdi psi
 	@larg pbx, @arg1, pcx, @arg2, pdi, @arg3
 
 	mov esi, 4
 	switch pcx
 		case -1
-			@call pcx = CNV::strlen(pbx)
+			$call pcx = CNV|strlen(pbx)
 			jmp end_case
 		case -2
-			@call pcx = CNV::wstrlen(pbx)
+			$call pcx = CNV|wstrlen(pbx)
 			shl pcx, 1
 	end_switch
-	mov [keyLen], ecx
+	mov [.keyLen], ecx
 
 	cmp pcx, 4
 	@block < jl @fb >
@@ -76,9 +75,9 @@ proc MurmurHash3 c uses pbx pdi psi, lpKey, keyLen: DWORD, seed
 	xor eax, edi
 	; end fmux
 
-	ret
-endp
+	$return eax
+.endp
 
-proc_resprologue
+.proc_frame_mode_previous
 
 @endm

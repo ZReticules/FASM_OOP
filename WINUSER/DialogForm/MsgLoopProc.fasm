@@ -1,5 +1,3 @@
-proc_noprologue
-
 importlib user32,\
 	MapDialogRect;,\
 	; SetWindowPtrA,\
@@ -9,13 +7,15 @@ importlib comctl32,\
 	DefSubclassProc,\
 	SetWindowSubclass
 
-proc DLG.hookEventsChecker uses psi pdi, hWnd, uMsg, wParam, lParam, uIdSubclass, dwRefData
+.proc_frame_mode_static
+
+.proc stdcall DLG.hookEventsChecker(.hWnd, .uMsg, .wParam, .lParam, .uIdSubclass, .dwRefData) uses psi pdi
 	@sarg @arg1, @arg2, @arg3, @arg4
-	@call DLG::getPtr(@arg1)
-	; @call [GetWindowPtrA](@arg1, GWL_USERDATA)
+	$call DLG|getPtr(@arg1)
+	; $call [GetWindowPtrA](@arg1, GWL_USERDATA)
 	test eax, eax
 		jz .return
-	virtObj .cntrl:arg CONTROL at psi from pax
+	virtObj .cntrl CONTROL at psi from pax
 	xor eax, eax
 	mov pdi, [.cntrl.sData.lpHooks]
 	cmp pdi, 0
@@ -23,34 +23,34 @@ proc DLG.hookEventsChecker uses psi pdi, hWnd, uMsg, wParam, lParam, uIdSubclass
 	movzx ecx, word[pdi]
 		jecxz .default
 	add pdi, 2
-	movzx edx, word[uMsg]
+	movzx edx, word[.uMsg]
 	.find_event:
 		cmp dx, word[pdi + (pcx - 1) * 4]
 		jne .not_my_event
 			movzx pdi, word[pdi + (pcx - 1) * 4 + 2]
 			cmp pointer[.cntrl + pdi], 0
 				jz .default
-			@call std pointer[.cntrl + pdi]([dwRefData], addr hWnd, addr .cntrl, addr .cntrl + pdi + pointer.size)
+			$call std pointer[.cntrl + pdi]([.dwRefData], &.hWnd, &.cntrl, addr .cntrl + pdi + pointer.size)
 			jmp .return
 		.not_my_event:
 	loop .find_event
 	.default:
-	@call [DefSubclassProc]([hWnd], [uMsg], [wParam], [lParam])
+	$call [DefSubclassProc]([.hWnd], [.uMsg], [.wParam], [.lParam])
 	.return: ret
-endp
+.endp
 
-proc DLG.controlNotifyChecker c uses psi pdi pbx, lpForm, lParam
+.proc cdecl DLG.controlNotifyChecker(.lpForm, .lParam) uses psi pdi pbx
 	@sarg @arg1, @arg2
-	virtObj .form:arg DIALOGFORM at pbx from @arg1
-	virtObj .nmhdr NMHDR at pdi from [lParam]
+	virtObj .form DIALOGFORM at pbx from @arg1
+	virtObj .nmhdr NMHDR at pdi from [.lParam]
 	mov eax, dword[.nmhdr.idFrom]
 	cmp eax, [.form.idCount]
 		ja .return
-	@call DLG::getPtr([.nmhdr.hwndFrom])
-	; @call [GetWindowPtrA]([.nmhdr.hwndFrom], GWL_USERDATA)
+	$call DLG|getPtr([.nmhdr.hwndFrom])
+	; $call [GetWindowPtrA]([.nmhdr.hwndFrom], GWL_USERDATA)
 	test eax, eax
 		jz .return
-	virtObj .cntrl:arg CONTROL at psi from pax
+	virtObj .cntrl CONTROL at psi from pax
 	xor eax, eax
 	mov pdx, [.cntrl.sData.lpNotifications]
 	cmp pdx, 0
@@ -66,26 +66,26 @@ proc DLG.controlNotifyChecker c uses psi pdi pbx, lpForm, lParam
 			movzx pdi, word[pdx + (pcx - 1) * 4 + 2]
 			cmp pointer[.cntrl + pdi], 0
 				jz .return_zero
-			@call std pointer[.cntrl + pdi](addr .form, [lParam], addr .cntrl, addr .cntrl + pdi + pointer.size)
+			$call std pointer[.cntrl + pdi](&.form, [.lParam], &.cntrl, addr .cntrl + pdi + pointer.size)
 			jmp .return
 		.not_my_notify:
 	loop .find_notify
 	.return_zero:
 	xor eax, eax
 	.return: ret
-endp
+.endp
 
-proc DLG.controlEventsChecker c uses psi pdi pbx, lpForm, wParam, lpHwndDlg
+.proc cdecl DLG.controlEventsChecker(.lpForm, .wParam, .lpHwndDlg) uses psi pdi pbx
 	@sarg @arg2, @arg3
-	virtObj .form:arg DIALOGFORM at pbx from @arg1
-	movzx pdx, word[wParam]
+	virtObj .form DIALOGFORM at pbx from @arg1
+	movzx pdx, word[.wParam]
 	; int3
-	@call [GetDlgItem]([.form.hWnd], pdx)
-	@call DLG::getPtr(pax)
-	; @call [GetWindowPtrA](pax, GWL_USERDATA)
+	$call [GetDlgItem]([.form.hWnd], pdx)
+	$call DLG|getPtr(pax)
+	; $call [GetWindowPtrA](pax, GWL_USERDATA)
 	test eax, eax
 		jz .return
-	virtObj .cntrl:arg CONTROL at psi from pax
+	virtObj .cntrl CONTROL at psi from pax
 	xor eax, eax
 	mov pdi, [.cntrl.sData.lpEvents]
 	cmp pdi, 0
@@ -93,23 +93,23 @@ proc DLG.controlEventsChecker c uses psi pdi pbx, lpForm, wParam, lpHwndDlg
 	movzx ecx, word[pdi]
 		jecxz .return
 	add pdi, 2
-	movzx edx, word[wParam + 2]
+	movzx edx, word[.wParam + 2]
 	.find_event:
 		cmp dx, word[pdi + (pcx - 1) * 4]
 		jne .not_my_event
 			movzx pdi, word[pdi + (pcx - 1) * 4 + 2]
 			cmp pointer[.cntrl + pdi], 0
 				jz .return
-			@call std pointer[.cntrl + pdi](addr .form, [lpHwndDlg], addr .cntrl, addr .cntrl + pdi + pointer.size)
+			$call std pointer[.cntrl + pdi](&.form, [.lpHwndDlg], &.cntrl, addr .cntrl + pdi + pointer.size)
 			jmp .return
 		.not_my_event:
 	loop .find_event
 	.return: ret
-endp
+.endp
 
-proc DLG.hooksMainChecker c uses psi pdi, hWnd, uMsg, wParam, lParam, uIdSubclass, dwRefData
+.proc cdecl DLG.hooksMainChecker(.hWnd, .uMsg, .wParam, .lParam, .uIdSubclass, .dwRefData) uses psi pdi
 	@sarg @arg1, @arg2, @arg3, @arg4
-	virtObj .form:arg DIALOGFORM at psi from [dwRefData]
+	virtObj .form DIALOGFORM at psi from [.dwRefData]
 	xor eax, eax
 	mov pdi, [.form.sData.lpHooks]
 	cmp pdi, 0
@@ -117,83 +117,83 @@ proc DLG.hooksMainChecker c uses psi pdi, hWnd, uMsg, wParam, lParam, uIdSubclas
 	movzx ecx, word[pdi]
 		jecxz .default
 	add pdi, 2
-	movzx edx, word[uMsg]
+	movzx edx, word[.uMsg]
 	.find_event:
 		cmp dx, word[pdi + (pcx - 1) * 4]
 		jne .not_my_event
 			movzx pdi, word[pdi + (pcx - 1) * 4 + 2]
 			cmp pointer[.form + pdi], 0
 				jz .default
-			@call std pointer[.form + pdi]([dwRefData], addr hWnd, addr .form + pdi + pointer.size)
+			$call std pointer[.form + pdi]([.dwRefData], &.hWnd, addr .form + pdi + pointer.size)
 			jmp .return
 		.not_my_event:
 	loop .find_event
 	.default:
-	@call [DefSubclassProc]([hWnd], [uMsg], [wParam], [lParam])
+	$call [DefSubclassProc]([.hWnd], [.uMsg], [.wParam], [.lParam])
 	.return: ret
-endp
+.endp
 
-proc DLG.initEvent c uses pbx psi pdi pbp, hwndDlg, lParam
+.proc cdecl DLG.initEvent(.hwndDlg, .lParam) uses pbx psi pdi pbp
 	@sarg @arg1, @arg2
 	@larg pcx, @arg1
-	virtObj .form:arg DIALOGFORM at pbx from @arg2
+	virtObj .form DIALOGFORM at pbx from @arg2
 	mov [.form.hWnd], pcx
 	mov pbp, [.form.sData.lpClOffsets]
-	@call DLG::setPtr([hwndDlg], addr .form)
-	; @call [SetWindowPtrA]([hwndDlg], GWL_USERDATA, addr .form)
-    ; @call [OpenThemeData]([.form.hWnd], L "Menu;Button")
+	$call DLG|setPtr([.hwndDlg], &.form)
+	; $call [SetWindowPtrA]([.hwndDlg], GWL_USERDATA, &.form)
+    ; $call [OpenThemeData]([.form.hWnd], L "Menu;Button")
     ; mov [.form.hTheme], pax
 
 	cmp [.form.sData.lpHooks], 0
 	je .no_main_hook
-		@call [SetWindowSubclass]([.form.hWnd], DLG.hooksMainChecker, -1, addr .form)
+		$call [SetWindowSubclass]([.form.hWnd], DLG.hooksMainChecker, -1, &.form)
 	.no_main_hook:
 
 	; with mapDialog:MapDialog([.form.hWnd])
-	@call .form.sData.mapDialog->make([.form.hWnd])
-	@call .form.sData.mapDialog->mapRect(addr .form.sData.baseRect)
+	$call .form.sData.mapDialog::make([.form.hWnd])
+	$call .form.sData.mapDialog::mapRect(&.form.sData.baseRect)
     cmp [.form.idCount], 0
     je .no_childs
 		mov edi, [.form.idCount]
 		.init_control_loop:
 			mov psi, [pbp + (pdi - 1) * pointer.size]
-			virtObj .cntrl:arg CONTROL at psi from addr .form + psi 
+			virtObj .cntrl CONTROL at psi from addr .form + psi 
 			mov [.cntrl.ID], edi
-			@call [GetDlgItem]([.form.hWnd], edi)
+			$call [GetDlgItem]([.form.hWnd], edi)
 			mov [.cntrl.hWnd], pax
-			@call DLG::setPtr([.cntrl.hWnd], addr .cntrl)
-			; @call [SetWindowPtrA]([.cntrl.hWnd], GWL_USERDATA, addr .cntrl)
-			@call .form.sData.mapDialog->mapRect(addr .cntrl.sData.baseRect)
+			$call DLG|setPtr([.cntrl.hWnd], &.cntrl)
+			; $call [SetWindowPtrA]([.cntrl.hWnd], GWL_USERDATA, &.cntrl)
+			$call .form.sData.mapDialog::mapRect(&.cntrl.sData.baseRect)
 			cmp [.cntrl.sData.lpHooks], NULL
 			je .no_hook
-				@call [SetWindowSubclass]([.cntrl.hWnd], DLG.hookEventsChecker, -1, addr .form)
+				$call [SetWindowSubclass]([.cntrl.hWnd], DLG.hookEventsChecker, -1, &.form)
 			.no_hook:
 		dec pdi
 		jnz .init_control_loop
 
-		local sizesRect:RECT
-		@call [GetClientRect]([.form.hWnd], addr sizesRect)
-		@call CNV::fill(addr .form.sData.defaultSize, addr sizesRect.right, sizeof.POINT)
-		@call .form->scaleChilds()
+		.local .sizesRect:RECT
+		$call [GetClientRect]([.form.hWnd], &.sizesRect)
+		$call CNV|fill(&.form.sData.defaultSize, &.sizesRect.right, sizeof.POINT)
+		$call .form::scaleChilds()
 	.no_childs:
 	.return: ret
-endp
+.endp
 
-proc DLG.DialogProc uses pdi pbx psi, hwndDlg, uMsg, wParam, lParam
-	virtObj .form:arg DIALOGFORM at pbx
+.proc stdcall DLG.DialogProc(.hwndDlg, .uMsg, .wParam, .lParam) uses pdi pbx psi
+	virtObj .form DIALOGFORM at pbx
 	@sarg @arg1, @arg2, @arg3, @arg4
-	mov eax, dword[uMsg]
+	mov eax, dword[.uMsg]
 	cmp @arg2, WM_INITDIALOG
 	je .init_event
-		@call DLG::getPtr([hwndDlg])
-		; @call [GetWindowPtrA]([hwndDlg], GWL_USERDATA)
+		$call DLG|getPtr([.hwndDlg])
+		; $call [GetWindowPtrA]([.hwndDlg], GWL_USERDATA)
 		test pax, pax
 			jz .return
 		mov pbx, pax
 	.after_init:
 	xor eax, eax
-	mov pdx, [uMsg]
-	mov ecx, dword[wParam]
+	mov pdx, [.uMsg]
+	mov ecx, dword[.wParam]
 	cmp edx, WM_COMMAND
 		je .commandEventsChecker
 	cmp edx, WM_NOTIFY
@@ -213,37 +213,36 @@ proc DLG.DialogProc uses pdi pbx psi, hwndDlg, uMsg, wParam, lParam
 			cmp pointer[.form + pdi], 0
 				jz .after_event
 			mov psi, [.form + pdi]
-			@call std pointer[.form + pdi](addr .form, addr hwndDlg, addr .form + pdi + pointer.size)
+			$call std pointer[.form + pdi](&.form, &.hwndDlg, addr .form + pdi + pointer.size)
 			jmp .after_event
 		.not_my_event:
 	loop .find_event
 	.after_event:
-	cmp [uMsg], WM_CLOSE
+	cmp [.uMsg], WM_CLOSE
 		je .close_event
 	.return: ret
 
 	.init_event:
-		mov pbx, [lParam]
-		@call c DLG.initEvent([hwndDlg], [lParam])
+		mov pbx, [.lParam]
+		$call c DLG.initEvent([.hwndDlg], [.lParam])
 		jmp .after_init
 
 	.commandEventsChecker:
 		cmp cx, word[.form.idCount]
 			ja .return
-		@call c DLG.controlEventsChecker(addr .form, ecx, addr hwndDlg)
+		$call c DLG.controlEventsChecker(&.form, ecx, &.hwndDlg)
 		jmp .return
 	
 	.notificationsChecker:
-		@call c DLG.controlNotifyChecker(addr .form, [lParam])
+		$call c DLG.controlNotifyChecker(&.form, [.lParam])
 		jmp .return
 		
 	.close_event:
 	; int3
 		cmp pax, NULL
-			cmove pax, [wParam]
-		@call [.form.__close](addr .form, addr hwndDlg, pax)
+		cmove pax, [.wParam]
+		$call [.form.__close](&.form, &.hwndDlg, pax)
 		jmp .return
+.endp
 
-endp
-
-proc_resprologue
+.proc_frame_mode_previous

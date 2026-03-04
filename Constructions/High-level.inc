@@ -861,6 +861,7 @@
 		local datadef, callargs, _type, conv, mtable, object
 		local inline_result, _proc
 		local _mp1, _mp2, _mp3, _mp4, _mp5, _mp6, _mp7, _mp8, _mp9, _mp10, _mp11
+		local _any1
 		macro define$call\{
 			\local redefined, result
 			macro $call args&\\{
@@ -878,6 +879,9 @@
 					\\\\}
 					match _mp4)::_mp5, _mp3\\\\{
 						define callargs _mp4
+					\\\\}
+					match )::_mp4, _mp3\\\\{
+						define callargs
 					\\\\}
 					define conv cdecl
 					match _mp4[_mp5], _mp1\\\\{
@@ -933,7 +937,7 @@
 							Unknown method \\\`_mp2 for structure \\\\`_mp4
 						\\\\\}
 					\\\\}
-					match _mp4)::_mp5, _mp3\\\\{
+					match _mp4)::_mp5, _any1 _mp3\\\\{
 						match =redefined, redefined\\\\\{
 							define$call
 						\\\\\}
@@ -956,11 +960,10 @@
 					\\\\}
 					match _mp4|_mp5|_mp6, _type|mtable|conv\\\\{
 						match =static | _mp7 | _mp8, _mp2\\\#.Type\\\\#_mp4 | @\\\\#_mp6\\\\#call | callargs\\\\\{
-							match , _mp8\\\\\\{
-								_mp7 _mp5\\\\#.\\\\#_mp2
-							rept 0 \\\\\\{\\\\\\} rept 1\\\\\\{
-								_mp7 _mp5\\\\#.\\\\#_mp2, _mp8
-							\\\\\\}
+							_mp7 _mp5\\\\#.\\\\#_mp2, _mp8
+						\\\\\}
+						match =static | _mp7 | , _mp2\\\#.Type\\\\#_mp4 | @\\\\#_mp6\\\\#call | callargs\\\\\{
+							_mp7 _mp5\\\\#.\\\\#_mp2
 						\\\\\}
 						match =virtual | _mp7 | _mp8 | _mp9, _mp2\\\#.Type\\\\#_mp4 | @\\\\#_mp6\\\\#call | _mp2\\\#.Value\\\\#_mp4 | callargs\\\\\{
 							use@table _mp4\\\\#.Table
@@ -973,17 +976,18 @@
 						match =inline | _mp7 | _mp8, _mp2\\\#.Type\\\\#_mp4 | _mp2\\\#.Value\\\\#_mp4 | callargs\\\\\{
 							define$call
 							define redefined
-							match , _mp8\\\\\\{
-								define __argscount__ 0
-								_mp7
-								restore __argscount__
-							rept 0 \\\\\\{\\\\\\} rept 1\\\\\\{
-								_inline@parse inline_result, _mp8
-								match _mp9, inline_result\\\\\\\{
-									_mp7 _mp9
-								\\\\\\\}
-								restore __argscount__
+							_inline@parse inline_result, _mp8
+							match _mp9, inline_result\\\\\\{
+								_mp7 _mp9
 							\\\\\\}
+							restore __argscount__
+						\\\\\}
+						match =inline | _mp7 | , _mp2\\\#.Type\\\\#_mp4 | _mp2\\\#.Value\\\\#_mp4 | callargs\\\\\{
+							define$call
+							define redefined
+							define __argscount__ 0
+							_mp7
+							restore __argscount__
 						\\\\\}
 						match =_mp2\\\#.Type\\\\#_mp4, _mp2\\\#.Type\\\\#_mp4\\\\\{
 							Unknown method \\\`_mp2 for structure \\\\`_mp4
@@ -1050,30 +1054,34 @@
 					match _mp3), _mp2\\\\{
 						define callargs _mp3
 					\\\\}
-					define _proc _mp1
+					_proc equ _mp1
 					define datadef _mp1
 					match _mp3[_mp4], datadef\\\\{
 						define conv _mp3
-						define _proc [_mp4]
+						_proc equ [_mp4]
 						define datadef
+					\\\\}
+					match _mp3 _mp4, conv\\\\{
+						define conv _mp3
+						_proc equ _mp4 _proc
 					\\\\}
 					match [_mp3], datadef\\\\{
 						match =_mp3\\\\#.conv, _mp3\\\\#.conv\\\\\{rept 0\\\\\{\\\\\}match _mp4, _mp3\\\\#.conv\\\\\{
 							define conv _mp4
 						\\\\\}
-						define _proc [_mp3]
+						_proc equ [_mp3]
 						define datadef
 					\\\\}
 					match _mp3 _mp4, datadef\\\\{
 						define conv _mp3
-						define _proc _mp4
+						_proc equ _mp4
 						define datadef
 					\\\\}
 					match , datadef\\\\{rept 0\\\\{\\\\}match _mp3, datadef\\\\{
 						match =_mp3\\\\#.conv, _mp3\\\\#.conv\\\\\{rept 0\\\\\{\\\\\}match _mp4, _mp3\\\\#.conv\\\\\{
 							define conv _mp4
 						\\\\\}
-						define _proc _mp3
+						_proc equ _mp3
 						define datadef
 					\\\\}
 					match _mp3, conv\\\\{
@@ -1150,11 +1158,8 @@
 					$call CNV|fill(addr _mp1, <const _mp2>, sizeof.\\#_mp2)
 					define datadef _mp4
 				\\\}
-				match (_mp4) _any1, datadef\\\{
-					$call _mp1::make(_mp4)
-				\\\}
-				match () _any1, datadef\\\{
-					$call _mp1::make()
+				match (_mp4 =_any1, datadef\\\{
+					$call _mp1::make(_mp4
 				\\\}
 			\\}
 		\}

@@ -254,88 +254,90 @@ rept 1 {
 				\\\\}
 				define _def ..bytes
 			\\\}
-			match -_mp1, src\\\{
-				define _type pointer lit
-				define _def src
-			\\\}
-			match +_mp1, src\\\{
-				define _type pointer lit
-				define _def src
-			\\\}
+			; match -_mp1, src\\\{
+			; 	define _type pointer lit
+			; 	define _def src
+			; \\\}
+			; match +_mp1, src\\\{
+			; 	define _type pointer lit
+			; 	define _def src
+			; \\\}
 			match =_type _mp1 _mp2, _type src\\\{
-				match [_mp3], _mp2\\\\{
-					define _type _mp1 mem
-					define _def _mp2
-				\\\\}
-				match _mp3 =_mp1 _mp4, _any1 addr & _any2\\\\{
-					define _type pointer addr
-					\\\\local ..addr
-					virtual at _mp2
-						..addr:
-					end virtual
-					define _def ..addr
-				\\\\}
-				match =addr _mp3,  _mp2\\\\{
-					define _type _mp1 addr 
-					\\\\local ..addr
-					virtual at _mp3
-						..addr:
-					end virtual
-					define _def ..addr
-				\\\\}
-				match &_mp3,  _mp2\\\\{
-					define _type _mp1 addr 
-					\\\\local ..addr
-					virtual at _mp3
-						..addr:
-					end virtual
-					define _def ..addr
-				\\\\}
-				match _mp3 =_mp2 _mp4, _any1 rax rbx rcx rdx rsi rdi rsp rbp r8 r9 r10 r11 r12 r13 r14 r15 _any2\\\\{
-					define _type _mp1 GPR
-					define _def _mp2
-				\\\\}
-				match _mp3 =_mp2 _mp4, _any1 eax ebx ecx edx esi edi esp ebp r8d r9d r10d r11d r12d r13d r14d r15d _any2\\\\{
-					define _type _mp1 GPR
-					define _def _mp2
-				\\\\}
-				match _mp3 =_mp2 _mp4, _any1 xmm0 xmm1 xmm2 xmm3 xmm4 xmm5 xmm6 xmm7 xmm8 xmm9 xmm10 xmm11 xmm12 xmm13 xmm14 xmm15 _any2\\\\{
-					define _type _mp1 SSE
-					define _def _mp2
-				\\\\}
-				match _mp3 =_mp2 _mp4, _any1 st0 st1 st2 st3 st4 st5 st6 st7 _any2\\\\{
-					define _type _mp1 FPU
-					define _def _mp2
-				\\\\}
-				match =L \\\`_mp2, _mp1 _mp2\\\\{
-					define _type pointer lit
-					\\\\local ..bytes
-					..bytes @const cwstr _mp2
-					define _def ..bytes
-				\\\\}
-				match =_type | \\\`_mp2, _type |  _mp2\\\\{
-					define _type _mp1 lit
-					\\\\local ..bytes
-					..bytes @const cstr _mp2
-					define _def ..bytes
-				\\\\}
-				match =L _mp3, _mp2\\\\{
-					match \\\\`_mp3, _mp3\\\\\{
-						define _type _mp1 lit
+				match _mp3 =_mp1 _mp4, _any1 L & addr byte word dword qword real float double _any2\\\\{
+					match [_mp5], _mp2\\\\\{
+						define _type _mp1 mem
+						define _def _mp2
+					\\\\\}
+					match _mp5 =_mp1 _mp5, _any1 addr & _any2\\\\\{
+						define _type pointer addr
+						\\\\\local ..addr
+						virtual at _mp2
+							..addr:
+						end virtual
+						define _def ..addr
+					\\\\\}
+					match =addr _mp5,  _mp2\\\\\{
+						define _type _mp1 addr 
+						\\\\\local ..addr
+						virtual at _mp5
+							..addr:
+						end virtual
+						define _def ..addr
+					\\\\\}
+					match &_mp5,  _mp2\\\\\{
+						define _type _mp1 addr 
+						\\\\\local ..addr
+						virtual at _mp5
+							..addr:
+						end virtual
+						define _def ..addr
+					\\\\\}
+					match _mp5 =_mp2 _mp6, _any1 rax rbx rcx rdx rsi rdi rsp rbp r8 r9 r10 r11 r12 r13 r14 r15 _any2\\\\\{
+						define _type _mp1 GPR
+						define _def _mp2
+					\\\\\}
+					match _mp5 =_mp2 _mp6, _any1 eax ebx ecx edx esi edi esp ebp r8d r9d r10d r11d r12d r13d r14d r15d _any2\\\\\{
+						define _type _mp1 GPR
+						define _def _mp2
+					\\\\\}
+					match _mp5 =_mp2 _mp6, _any1 xmm0 xmm1 xmm2 xmm3 xmm4 xmm5 xmm6 xmm7 xmm8 xmm9 xmm10 xmm11 xmm12 xmm13 xmm14 xmm15 _any2\\\\\{
+						define _type _mp1 SSE
+						define _def _mp2
+					\\\\\}
+					match _mp5 =_mp2 _mp6, _any1 st0 st1 st2 st3 st4 st5 st6 st7 _any2\\\\\{
+						define _type _mp1 FPU
+						define _def _mp2
+					\\\\\}
+					match =L \\\`_mp2, _mp1 _mp2\\\\\{
+						define _type pointer lit
 						\\\\\local ..bytes
 						..bytes @const cwstr _mp2
 						define _def ..bytes
 					\\\\\}
-				\\\\}
-				match =_type | :_mp3, _type | _mp2\\\\{
-					define _type sep qword
-					define _def _mp1 _mp2
-				\\\\}
-				match [, _mp1 \\\\{rept 0\\\\{\\\\} match =_type, _type\\\\{
-					define _type _mp1 lit
-					define _def _mp2
+					match =_type | \\\`_mp2, _type |  _mp2\\\\\{
+						define _type _mp1 lit
+						\\\\\local ..bytes
+						..bytes @const cstr _mp2
+						define _def ..bytes
+					\\\\\}
+					match =L _mp5, _mp2\\\\\{
+						match \\\\\`_mp5, _mp5\\\\\\{
+							define _type _mp1 lit
+							\\\\\\local ..bytes
+							..bytes @const cwstr _mp2
+							define _def ..bytes
+						\\\\\\}
+					\\\\\}
+					match [, _mp1 \\\\\{rept 0\\\\\{\\\\\} match =_type, _type\\\\\{
+						define _type _mp1 lit
+						define _def _mp2
+					\\\\\}
 				\\\\}
 			\\\}
+		\\}
+		match =_type | _mp1:_mp2, _type | src\\{
+			define _type sep qword
+			define _def src
 		\\}
 		match \`src, src\\{
 			define _type pointer lit
@@ -389,7 +391,7 @@ rept 1 {
 		counter equ counter + 1
 		\local _results
 		define _results args
-		match =data _mp1, args\\{
+		match =static _mp1, args\\{
 			define _type pointer lit
 			\\local ..bytes
 			var@litStack equ ..bytes _mp1

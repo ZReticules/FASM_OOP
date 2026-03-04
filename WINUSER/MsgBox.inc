@@ -70,5 +70,5 @@ macro MsgBox lpszText*, lpszCaption=NULL, [args]{;dwStyle=MB_OK, hwndOwner=NULL,
 }
 
 macro MsgBoxParams.show this{
-	@call [MessageBoxIndirectA](this)
+	$call [MessageBoxIndirectA](this)
 }

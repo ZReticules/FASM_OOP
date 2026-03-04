@@ -3,8 +3,8 @@
 	include "MurmurHash3.inc"
 	
 	struct SimpleDictKey
-		key dptr ?
-		len dd ?
+		key 	dptr ?
+		len 	dd ?
 		isConst dd ?
 	ends
 

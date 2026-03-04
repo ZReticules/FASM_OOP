@@ -1,9 +1,9 @@
-proc_noprologue
+.proc_frame_mode_static
 
-proc fstr_dynamic c uses psi pdi pbx pbp, lpCstr
+.proc cdecl fstr_dynamic(.lpCstr) uses psi pdi pbx pbp
     @larg psi, @arg1
     @sarg @arg1
-    local result:POINTER
+    .local .result:POINTER
 
     xor pdi, pdi
     .loop1:
@@ -14,12 +14,12 @@ proc fstr_dynamic c uses psi pdi pbx pbp, lpCstr
     jnz .loop1
 
     lea pdi, [pdi * 9]
-    sub psi, [lpCstr]
-    @call CNV:alloc(addr pdi + psi)
+    sub psi, [.lpCstr]
+    $call CNV|alloc(addr pdi + psi)
 
     mov pdi, pax
-    mov [result], pax
-    mov psi, [lpCstr]
+    mov [.result], pax
+    mov psi, [.lpCstr]
     xor eax, eax
     .loop2:
         lodsb
@@ -29,7 +29,7 @@ proc fstr_dynamic c uses psi pdi pbx pbp, lpCstr
     test eax, eax
     jnz .loop2
 
-    mov pax, [result]
+    mov pax, [.result]
     ret
 
     .catch_percent1:
@@ -140,11 +140,11 @@ proc fstr_dynamic c uses psi pdi pbx pbp, lpCstr
 
         or byte[pbp], dl
         jmp .loop2
-endp
+.endp
 
-proc fstr_free c, lpFstr
-    @call CNV:free(@arg1) 
+.proc fstr_free(.lpFstr)
+    $call CNV|free(@arg1) 
     ret
-endp
+.endp
 
-proc_resprologue
+.proc_frame_mode_previous

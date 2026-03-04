@@ -241,34 +241,68 @@ rept 1{
 	local litval
 	macro @set_fast_qword_lit src\{
 		litval = qword src
-		mov rax, litval
+		if litval = 0
+			xor eax, eax
+		else
+			mov rax, litval
+		end if
 	\}
 	macro @set_fast_dword_lit src\{
 		litval = dword src
-		mov eax, litval
+		if litval = 0
+			xor eax, eax
+		else
+			mov eax, litval
+		end if
 	\}
 	macro @set_fast_word_lit src\{
 		litval = word src
-		mov eax, litval
+		if litval = 0
+			xor eax, eax
+		else
+			mov eax, litval
+		end if
 	\}
 	macro @set_fast_byte_lit src\{
 		litval = byte src
-		mov eax, litval
+		if litval = 0
+			xor eax, eax
+		else
+			mov eax, litval
+		end if
 	\}
 	macro @set_fast_double_lit src\{
 		litval = qword src
-		mov rax, litval
-		movq xmm0, rax
+		if litval = 0
+			pxor xmm0, xmm0
+		else if litval = 0xFFFFFFFFFFFFFFFF
+			pcmpeqq xmm0, xmm0
+		else
+			mov rax, litval
+			movq xmm0, rax
+		end if
 	\}
 	macro @set_fast_float_lit src\{
 		litval = dword src
-		mov eax, litval
-		movd xmm0, eax
+		if litval = 0
+			pxor xmm0, xmm0
+		else if litval = 0xFFFFFFFF
+			pcmpeqq xmm0, xmm0
+		else
+			mov eax, litval
+			movd xmm0, eax
+		end if
 	\}
 	macro @set_fast_real_lit src\{
 		litval = word src
-		mov eax, litval
-		movd xmm0, eax
+		if litval = 0
+			pxor xmm0, xmm0
+		else if litval = 0xFFFF
+			pcmpeqq xmm0, xmm0
+		else
+			mov eax, litval
+			movd xmm0, eax
+		end if
 	\}
 	macro @set_fast_qword_mem src\{
 		mov rax, src

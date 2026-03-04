@@ -257,7 +257,7 @@ macro String.realloc this, size, minify=0{
     ret
 .endp
 
-.proc cdecl String.slice(.pthis, .source, .start, .end) uses psi pdi pbx
+.proc cdecl String.slice(.pthis, .source, .start, ._end) uses psi pdi pbx
     virtObj .this String at pdi from @arg1
     virtObj .src String at psi from @arg2
     @sarg @arg3, @arg4
@@ -270,16 +270,16 @@ macro String.realloc this, size, minify=0{
             mov [.start], 0
         .no_out_low_bound:
     .no_neg_low:
-    cmp dword[.end], 0
+    cmp dword[._end], 0
     jge .no_neg_high
         mov eax, [.src.len]
-        add dword[.end], eax
-        cmp dword[.end], 0
+        add dword[._end], eax
+        cmp dword[._end], 0
         jg .no_out_high_bound
-            mov [.end], 0
+            mov [._end], 0
         .no_out_high_bound:
     .no_neg_high:
-    mov ebx, dword[.end]
+    mov ebx, dword[._end]
     cmp ebx, [.src.len]
         cmova ebx, [.src.len]
     sub ebx, dword[.start]

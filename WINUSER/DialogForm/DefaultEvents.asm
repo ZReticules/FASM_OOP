@@ -44,19 +44,19 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 	minMaxRect RECT x, y, cx, cy
 }
 
-proc_noprologue
+.proc_frame_mode_static
 
-; proc DIALOGFORM_WM_CTLCOLOR uses pbx psi, lpForm, lpParams, lpEventData
+; .proc DIALOGFORM_WM_CTLCOLOR uses pbx psi, lpForm, lpParams, lpEventData
 ; 	@sarg @arg1
 ; 	virtObj .params:arg params at pbx from @arg2
-; 	; @call c [puts]("lol")
-; 	@call [GetWindowPtrA]([.params.lParam], GWL_USERDATA)
+; 	; $call c [puts]("lol")
+; 	$call [GetWindowPtrA]([.params.lParam], GWL_USERDATA)
 ; 	; int3
 ; 	test eax, eax
 ; 	jz .noVal
 ; 		virtObj .control:arg DLG_SPECIAL_CONTROL at psi from pax
-; 		@call [SetBkColor]([.params.wParam], [.control.bkColor])
-; 		@call [SetTextColor]([.params.wParam], [.control.txColor])
+; 		$call [SetBkColor]([.params.wParam], [.control.bkColor])
+; 		$call [SetTextColor]([.params.wParam], [.control.txColor])
 ; 		mov pax, [.control.bgColorBrush]
 ; 		test pax, pax
 ; 			jnz .noVal
@@ -66,72 +66,68 @@ proc_noprologue
 ; 	ret
 ; endp
 
-; proc ret_white, lpForm, lpParams, lpEventData
-; 	@call c [printf]("lol")
-; 	@call [GetStockObject](BLACK_BRUSH)
+; .proc ret_white, lpForm, lpParams, lpEventData
+; 	$call c [printf]("lol")
+; 	$call [GetStockObject](BLACK_BRUSH)
 ; 	ret
 ; endp
 
-; proc DIALOGFORM_WM_CTLCOLORDLG, lpForm, lpParams, lpEventData
+; .proc DIALOGFORM_WM_CTLCOLORDLG, lpForm, lpParams, lpEventData
 ; 	; int3
 ; 	@larg pcx, @arg1
 ; 	mov pax, [pcx + DIALOGFORM.bgColorBrush]
 ; 	ret
 ; endp
 
-proc DIALOGFORM_WM_GETMINMAXINFO, lpForm, lpParams, lpEventData
+.proc stdcall DIALOGFORM_WM_GETMINMAXINFO(.lpForm, .lpParams, .lpEventData)
 	@sarg @arg3
 	@larg pdx, @arg2
 	virtObj .minMaxInfo MINMAXINFO at pax from [pdx + params.lParam]
-	@call CNV::fill(addr .minMaxInfo.ptMinTrackSize, @arg3, sizeof.RECT)
+	$call CNV|fill(addr .minMaxInfo.ptMinTrackSize, @arg3, sizeof.RECT)
 	mov eax, 0
 	ret
-endp
+.endp
 
-proc DIALOGFORM_WM_SIZE uses pbx, lpForm, lpParams, lpEventData
+.proc stdcall DIALOGFORM_WM_SIZE(.lpForm, .lpParams, .lpEventData) uses pbx
 	virtObj .form:arg DIALOGFORM at pbx from @arg1
 	; local NewRect:RECT
-	; @call [GetClientRect]([.form.hWnd], addr NewRect)
+	; $call [GetClientRect]([.form.hWnd], addr NewRect)
 	; ; movq xmm0, qword[.form.baseRect.right]
 	; ; movq qword[NewRect.left], xmm0
-	; @call CNV::fill(addr NewRect.left, addr .form.sData.baseRect.right, sizeof.POINT)
+	; $call CNV|fill(addr NewRect.left, addr .form.sData.baseRect.right, sizeof.POINT)
 	; ; int3
-	; @call [EnumChildWindows]([.form.hWnd], DIALOGFORM.EnumChildsProc, addr NewRect)
-	@call .form->scaleChilds()
-	; @call [InvalidateRect]([.form.hWnd], NULL, 1)
-	; @call [UpdateWindow]([.form.hWnd])
-	@call [EnumChildWindows]([.form.hWnd], .invalidate_childs, NULL)
-	xor eax, eax
-	ret
+	; $call [EnumChildWindows]([.form.hWnd], DIALOGFORM.EnumChildsProc, addr NewRect)
+	$call .form::scaleChilds()
+	; $call [InvalidateRect]([.form.hWnd], NULL, 1)
+	; $call [UpdateWindow]([.form.hWnd])
+	$call [EnumChildWindows]([.form.hWnd], .invalidate_childs, NULL)
+	$return 0
 
-	proc .invalidate_childs, hWnd, lParam
+	.proc stdcall .invalidate_childs(.hWnd, .lParam)
 		@sarg @arg1
-		@call DLG::getPtr(@arg1)
+		$call DLG|getPtr(@arg1)
 		test eax, eax
 			jz .return
 		test [pax + CONTROL.sData.flags], CONTROL.UNVALIDATABLE
 			jnz .return
-		@call [InvalidateRect]([hWnd], NULL, 1)
-		.return: 
-			mov eax, esp
-			ret
-	endp
+		$call [InvalidateRect]([.hWnd], NULL, 1)
+		.return: $return esp
+	.endp
+.endp
 
-endp
-
-; proc DIALOGFORM_WM_EXITSIZEMOVE uses pbx, lpForm, lpParams, lpEventData
+; .proc stdcall DIALOGFORM_WM_EXITSIZEMOVE uses pbx, lpForm, lpParams, lpEventData
 ; 	virtObj .form DIALOGFORM at pbx from @arg1
-; 	@call [InvalidateRect]([.form.hWnd], NULL, 1)
-; 	@call [EnumChildWindows]([.form.hWnd], .invalidate_childs, NULL)
+; 	$call [InvalidateRect]([.form.hWnd], NULL, 1)
+; 	$call [EnumChildWindows]([.form.hWnd], .invalidate_childs, NULL)
 ; 	ret
-; 	proc .invalidate_childs, hWnd, lParam
+; 	.proc .invalidate_childs, hWnd, lParam
 ; 		@sarg @arg1
-; 		@call DLG::getPtr(@arg1)
+; 		$call DLG|getPtr(@arg1)
 ; 		test eax, eax
 ; 			jz .return
 ; 		test [pax + CONTROL.sData.flags], CONTROL.UNVALIDATABLE
 ; 			jnz .return
-; 		@call [InvalidateRect]([hWnd], NULL, 1)
+; 		$call [InvalidateRect]([hWnd], NULL, 1)
 ; 		.return: 
 ; 			mov eax, esp
 ; 			ret
@@ -142,7 +138,7 @@ endp
 ; 	NM_CUSTOMDRAW notify COLORED_BUTTON_NM_CUSTOMDRAW
 ; }
 
-; proc COLORED_BUTTON_NM_CUSTOMDRAW uses pbx psi pdi, lpForm, lpNmhdr, lpControl, lpEventData
+; .proc COLORED_BUTTON_NM_CUSTOMDRAW uses pbx psi pdi, lpForm, lpNmhdr, lpControl, lpEventData
 ; 	mov eax, CDRF_DODEFAULT
 ; 	; int3
 ; 	virtObj .form:arg DIALOGFORM at pbx
@@ -153,13 +149,13 @@ endp
 ; 	cmp dword[.nmhdr.dwDrawStage], CDDS_PREPAINT
 ; 	jne .no_prepaint
 ; 		mov pbx, @arg1
-;         @call [SetWindowPtrA]([.form.hWnd], 0, CDRF_NOTIFYPOSTPAINT or CDRF_NOTIFYPOSTERASE)
+;         $call [SetWindowPtrA]([.form.hWnd], 0, CDRF_NOTIFYPOSTPAINT or CDRF_NOTIFYPOSTERASE)
 ;         mov eax, 1
 ; 	.no_prepaint:
 ; 	; cmp dword[.nmhdr.dwDrawStage], CDDS_POSTERASE
 ; 	; jne .no_erase
-; 	; 	@call [GetStockObject](WHITE_BRUSH)
-; 	; 	@call [FillRect]([.nmhdr.hdc], addr .nmhdr.rc, pax)
+; 	; 	$call [GetStockObject](WHITE_BRUSH)
+; 	; 	$call [FillRect]([.nmhdr.hdc], addr .nmhdr.rc, pax)
 ; 	; .no_erase:
 ; 	cmp dword[.nmhdr.dwDrawStage], CDDS_POSTPAINT
 ; 	jne .no_paint
@@ -167,12 +163,12 @@ endp
 ; 		mov psi, @arg3
 ; 		; inc [.nmhdr.rc.left]
 ; 		; inc [.nmhdr.rc.top]
-; 		; @call [CreateRoundRectRgn]([.nmhdr.rc.left], [.nmhdr.rc.top], [.nmhdr.rc.right], [.nmhdr.rc.bottom], 5, 5)
+; 		; $call [CreateRoundRectRgn]([.nmhdr.rc.left], [.nmhdr.rc.top], [.nmhdr.rc.right], [.nmhdr.rc.bottom], 5, 5)
 ; 		; dec [.nmhdr.rc.left]
 ; 		; dec [.nmhdr.rc.top]
-; 		; @call [SelectObject]([.nmhdr.hdc], pax)
+; 		; $call [SelectObject]([.nmhdr.hdc], pax)
 ; 		; mov [hRgn], pax
-; 		; @call [DrawThemeParentBackground]([.form.hTheme], [.nmhdr.hdc], addr .nmhdr.rc)
+; 		; $call [DrawThemeParentBackground]([.form.hTheme], [.nmhdr.hdc], addr .nmhdr.rc)
 ; 		; mov edx, PBS_NORMAL
 ;         ; test [.nmhdr.uItemState], CDIS_FOCUS
 ;         ; jz @f
@@ -191,66 +187,66 @@ endp
 ;         ; jz @f
 ;         ; 	or edx, PBS_DISABLED
 ;         ; @@:
-;         ; @call [DrawThemeBackground]([.form.hTheme], [.nmhdr.hdc], [.nmhdr.dwItemSpec], PBS_HOT, addr .nmhdr.rc, NULL)
-; 		; @call [SendMessageA]([.cntrl.hWnd], WM_PRINTCLIENT, [.nmhdr.hdc], PRF_CLIENT)
+;         ; $call [DrawThemeBackground]([.form.hTheme], [.nmhdr.hdc], [.nmhdr.dwItemSpec], PBS_HOT, addr .nmhdr.rc, NULL)
+; 		; $call [SendMessageA]([.cntrl.hWnd], WM_PRINTCLIENT, [.nmhdr.hdc], PRF_CLIENT)
 ;         cmp [.cntrl.bgColorBrush], 0
 ;         je .no_color
-; 	        ; @call [PatBlt]([.nmhdr.hdc],\ 
+; 	        ; $call [PatBlt]([.nmhdr.hdc],\ 
 ; 	        ;     [.nmhdr.rc.left],\ 
 ; 	        ;     [.nmhdr.rc.top],\
 ; 	        ;     [.nmhdr.rc.right],\
 ; 	        ;     [.nmhdr.rc.bottom],\
 ; 	        ;     DSTINVERT)
-; 	        @call [GetObjectA]([.cntrl.bgColorBrush], sizeof.LOGBRUSH, addr logBrush)
+; 	        $call [GetObjectA]([.cntrl.bgColorBrush], sizeof.LOGBRUSH, addr logBrush)
 ; 	        mov eax, [logBrush.lbColor]
 ; 	        not eax
 ; 	        and eax, 0xFFFFFF
-; 	        @call [CreateSolidBrush](pax)
-; 	        @call [SelectObject]([.nmhdr.hdc], pax)
+; 	        $call [CreateSolidBrush](pax)
+; 	        $call [SelectObject]([.nmhdr.hdc], pax)
 ; 	        mov [hBrush], pax
-; 	        @call [PatBlt]([.nmhdr.hdc],\ 
+; 	        $call [PatBlt]([.nmhdr.hdc],\ 
 ; 	            [.nmhdr.rc.left],\ 
 ; 	            [.nmhdr.rc.top],\
 ; 	            [.nmhdr.rc.right],\
 ; 	            [.nmhdr.rc.bottom],\
 ; 	            PATINVERT)
-; 	        @call [SelectObject]([.nmhdr.hdc], [hBrush])
-; 	        @call [DeleteObject](pax)
-; 	        ; @call [SelectObject]([.nmhdr.hdc], [hRgn])
-; 	        ; @call [DeleteObject](pax)
+; 	        $call [SelectObject]([.nmhdr.hdc], [hBrush])
+; 	        $call [DeleteObject](pax)
+; 	        ; $call [SelectObject]([.nmhdr.hdc], [hRgn])
+; 	        ; $call [DeleteObject](pax)
 ; 	        ; test [.nmhdr.uItemState], CDIS_FOCUS
 ; 	        ; jz @f
-; 	        ; 	@call [DrawFocusRect]([.nmhdr.hdc], addr .nmhdr.rc)
+; 	        ; 	$call [DrawFocusRect]([.nmhdr.hdc], addr .nmhdr.rc)
 ; 	        ; @@:
 ;         .no_color:
-;         ; @call [SendMessageA]([.cntrl.hWnd], WM_GETFONT, 0, 0)
+;         ; $call [SendMessageA]([.cntrl.hWnd], WM_GETFONT, 0, 0)
 ;         ; test eax, eax
 ;         ; jz .no_font
-;         ; 	@call [SelectObject]([.nmhdr.hdc], pax)
+;         ; 	$call [SelectObject]([.nmhdr.hdc], pax)
 ;         ; 	mov [hFont], pax
 ;         ; .no_font:
-;         ; @call .cntrl->getTextLen()
+;         ; $call .cntrl::getTextLen()
 ;         ; lea pax, [pax + 1]
 ;         ; mov [textLen], pax
-;         ; @call CNV::alloc(pax)
+;         ; $call CNV|alloc(pax)
 ;         ; mov [lpText], pax
-;         ; @call .cntrl->getText([lpText], [textLen])
-;         ; @call [SetBkMode]([.nmhdr.hdc], TRANSPARENT)
-;         ; @call [SetTextColor]([.nmhdr.hdc], [.cntrl.txColor])
-;         ; @call [DrawTextA]([.nmhdr.hdc], [lpText], [textLen], addr .nmhdr.rc, DT_CENTER or DT_SINGLELINE or DT_VCENTER)
-;         ; @call CNV::free([lpText])
+;         ; $call .cntrl::getText([lpText], [textLen])
+;         ; $call [SetBkMode]([.nmhdr.hdc], TRANSPARENT)
+;         ; $call [SetTextColor]([.nmhdr.hdc], [.cntrl.txColor])
+;         ; $call [DrawTextA]([.nmhdr.hdc], [lpText], [textLen], addr .nmhdr.rc, DT_CENTER or DT_SINGLELINE or DT_VCENTER)
+;         ; $call CNV|free([lpText])
 ;         ; cmp [hFont], 0
 ;         ; jne .no_return_font
-;         ; 	@call [SelectObject]([.nmhdr.hdc], [hFont])
+;         ; 	$call [SelectObject]([.nmhdr.hdc], [hFont])
 ;         ; .no_return_font:
 ;         ; test [.nmhdr.uItemState], CDIS_FOCUS
 ;         ; jz @f
-;         ; 	@call [DrawFocusRect]([.nmhdr.hdc], addr .nmhdr.rc)
+;         ; 	$call [DrawFocusRect]([.nmhdr.hdc], addr .nmhdr.rc)
 ;         ; @@:
-;         ; @call [SetWindowPtrA]([.form.hWnd], 0, CDRF_DOERASE)
+;         ; $call [SetWindowPtrA]([.form.hWnd], 0, CDRF_DOERASE)
 ; 		mov eax, 1
 ; 	.no_paint:
 ; 	ret
 ; endp
 
-proc_resprologue
+.proc_frame_mode_previous

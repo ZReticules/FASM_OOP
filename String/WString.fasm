@@ -202,6 +202,7 @@ macro WString.realloc this, size, minify=0{
     jbe .no_realloc
         $call .this::realloc(addr (eax + 1) * 2)
     .no_realloc:
+    ; int3
     $call .this::getLpWChars()
     mov edi, [.this.len]
     lea pdi, [pax + pdi * 2]
@@ -217,7 +218,7 @@ macro WString.realloc this, size, minify=0{
     virtObj .other WString at psi from @arg2
     @sarg @arg1
     $call .other::getLpWChars()
-    $call fromWChars<WString>([this], pax, [.other.len])
+    $call fromWChars<WString>([.pthis], pax, [.other.len])
     ret
 .endp
 
@@ -225,11 +226,11 @@ macro WString.realloc this, size, minify=0{
     virtObj .other WString at psi from @arg2
     @sarg @arg1
     $call .other::getLpWChars()
-    $call addWChars<WString>([this], pax, [.other.len])
+    $call addWChars<WString>([.pthis], pax, [.other.len])
     ret
 .endp
 
-.proc WString.slice(.pthis, .source, .start, .end) uses psi pdi pbx
+.proc cdecl WString.slice(.pthis, .source, .start, ._end) uses psi pdi pbx
     virtObj .this WString at pdi from @arg1
     virtObj .src WString at psi from @arg2
     @sarg @arg3, @arg4
@@ -242,16 +243,16 @@ macro WString.realloc this, size, minify=0{
             mov [.start], 0
         .no_out_low_bound:
     .no_neg_low:
-    cmp dword[.end], 0
+    cmp dword[._end], 0
     jge .no_neg_high
         mov eax, [.src.len]
-        add dword[.end], eax
-        cmp dword[.end], 0
+        add dword[._end], eax
+        cmp dword[._end], 0
         jg .no_out_high_bound
-            mov [.end], 0
+            mov [._end], 0
         .no_out_high_bound:
     .no_neg_high:
-    mov ebx, dword[.end]
+    mov ebx, dword[._end]
     cmp ebx, [.src.len]
         cmova ebx, [.src.len]
     sub ebx, dword[.start]
@@ -415,7 +416,7 @@ macro WString.realloc this, size, minify=0{
     .funcs dptr CNV.ui64ToStrVarchar, CNV.i64ToStrVarchar
 .endp
 
-.proc cdecl WString.vsprintf(this, fmtstr, vlist) uses psi pbx pdi pbp
+.proc cdecl WString.vsprintf(.pthis, .fmtstr, .vlist) uses psi pbx pdi pbp
     @sarg @arg1, @arg2, @arg3
     @larg psi, @arg2, pbp, @arg3
 
@@ -461,6 +462,7 @@ macro WString.realloc this, size, minify=0{
         dptr .percent
 
     .fmt:
+        ; int3
         .locals
             .flags       rd 1
             .width       rd 1
@@ -527,7 +529,8 @@ macro WString.realloc this, size, minify=0{
             .no_reverse:
             $call .result::addWChar(+" ", [.width])
         .after_correct:
-        $call .result::addWString(addr .buf)
+        ; int3
+        $call .result::addWString(&.buf);::println()
         add psi, pdi
         mov pdi, psi
         jmp .loop1
@@ -636,7 +639,8 @@ macro WString.realloc this, size, minify=0{
             mov eax, [.numeric_len]
         .no_uns_precision:
 
-        $call .buf::addWChars(addr .numeric_buf, eax)
+        $call .buf::addWChars(addr .numeric_buf, eax);::println()
+        ; $call c [printf]("%d\n", [.buf.len])
         jmp .end_fmt
 
     .asciiz:
@@ -772,7 +776,7 @@ macro WString.realloc this, size, minify=0{
         .errors @const dptr .nan, .inf
 .endp
 
-.proc cdecl WString.sprintf(.pthis, .fmtstr, .va_args, arg4)
+.proc cdecl WString.sprintf(.pthis, .fmtstr, .va_args, .arg4)
     @sarg @arg3, @arg4
     $call vsprintf<WString>(@arg1, @arg2, &.va_args)
     ret

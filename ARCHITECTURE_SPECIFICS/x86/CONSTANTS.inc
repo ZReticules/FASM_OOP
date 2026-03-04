@@ -27,6 +27,20 @@ macro movptr dest, src{
 	movd dest, src
 } 
 
+macro movsptr{
+	movsd
+}
+
+struc movsptr{
+	. movsd
+}
+
 XMM_REGS equ xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7
 
 qword_result equ edx:eax
+
+PEB equ fs:0x30
+
+macro jpcxz arg {
+	jecxz arg
+}

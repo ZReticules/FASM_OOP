@@ -2,7 +2,7 @@ importlib kernel32,\
 	VirtualProtect
 
 macro Hook.hookAPI_static func, const_hook{
-	local ..start, ..end, loword, hiword
+	local ..start, ..end, loword, hiword, hook_result
 	virtual at 0
 		..start:
 		mov pax, const_hook
@@ -12,22 +12,19 @@ macro Hook.hookAPI_static func, const_hook{
 		load loword pointer from ..start
 		load hiword pointer from ..start + pointer.size
 	end virtual
-	match =hook_result, hook_result\{
-		locals 
-			hook_result dptr ?
-		endl
-	\}
-	@call [VirtualProtect](func, pointer.size * 2, PAGE_EXECUTE_READWRITE, addr hook_result)
+	procbuf_alloc hook_result, pointer.size
+	$call [VirtualProtect](func, pointer.size * 2, PAGE_EXECUTE_READWRITE, addr hook_result)
 	mov pax, func
 	mov pdx, loword
 	mov pointer[pax], pdx
 	mov pdx, hiword
 	mov pointer[pax + pointer.size], pdx
+	procbuf_free hook_result
 }
 
 
 macro Hook.captureAPI_static func, const_hook, bytesDest, bytesReserved{
-	local ..start, ..end, loword, hiword
+	local ..start, ..end, loword, hiword, hook_result
 	virtual at 0
 		..start:
 		mov pax, pointer const_hook
@@ -38,12 +35,8 @@ macro Hook.captureAPI_static func, const_hook, bytesDest, bytesReserved{
 		load loword pointer from ..start
 		load hiword pointer from ..start + pointer.size
 	end virtual
-	match =hook_result, hook_result\{
-		locals 
-			hook_result dptr ?
-		endl
-	\}
-	@call [VirtualProtect](func, bytesReserved, PAGE_EXECUTE_READWRITE, addr hook_result)
+	procbuf_alloc hook_result, pointer.size
+	$call [VirtualProtect](func, bytesReserved, PAGE_EXECUTE_READWRITE, addr hook_result)
 	mov pax, func
 	lea pcx, [pax + bytesReserved]
 	push psi pdi pcx
@@ -60,7 +53,7 @@ macro Hook.captureAPI_static func, const_hook, bytesDest, bytesReserved{
 	pop pcx
 	mov pointer[pdi + pointer.size / 4], pcx
 	pop pdi psi
-	; @call c [printf]("%d", ..end - ..start)
+	procbuf_free hook_result
 }
 
 ; importlib uxtheme,\
@@ -77,11 +70,11 @@ macro Hook.captureAPI_static func, const_hook, bytesDest, bytesReserved{
 ; 	db (copyBytes.rewriteSize + pointer.size * 2) dup (?)
 
 ; proc GetThemeColorHook, hTheme, iPartId, iStateId, iProIdm, pColor
-; 	@call copyBytes(@arg1, @arg2, @arg3, @arg4, [pColor])
+; 	$call copyBytes(@arg1, @arg2, @arg3, @arg4, [pColor])
 ; 	mov pcx, [pColor]
 ; 	mov pointer[pcx], 0xFFFF
 ; 	ret
 ; endp
 
-; @call Hook::captureAPI_static([GetThemeColor], GetThemeColorHook, copyBytes, copyBytes.rewriteSize)
-; @call [GetThemeColor](0, 0, 0, 0, 0)
+; $call Hook::captureAPI_static([GetThemeColor], GetThemeColorHook, copyBytes, copyBytes.rewriteSize)
+; $call [GetThemeColor](0, 0, 0, 0, 0)

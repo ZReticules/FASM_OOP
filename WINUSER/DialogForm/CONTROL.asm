@@ -4,11 +4,11 @@ importlib user32,\
 macro CONTROL.hideCur this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [HideCaret]([_this+CONTROL.hWnd])
+	$call [HideCaret]([_this+CONTROL.hWnd])
 }
 
 macro CONTROL.setTheme this, wstrLp{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SetWindowTheme]([_this+CONTROL.hWnd], wstrLp, 0)
+	$call [SetWindowTheme]([_this+CONTROL.hWnd], wstrLp, 0)
 }

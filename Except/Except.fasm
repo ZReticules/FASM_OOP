@@ -1,40 +1,47 @@
+.proc_frame_mode_static
+
+importlib kernel32,\
+	GetCurrentThreadId
+
 if used Exception.used
 	Exception.used = 0
-	VEHStorage 	rptr 1
-	VEHCounter 	rptr 1
-	VEH_h		rptr 1
+	Exception.VEHStorage 	rptr 1
+	Exception.VEHCounter 	rptr 1
+	Exception.VEHHandler	rptr 1
+	Exception.MainThreadId	rptr 1
 end if
 
 macro MakeVEHStorage{
 	if used Exception.used
-		@call [VEHStorage] = [TlsAlloc]()
-		@call [VEHCounter] = [TlsAlloc]()
-		@call [VEH_h] = [TlsAlloc]()
-		@call CNV::alloc(8 + sizeof.ExceptionSaveStruct * 2)
+		$call [Exception.MainThreadId] = [GetCurrentThreadId]()
+		$call [Exception.VEHStorage] = [TlsAlloc]()
+		$call [Exception.VEHCounter] = [TlsAlloc]()
+		$call [Exception.VEHHandler] = [TlsAlloc]()
+		$call CNV|alloc(8 + sizeof.ExceptionSaveStruct * 2)
 		mov dword[pax], sizeof.ExceptionSaveStruct * 2
 		mov dword[pax + 4], 0
-		@call [TlsSetValue]([VEHStorage], pax)
-		@call [TlsSetValue]([VEHCounter], NULL)
-		@call [TlsSetValue]([VEH_h], NULL)
+		$call [TlsSetValue]([Exception.VEHStorage], pax)
+		$call [TlsSetValue]([Exception.VEHCounter], NULL)
+		$call [TlsSetValue]([Exception.VEHHandler], NULL)
 	end if
-	; @call CNV::alloc(8 + sizeof.ExceptionSaveStruct * 2)
+	; $call CNV|alloc(8 + sizeof.ExceptionSaveStruct * 2)
 	; mov dword[pax], sizeof.ExceptionSaveStruct * 2
 	; mov dword[pax + 4], 0
-	; @call [TlsSetValue]([VEHStorage], pax)
+	; $call [TlsSetValue]([Exception.VEHStorage], pax)
 }
 
 macro UnmakeVEHStorage{
 	if used Exception.used
-		@call [TlsFree]([VEHStorage])
-		@call [TlsFree]([VEHCounter])
-		@call [TlsFree]([VEH_h])
+		$call [TlsFree]([Exception.VEHStorage])
+		$call [TlsFree]([Exception.VEHCounter])
+		$call [TlsFree]([Exception.VEHHandler])
 	end if
 }
 
 macro Exception.getExceptionInfo{
-	@call [TlsGetValue]([VEHStorage])
+	$call [TlsGetValue]([Exception.VEHStorage])
 	mov edx, dword[pax + 4]
-	lea pax, [8 + pax + pdx - sizeof.ExceptionSaveStruct + ExceptionSaveStruct.exceptInfo]
+	lea pax, [8 + pax + pdx + ExceptionSaveStruct.exceptInfo]
 }
 
 struct ExceptionSaveStruct
@@ -50,37 +57,39 @@ ends
 
 proc_noprologue
 
-proc AllocVEHStack, handle, reason, reserved
+.proc stdcall AllocVEHStack(.handle, .reason, .reserved)
 	switch @arg2
 		case TLS_THREAD_ATTACH, TLS_PROCESS_ATTACH
-			@call [TlsGetValue]([VEHStorage])
+			$call [TlsGetValue]([Exception.VEHStorage])
 			test eax, eax
 				jnz end_case
-			@call CNV::alloc(8 + sizeof.ExceptionSaveStruct * 2)
+
+			$call CNV|alloc(8 + sizeof.ExceptionSaveStruct * 2)
 			mov dword[pax], sizeof.ExceptionSaveStruct * 2
 			mov dword[pax + 4], 0
-			@call [TlsSetValue]([VEHStorage], pax)
-			@call [TlsSetValue]([VEHCounter], NULL)
-			@call [TlsSetValue]([VEH_h], NULL)
-			jmp end_case
+			$call [TlsSetValue]([Exception.VEHStorage], pax)
+			$call [TlsSetValue]([Exception.VEHCounter], NULL)
+			$call [TlsSetValue]([Exception.VEHHandler], NULL)
+			ret
 		case TLS_THREAD_DETACH, TLS_PROCESS_DETACH
-			@call [TlsGetValue]([VEHStorage])
-			@call CNV::free(pax)
-			@call [TlsGetValue]([VEH_h])
+			$call [TlsGetValue]([Exception.VEHStorage])
+			$call CNV|free(pax)
+			$call [TlsGetValue]([Exception.VEHHandler])
 			test pax, pax
 				jz end_case
-			@call [RemoveVectoredExceptionHandler](pax)
+
+			$call [RemoveVectoredExceptionHandler](pax)
 	end_switch
 	ret
-endp
+.endp
 
 if used Exception.used
 	TLS_AddCallback AllocVEHStack
 end if
 
-proc Except.ErrorHandler uses pdi psi, lpEP
+.proc stdcall Except.ErrorHandler(.lpEP) uses pdi psi
 	virtObj .pointers EXCEPTION_POINTERS at pdi from @arg1
-	@call [TlsGetValue]([VEHStorage])
+	$call [TlsGetValue]([Exception.VEHStorage])
 	test eax, eax
 		jz .set_error_mode	
 	cmp dword[pax + 4], 0
@@ -134,55 +143,126 @@ proc Except.ErrorHandler uses pdi psi, lpEP
 	ret
 
 	.set_error_mode:
-		@call [SetThreadErrorMode](1, NULL)
-		mov eax, -1
-		ret
-endp
+		; mov pax, [Exception.MainThreadId]
+		$call [GetCurrentThreadId]()
+		xor edx, edx
+		switch [Exception.MainThreadId]
+			case_default
+				$call [SetThreadErrorMode](1, NULL)
+				mov edx, -1
+			case NULL, pax
+				mov eax, edx
+				ret
+		end_switch
+.endp
 
-proc Except.SaveStack uses pdi, lpHandler, savedPbp, savedPsp
+.proc cdecl Exception.__raise(.code_:DWORD, .flags:DWORD, .dwcnt:DWORD, .dwargs:POINTER) 
+	mov pax, [PEB]
+	movzx eax, byte[pax + 2]
+	test eax, eax
+		jnz .no_try
+	cmp @arg3, EXCEPTION_MAXIMUM_PARAMETERS
+	jne @f
+		mov @arg3, EXCEPTION_MAXIMUM_PARAMETERS
+	@@:
+	@sarg @arg1, @arg2, @arg3, @arg4
+	$call [TlsGetValue]([Exception.VEHStorage])
+	test eax, eax
+		jz .no_try_restore	
+	cmp dword[pax + 4], 0
+		je .no_try_restore
+
+	mov pbx, pax
+	mov eax, [pbx + 4]
+	virtObj .ess ExceptionSaveStruct at pbx from addr 8 + pbx + pax - sizeof.ExceptionSaveStruct
+	
+	mov eax, [.code_]
+	mov [.ess.exceptInfo.ExceptionCode], eax
+	mov [.ess.exceptInfo.ExceptionFlags], NULL
+	mov [.ess.exceptInfo.ExceptionRecord], NULL
+	mov eax, [.dwcnt]
+	mov [.ess.exceptInfo.NumberParameters], eax
+	mov ecx, [.dwcnt]
+	jecxz .skip_args
+		lea pdi, [.ess.exceptInfo.ExceptionInformation]
+		mov psi, [.dwargs]
+		rep movsptr
+	.skip_args:
+
+	macro retn arg{
+		mov pax, [psp]
+		mov [.ess.exceptInfo.ExceptionAddress], pax
+		lea pax, [.ess.exceptInfo]
+		mov psp, [.ess.sp]
+		mov pbp, [.ess.bp]
+		jmp [.ess.handler]
+	}
+	ret
+	purge retn
+
+	.no_try_restore:
+		match =x64, __architecture{
+			mov ecx, [.code_]
+			mov edx, [.flags]
+			mov r8d, [.dwcnt]
+			mov r9, [.dwargs]
+		}
+	.no_try:
+		macro retn arg{
+			jmp [RaiseException]
+		}
+		ret
+		purge retn
+.endp
+
+macro Exception.raise code, dwcnt, dwargs{
+	$call Exception|__raise(code, NULL, dwcnt, dwargs)
+}
+
+.proc cdecl Exception.__SaveStack(.lpHandler, .savedPbp, .savedPsp) uses pdi
 	@sarg @arg1, @arg2, @arg3
-	@call pdi = [TlsGetValue]([VEHStorage])
+	$call pdi = [TlsGetValue]([Exception.VEHStorage])
 	mov eax, dword[pdi]
 	cmp eax, dword[pdi + 4]
 	ja .no_realloc
-		@call pdi = CNV::realloc(pdi, addr 8 + pax + sizeof.ExceptionSaveStruct * 2)
-		@call [TlsSetValue]([VEHStorage], pdi)
+		$call pdi = CNV|realloc(pdi, addr 8 + pax + sizeof.ExceptionSaveStruct * 2)
+		$call [TlsSetValue]([Exception.VEHStorage], pdi)
 	.no_realloc:
 	mov eax, dword[pdi + 4]
-	mov pdx, [savedPsp]
+	mov pdx, [.savedPsp]
 	mov pointer[pdi + 8 + pax + ExceptionSaveStruct.sp], pdx
-	mov pdx, [savedPbp]
+	mov pdx, [.savedPbp]
 	mov pointer[pdi + 8 + pax + ExceptionSaveStruct.bp], pdx
-	mov pdx, [lpHandler]
+	mov pdx, [.lpHandler]
 	mov pointer[pdi + 8 + pax + ExceptionSaveStruct.handler], pdx
 	add dword[pdi + 4], sizeof.ExceptionSaveStruct
 	ret
-endp
+.endp
 
-proc Exception.__genVEH
-	local result:POINTER
-	@call [TlsGetValue]([VEHCounter])
+.proc Exception.__GenVEH
+	$call [TlsGetValue]([Exception.VEHCounter])
 	test pax, pax
-	jz @f
-		local tryCntr:POINTER
-		mov [tryCntr], pax
-		@call [AddVectoredExceptionHandler](1, Except.ErrorHandler)
-		@call [TlsSetValue]([VEH_h], pax)
-		mov pax, [tryCntr]
+	jnz @f
+		.local .tryCntr:POINTER
+		mov [.tryCntr], pax
+		$call [AddVectoredExceptionHandler](1, Except.ErrorHandler)
+		$call [TlsSetValue]([Exception.VEHHandler], pax)
+		mov pax, [.tryCntr]
 	@@:
-	@call [TlsSetValue]([VEHCounter], addr pax + 1)
-	@call [TlsGetValue]([VEH_h])
+	$call [TlsSetValue]([Exception.VEHCounter], addr pax + 1)
+	$call [TlsGetValue]([Exception.VEHHandler])
 	ret
-endp
+.endp
 
-proc Exception.__delVEH
-	@call [TlsGetValue]([VEHStorage])
+.proc Exception.__DelVEH
+	$call [TlsGetValue]([Exception.VEHStorage])
 	sub dword[pax + 4], sizeof.ExceptionSaveStruct
-	@call [TlsGetValue]([VEHCounter])
+	$call [TlsGetValue]([Exception.VEHCounter])
 	cmp pax, 1
 		jle .return
-	@call [TlsSetValue]([VEHCounter], addr pax - 1)
-	.return: ret
-endp
 
-proc_resprologue
+	$call [TlsSetValue]([Exception.VEHCounter], addr pax - 1)
+	.return: ret
+.endp
+
+.proc_frame_mode_previous

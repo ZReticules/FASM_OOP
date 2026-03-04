@@ -1,5 +1,3 @@
-@module LISTVIEW
-
 LVS_EX_GRIDLINES              = 0x00000001
 LVS_EX_SUBITEMIMAGES          = 0x00000002
 LVS_EX_CHECKBOXES             = 0x00000004
@@ -66,50 +64,48 @@ struct NMLISTVIEW
 	uNewState	rd 1
 	uOldState	rd 1
 	uChanged	rd 1
-	match =x86, __architecture\{
+	match =x86, __architecture{
     	ptAction 	POINT
-	\}
-	match =x64, __architecture\{
+	}
+	match =x64, __architecture{
 		struct
     		ptAction 	POINT
     		rd 1
     	ends
-	\}
+	}
     lParam 		rptr 1
 ends
 
 struct LVITEM
-	mask		rd 1;
-	iItem		rd 1;
-	iSubItem	rd 1;
-	state		rd 1;
-	stateMask	rptr 1;
-	pszText 	rptr 1;
-	cchTextMax	rd 1;
-	iImage		rd 1;
-	lParam 		rptr 1;
-	iIndent		rd 1;
-	iGroupId	rd 1;
-	cColumns	rptr 1;
-	puColumns 	rptr 1;
-	piColFmt 	rptr 1;
-	iGroup 		rd 1;
+	mask		rd 1
+	iItem		rd 1
+	iSubItem	rd 1
+	state		rd 1
+	stateMask	rptr 1
+	pszText 	rptr 1
+	cchTextMax	rd 1
+	iImage		rd 1
+	lParam 		rptr 1
+	iIndent		rd 1
+	iGroupId	rd 1
+	cColumns	rptr 1
+	puColumns 	rptr 1
+	piColFmt 	rptr 1
+	iGroup 		rd 1
 ends
 
 struct LVCOLUMN
 	mask 		rd 1
-	fmt			rd 1;
-	cx			rptr 1;
-	pszText 	rptr 1;
-	cchTextMax	rd 1;
-	iSubItem	rd 1;
-	iImage		rd 1;
-	iOrder		rd 1;
-	cxMin		rd 1;
-	cxDefault	rd 1;
-	cxIdeal		rptr 1;
+	fmt			rd 1
+	cx			rptr 1
+	pszText 	rptr 1
+	cchTextMax	rd 1
+	iSubItem	rd 1
+	iImage		rd 1
+	iOrder		rd 1
+	cxMin		rd 1
+	cxDefault	rd 1
+	cxIdeal		rptr 1
 ends
 
 include "LISTVIEW.fasm"
-
-@endm

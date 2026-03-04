@@ -14,7 +14,7 @@ match , NO_STDHEAD {rept 0{}rept 1{
 	include "STDHEAD.inc"
 }
 
-include "win32ax.inc"
+include "win32a.inc"
 include "redef_std.inc"
 include "new_proc.inc"
 

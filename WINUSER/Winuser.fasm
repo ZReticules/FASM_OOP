@@ -24,14 +24,14 @@ end if
 
 macro WND.moduleInit{
 	if used WND.hModule
-		@call [GetModuleHandleA](0)
+		$call [GetModuleHandleA](0)
 		mov [WND.hModule], pax
 	end if
 }
 
 TLS_AddMacro WND.moduleInit
 
-proc_noprologue
+.proc_frame_mode_static
 
 macro WND.msgBox lpText*, lpCaption=NULL, [args]{
 	common
@@ -50,7 +50,7 @@ macro WND.msgBox lpText*, lpCaption=NULL, [args]{
 		a\#name equ val
 	\}
 	common
-	@call [MessageBoxA](a#hwndOwner, lpText, _lpCaption, a#dwStyle)
+	$call [MessageBoxA](a#hwndOwner, lpText, _lpCaption, a#dwStyle)
 	; restore _lpCaption 
 	; restore a#dwStyle 	
 	; restore a#hwndOwner 	
@@ -73,18 +73,18 @@ macro WND.msgBoxW lpText*, lpCaption=NULL, [args]{
 		a\#name equ val
 	\}
 	common
-	@call [MessageBoxW](a#hwndOwner, lpText, _lpCaption, a#dwStyle)
+	$call [MessageBoxW](a#hwndOwner, lpText, _lpCaption, a#dwStyle)
 	; restore _lpCaption 
 	; restore a#dwStyle 	
 	; restore a#hwndOwner 	
 }
 
 macro WND.setTimer uElapse, lpTimerFunc, nIDEvent=0, hWnd=NULL{
-	@call [SetTimer](hWnd, nIDEvent, uElapse, lpTimerFunc)
+	$call [SetTimer](hWnd, nIDEvent, uElapse, lpTimerFunc)
 }
 
 macro WND.killTimer nIDEvent, hWnd=NULL{
-	@call [KillTimer](hWnd, nIDEvent)
+	$call [KillTimer](hWnd, nIDEvent)
 }
 
 macro WND.taskDlg lpWTitle, lpWCaption=NULL, lpWContent=NULL, [args]{
@@ -105,7 +105,6 @@ macro WND.taskDlg lpWTitle, lpWCaption=NULL, lpWContent=NULL, [args]{
 	\}
 	match name:val, lpWCaption\{
 		restore _lpWCaption
-		display "lol"
 		_lpWCaption equ NULL
 		restore a\#name
 		a\#name equ val
@@ -122,7 +121,7 @@ macro WND.taskDlg lpWTitle, lpWCaption=NULL, lpWContent=NULL, [args]{
 		a\#name equ val
 	\}
 	common
-	@call [TaskDialog](a#hwndOwner, NULL, _lpWTitle, _lpWCaption, _lpWContent, a#dwCommonButtons, a#pszIcon, a#pnButton)
+	$call [TaskDialog](a#hwndOwner, NULL, _lpWTitle, _lpWCaption, _lpWContent, a#dwCommonButtons, a#pszIcon, a#pnButton)
 	restore _lpWTitle
 	restore _lpWCaption 
 	restore _lpWContent 
@@ -134,90 +133,91 @@ macro WND.taskDlg lpWTitle, lpWCaption=NULL, lpWContent=NULL, [args]{
 
 
 
-proc WND.repaintWindow c, hWnd, hDC, lpRect, hBrush
+.proc cdecl WND.repaintWindow(.hWnd, .hDC, lpRect, hBrush)
 	@sarg @arg1, @arg2, @arg3, @arg4
-	locals
-		bmpSize POINT
-		gf 		Graphics
-	endl
-	@call gf->createCompatible([hDC])
+	.locals
+		.bmpSize	POINT
+		.gf 		Graphics
+	.endl
+	$call .gf::createCompatible([.hDC])
 	mov pcx, [lpRect]
 	mov eax, [pcx + RECT.right]
 	sub eax, [pcx + RECT.left]
-	mov [bmpSize.x], eax
+	mov [.bmpSize.x], eax
 	mov eax, [pcx + RECT.bottom]
 	sub eax, [pcx + RECT.top]
-	mov [bmpSize.y], eax
+	mov [.bmpSize.y], eax
 	
-	; @call [CreateRectRgn]([pcx + RECT.left], [pcx + RECT.top], [pcx + RECT.right], [pcx + RECT.bottom])
-	; @call gf->selectObject(pax, Graphics.Rgn)
-	@call gf->createObjects(\
-		<_BMP: [hDC], [bmpSize.x], [bmpSize.y]>, \
-	)
-	@call [GetStockObject](WHITE_BRUSH)
-	@call gf->fillRect([lpRect], pax)
-	@call [SendMessageA]([hWnd], WM_PRINT, [gf.hDC], PRF_CLIENT)
-	@call gf->selectObject([hBrush], Graphics.Brush)
-	@call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], PATINVERT)
-	@call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], DSTINVERT)
-	@call gf->freeObject(Graphics.Brush)
-	@call [BitBlt]([hDC], 0, 0, [bmpSize.x], [bmpSize.y], \
-		[gf.hDC], 0, 0, SRCCOPY)
+	; $call [CreateRectRgn]([pcx + RECT.left], [pcx + RECT.top], [pcx + RECT.right], [pcx + RECT.bottom])
+	; $call .gf::selectObject(pax, Graphics.Rgn)
+	; $call .gf::createObjects(\
+	; 	<_BMP: [.hDC], [.bmpSize.x], [.bmpSize.y]>, \
+	; )
+	$call .gf::createBMP([.hDC], [.bmpSize.x], [.bmpSize.y])
+	$call [GetStockObject](WHITE_BRUSH)
+	$call .gf::fillRect([lpRect], pax)
+	$call [SendMessageA]([.hWnd], WM_PRINT, [.gf.hDC], PRF_CLIENT)
+	$call .gf::selectObject([hBrush], Graphics.Brush)
+	$call [PatBlt]([.gf.hDC], 0, 0, [.bmpSize.x], [.bmpSize.y], PATINVERT)
+	$call [PatBlt]([.gf.hDC], 0, 0, [.bmpSize.x], [.bmpSize.y], DSTINVERT)
+	$call .gf::freeObject(Graphics.Brush)
+	$call [BitBlt]([.hDC], 0, 0, [.bmpSize.x], [.bmpSize.y], \
+		[.gf.hDC], 0, 0, SRCCOPY)
 	
 	; local hBmp:POINTER
-	; @call gf->freeObject(Graphics.BMP)
+	; $call .gf::freeObject(Graphics.BMP)
 	; mov [hBmp], pax
-	; @call CNV::BMP2File(pax, "lol.bmp")
-	; @call [DeleteObject]([hBmp])
+	; $call CNV|BMP2File(pax, "lol.bmp")
+	; $call [DeleteObject]([hBmp])
 
-	@call gf->destroy()
+	$call .gf::destroy()
 	ret
-endp
+.endp
 
-proc WND.dragFileNameString c uses pbx, lpString, hDrop, dragIndex
+.proc cdecl WND.dragFileNameString(.lpString, .hDrop, .dragIndex) uses pbx
 	virtObj .strDest:arg String at pbx from @arg1
 	@sarg @arg2, @arg3
-	local fSize:POINTER
-	@call [fSize] = [DragQueryFileA]([hDrop], @arg3, NULL, 0)
-	@call .strDest->realloc([fSize])->getLpChars()
-	mov pdx, [fSize]
+	.local .fSize:POINTER
+	$call [.fSize] = [DragQueryFileA]([.hDrop], @arg3, NULL, 0)
+	$call .strDest::realloc([.fSize])::getLpChars()
+	mov pdx, [.fSize]
 	inc pdx
-	@call [DragQueryFileA]([hDrop], [dragIndex], pax, pdx)
+	$call [DragQueryFileA]([.hDrop], [.dragIndex], pax, pdx)
 	mov [.strDest.len], eax
 	ret
-endp
+.endp
 
 macro WND.dragFilesCount hDrop{
-	@call [DragQueryFileA](hDrop, 0xFFFFFFFF, NULL, 0)
+	$call [DragQueryFileA](hDrop, 0xFFFFFFFF, NULL, 0)
 }
 
 
-proc WND.isThemeLight c
-	local keyVal:DWORD
-	@call [RegGetValueA](\
+.proc cdecl WND.isThemeLight
+	.local .keyVal:DWORD
+	$call [RegGetValueA](\
 		HKEY_CURRENT_USER,\ 
 		<const db "Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", 0>,\
 		<const db "AppsUseLightTheme", 0>,\
 		0x18,\
 		NULL,\
-		addr keyVal,\
+		&.keyVal,\
 		va_list 4\
 	)
-	mov eax, [keyVal]
+	mov eax, [.keyVal]
 	bswap eax
 	and eax, 1
 	ret
-endp
+.endp
 
-proc_resprologue
+.proc_frame_mode_previous
 
-; proc WND.repaintWindowWithBack c, hWnd, hDC, lpRect, hBrush, hBackBrush
+; proc WND.repaintWindowWithBack c, .hWnd, hDC, lpRect, hBrush, hBackBrush
 ; 	@sarg @arg1, @arg2, @arg3, @arg4
 ; 	locals
 ; 		bmpSize POINT
 ; 		gf 		Graphics
 ; 	endl
-; 	@call gf->createCompatible([hDC])
+; 	$call gf::createCompatible([hDC])
 ; 	mov pcx, [lpRect]
 ; 	mov eax, [pcx + RECT.right]
 ; 	sub eax, [pcx + RECT.left]
@@ -226,26 +226,26 @@ proc_resprologue
 ; 	sub eax, [pcx + RECT.top]
 ; 	mov [bmpSize.y], eax
 	
-; 	; @call [CreateRectRgn]([pcx + RECT.left], [pcx + RECT.top], [pcx + RECT.right], [pcx + RECT.bottom])
-; 	; @call gf->selectObject(pax, Graphics.Rgn)
-; 	@call gf->createObjects(\
+; 	; $call [CreateRectRgn]([pcx + RECT.left], [pcx + RECT.top], [pcx + RECT.right], [pcx + RECT.bottom])
+; 	; $call gf::selectObject(pax, Graphics.Rgn)
+; 	$call gf::createObjects(\
 ; 		<_BMP: [hDC], [bmpSize.x], [bmpSize.y]>, \
 ; 	)
-; 	@call gf->fillRect([lpRect], [hBackBrush])
-; 	@call [SendMessageA]([hWnd], WM_PRINT, [gf.hDC], PRF_CLIENT)
-; 	@call gf->selectObject([hBrush], Graphics.Brush)
-; 	@call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], PATINVERT)
-; 	@call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], DSTINVERT)
-; 	@call gf->freeObject(Graphics.Brush)
-; 	@call [BitBlt]([hDC], 0, 0, [bmpSize.x], [bmpSize.y], \
+; 	$call gf::fillRect([lpRect], [hBackBrush])
+; 	$call [SendMessageA]([hWnd], WM_PRINT, [gf.hDC], PRF_CLIENT)
+; 	$call gf::selectObject([hBrush], Graphics.Brush)
+; 	$call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], PATINVERT)
+; 	$call [PatBlt]([gf.hDC], 0, 0, [bmpSize.x], [bmpSize.y], DSTINVERT)
+; 	$call gf::freeObject(Graphics.Brush)
+; 	$call [BitBlt]([hDC], 0, 0, [bmpSize.x], [bmpSize.y], \
 ; 		[gf.hDC], 0, 0, SRCCOPY)
 	
 ; 	; local hBmp:POINTER
-; 	; @call gf->freeObject(Graphics.BMP)
+; 	; $call gf::freeObject(Graphics.BMP)
 ; 	; mov [hBmp], pax
-; 	; @call CNV::BMP2File(pax, "lol.bmp")
-; 	; @call [DeleteObject]([hBmp])
+; 	; $call CNV|BMP2File(pax, "lol.bmp")
+; 	; $call [DeleteObject]([hBmp])
 
-; 	@call gf->destroy()
+; 	$call gf::destroy()
 ; 	ret
 ; endp

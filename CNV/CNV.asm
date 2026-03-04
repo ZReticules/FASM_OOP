@@ -7,7 +7,9 @@ importlib kernel32,\
 	SetLastError,\
 	CreateFileA,\
 	WriteFile,\
-	CloseHandle
+	CloseHandle,\
+	SetConsoleCP,\
+	SetConsoleOutputCP
 
 importlib user32,\
 	GetDC,\
@@ -539,6 +541,7 @@ macro CNV.consoleToWin1251 {
 macro CNV.consoleToUtf8 {
 	$call [SetConsoleCP](65001)
 	$call [SetConsoleOutputCP](65001)
+	$call c [setlocale](2, ".utf8")
 }
 
 macro CNV.consoleToUtf16 {
