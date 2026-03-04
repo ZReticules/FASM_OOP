@@ -284,7 +284,6 @@ macro Graphics.frameRect this, lpRect, hBrush{
 	
 .proc cdecl Graphics.create(.pthis) uses pbx
 	virtObj .this Graphics at pbx from @arg1
-	@sarg @arg2
 	$call [CreateDCA]("DISPLAY", NULL, NULL)
 	mov [.this.hDC], pax
 	$call [CreateCompatibleBitmap]([.this.hDC], 1, 1)
