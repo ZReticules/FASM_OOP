@@ -638,6 +638,7 @@ rept 1{
 		\\}
 	\}
 	macro @ccall args&\{ @cdeclcall args \}
+	macro @stdcallcall args&\{ @stdcall args \}
 	macro stdcall@retn parambytes\{
 		retn parambytes
 	\}

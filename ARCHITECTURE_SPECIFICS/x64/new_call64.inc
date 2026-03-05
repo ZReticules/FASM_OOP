@@ -490,6 +490,7 @@ rept 1{
 	\}
 	macro @cdeclcall args&\{ @fastcall args \}
 	macro @ccall args&\{ @fastcall args \}
+	macro @stdcallcall args&\{ @fastcall args \}
 	macro @stdcall args&\{ @fastcall args \}
 	macro stdcall@retn parambytes\{
 		retn
@@ -501,6 +502,9 @@ rept 1{
 		retn
 	\}
 	macro fastcall@retn parambytes\{
+		retn
+	\}
+	macro stdcall@retn parambytes\{
 		retn
 	\}
 }
