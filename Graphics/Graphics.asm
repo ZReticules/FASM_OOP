@@ -258,7 +258,7 @@ macro Graphics.frameRect this, lpRect, hBrush{
 
 .proc cdecl Graphics.createCompatibleBMP(.pthis:P_Graphics, .hDC, .cx, .cy)
 	@sarg @arg1
-	$call [CreateCompatibleBitmap](@arg1, @arg2, @arg3)
+	$call [CreateCompatibleBitmap](@arg2, @arg3, @arg4)
 	$call [.pthis]::selectObject(pax, Graphics.BMP)
 	ret
 .endp
