@@ -20,7 +20,7 @@
 		ends
 		
 		make 				dm this:inline
-		create				dm this:inline
+		create				dm this
 		createCompatible 	dm this
 		unmake 				dm this
 		selectObject 		dm this
