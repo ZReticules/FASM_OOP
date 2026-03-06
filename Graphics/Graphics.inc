@@ -16,7 +16,7 @@
 				__hRgn_prev		dptr 0
 				__hFont_prev	dptr 0
 			ends
-			__hArr		dptr 5 dup(?)
+			__hArr		rptr 5
 		ends
 		
 		make 				dm this:inline
