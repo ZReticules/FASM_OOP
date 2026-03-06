@@ -156,7 +156,7 @@ macro WND.taskDlg lpWTitle, lpWCaption=NULL, lpWContent=NULL, [args]{
 		$call .gf::selectObject([.hBrush], Graphics.BRUSH)
 		$call [PatBlt]([.gf.hDC], 0, 0, [.bmpSize.x], [.bmpSize.y], PATINVERT)
 		$call [PatBlt]([.gf.hDC], 0, 0, [.bmpSize.x], [.bmpSize.y], DSTINVERT)
-		$call .gf::freeObject(Graphics.Brush)
+		$call .gf::freeObject(Graphics.BRUSH)
 		$call [BitBlt]([.hDC], 0, 0, [.bmpSize.x], [.bmpSize.y], \
 			[.gf.hDC], 0, 0, SRCCOPY)
 		
