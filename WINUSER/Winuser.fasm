@@ -134,7 +134,7 @@ macro WND.taskDlg lpWTitle, lpWCaption=NULL, lpWContent=NULL, [args]{
 .proc cdecl WND.repaintWindow(.hWnd, .hDC, .lpRect, .hBrush)
 	@sarg @arg1, @arg2, @arg3, @arg4
 	.with .gf:Graphics([.hDC])
-		.locals .bmpSize:POINT
+		.local .bmpSize:POINT
 		; $call .gf::createCompatible([.hDC])
 		mov pcx, [.lpRect]
 		mov eax, [pcx + RECT.right]
