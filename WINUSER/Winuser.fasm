@@ -149,7 +149,7 @@ macro WND.taskDlg lpWTitle, lpWCaption=NULL, lpWContent=NULL, [args]{
 		; $call .gf::createObjects(\
 		; 	<_BMP: [.hDC], [.bmpSize.x], [.bmpSize.y]>, \
 		; )
-		$call .gf::createBMP([.hDC], [.bmpSize.x], [.bmpSize.y])
+		$call .gf::createCompatibleBMP([.hDC], [.bmpSize.x], [.bmpSize.y])
 		$call [GetStockObject](WHITE_BRUSH)
 		$call .gf::fillRect([.lpRect], pax)
 		$call [SendMessageA]([.hWnd], WM_PRINT, [.gf.hDC], PRF_CLIENT)
