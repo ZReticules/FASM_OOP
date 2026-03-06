@@ -318,11 +318,11 @@ macro Graphics.frameRect this, lpRect, hBrush{
 	mov psi, 5
 	.loop1:
 		cmp [.this.__hArr + (psi - 1) * pointer.size], 0
-		je .inActive
+		je .inactive
 			$call [SelectObject]([.this.hDC], [.this.__hArr + psi])
 			$call [DeleteObject](pax)
 			mov [.this.__hArr + psi], 0
-		.inActive:
+		.inactive:
 	dec psi
 	jnz .loop1
 	$call [DeleteDC]([.this.hDC])
@@ -336,10 +336,10 @@ macro Graphics.frameRect this, lpRect, hBrush{
 	mov pcx, [.pthis]
 	mov pdx, [.elemIndex]
 	cmp [.this.__hArr + pdx * pointer.size], 0
-	jne ..noHollow
+	jne .no_hollow
 		mov [.this.__hArr + pdx * pointer.size], pax
 		ret
-	..noHollow:
+	.no_hollow:
 	$call [DeleteObject](pax)
 	ret
 .endp
