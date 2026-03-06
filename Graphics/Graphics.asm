@@ -39,10 +39,10 @@ define DC_PEN 19
 ; 	common
 ; 	local _this, field
 ; 	_BMP#field equ Graphics.BMP
-; 	_pen#field equ Graphics.Pen
-; 	_sBrush#field equ Graphics.Brush
-; 	_pBrush#field equ Graphics.Brush
-; 	_hBrush#field equ Graphics.Brush
+; 	_pen#field equ Graphics.PEN
+; 	_sBrush#field equ Graphics.BRUSH
+; 	_pBrush#field equ Graphics.BRUSH
+; 	_hBrush#field equ Graphics.BRUSH
 ; 	inlineObj _this, this
 ; 	reverse
 ; 	match prefix:value, args\{
@@ -53,6 +53,15 @@ define DC_PEN 19
 ; 		\\} 
 ; 	\}
 ; }
+
+macro Graphics.make this, hDC{
+	match =2, __argscount__\{
+		$call createCompatible<Graphics>(this, hDC)
+	\}
+	match =1, __argscount__\{
+		$call create<Graphics>(this)
+	\}
+}
 
 macro Graphics.createBMP this, args&{
 	match =4, __argscount__\{
@@ -247,7 +256,7 @@ macro Graphics.frameRect this, lpRect, hBrush{
 
 .proc_frame_mode_static
 
-.proc cdecl Graphics.createCompatibleBMP(.pthis:P_Graphics, .hDC, .cx, cy)
+.proc cdecl Graphics.createCompatibleBMP(.pthis:P_Graphics, .hDC, .cx, .cy)
 	@sarg @arg1
 	$call [CreateCompatibleBitmap](@arg1, @arg2, @arg3)
 	$call [.pthis]::selectObject(pax, Graphics.BMP)
@@ -257,28 +266,28 @@ macro Graphics.frameRect this, lpRect, hBrush{
 .proc cdecl Graphics.createPen(.pthis:P_Graphics, .style, .width, .colorref)
 	@sarg @arg1
 	$call [CreatePen](@arg2, @arg3, @arg4)
-	$call [.pthis]::selectObject(pax, Graphics.Pen)
+	$call [.pthis]::selectObject(pax, Graphics.PEN)
 	ret
 .endp
 
 .proc cdecl Graphics.createSolidBrush(.pthis:P_Graphics, .colorref)
 	@sarg @arg1
 	$call [CreateSolidBrush](@arg2)
-	$call [.pthis]::selectObject(pax, Graphics.Brush)
+	$call [.pthis]::selectObject(pax, Graphics.BRUSH)
 	ret
 .endp
 
 .proc cdecl Graphics.createPatternBrush(.pthis:P_Graphics, .hBMP)
 	@sarg @arg1
 	$call [CreatePatternBrush](@arg2)
-	$call [.pthis]::selectObject(pax, Graphics.Brush)
+	$call [.pthis]::selectObject(pax, Graphics.BRUSH)
 	ret
 .endp
 
-.proc cdecl Graphics.createPatternBrush(.pthis:P_Graphics, .iHatch, .colorref)
+.proc cdecl Graphics.createHatchBrush(.pthis:P_Graphics, .iHatch, .colorref)
 	@sarg @arg1
 	$call [CreateHatchBrush](@arg2, @arg3)
-	$call [.pthis]::selectObject(pax, Graphics.Brush)
+	$call [.pthis]::selectObject(pax, Graphics.BRUSH)
 	ret
 .endp
 	
@@ -304,7 +313,7 @@ macro Graphics.frameRect this, lpRect, hBrush{
 	ret
 .endp
 
-.proc cdecl Graphics.destroy(.pthis) uses pbx psi
+.proc cdecl Graphics.unmake(.pthis) uses pbx psi
 	virtObj .this Graphics at pbx from @arg1
 	mov psi, 5
 	.loop1:

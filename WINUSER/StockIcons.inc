@@ -21,7 +21,7 @@ define SHGSI_LARGEICON     0
 define SHGSI_SMALLICON     1
 define SHGSI_SHELLICONSIZE 4
 
-SIID enum\
+SIID enum \
 	DOCNOASSOC,\
 	DOCASSOC,\
 	APPLICATION,\
@@ -185,16 +185,25 @@ SIID enum\
 
 .proc_frame_mode_static
 
-.proc cdecl WND.getStockIcon(.iconId)
-	@larg pcx, @arg1
-	.local .stockInfo:SHSTOCKICONINFO
-	$call [SHGetStockIconInfo](pcx, SHGSI_ICON or SHGSI_ICONLOCATION, addr .stockInfo) 
+; .proc cdecl WND.getStockIcon(.iconId)
+; 	@larg pcx, @arg1
+; 	.local .stockInfo:SHSTOCKICONINFO
+; 	$call [SHGetStockIconInfo](pcx, SHGSI_ICON or SHGSI_ICONLOCATION, &.stockInfo) 
+; 	mov edx, 0
+; 	test eax, eax
+; 	mov pax, [.stockInfo.hIcon]
+; 	cmovnz eax, edx
+; 	ret
+; .endp
+
+macro WND.getStockIcon iconId{
+	procbuf_alloc stockInfo, sizeof.SHSTOCKICONINFO
+	$call [SHGetStockIconInfo](iconId, SHGSI_ICON or SHGSI_ICONLOCATION, &stockInfo) 
 	mov edx, 0
 	test eax, eax
-	mov pax, [.stockInfo.hIcon]
+	mov pax, [stockInfo + SHSTOCKICONINFO.hIcon]
 	cmovnz eax, edx
-	ret
-.endp
+}
 
 macro WND.deleteStockIcon hIcon{
 	$call [DestroyIcon](hIcon)

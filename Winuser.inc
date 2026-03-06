@@ -134,17 +134,22 @@
 	struct WND
 		msgBox 					dm this:inline
 		msgBoxW					dm this:inline
-		setTimer				dm this:inline
-		killTimer				dm this:inline
-		taskDlg 				dm this:inline
-		deleteStockIcon			dm this:inline
-		dragFilesCount			dm this:inline
-		isThemeLight			dm this
+		setTimer				dm this:inline 	; (uElapse, lpTimerFunc, nIDEvent=0, hWnd=NULL)
+		killTimer				dm this:inline 	; (nIDEvent, hWnd=NULL)
+		taskDlg 				dm this:inline 	; (lpWTitle, lpWCaption=NULL, lpWContent=NULL, [named_args])
+												; named_args:
+												; dwCommonButtons 	default TDCBF_CANCEL_BUTTON
+												; hwndOwner 		default NULL
+												; pszIcon 			default TD_INFORMATION_ICON
+												; pnButton 			default 0
+		getStockIcon			dm this:inline	; (iconId:SIID) -> hIcon
+		deleteStockIcon			dm this:inline	; (hIcon)
+		dragFilesCount			dm this:inline	; (hDrop) -> dword
+		isThemeLight			dm this:inline	; ()
 
-		repaintWindow			dm this
+		repaintWindow			dm this ; (hWnd, hDC, lpRect, hBrush)
 		; repaintWindowWithBack	dm this
-		getStockIcon			dm this
-		dragFileNameString		dm this
+		dragFileNameString		dm this	; (dest:P_String, hDrop, dragIndex)
 		
 		const darkThemeColor 	equ 0x333333
 		const darkThemeCFD		equ L "DarkMode_CFD"

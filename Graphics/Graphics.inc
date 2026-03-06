@@ -2,10 +2,10 @@
 
 	struct Graphics
 		const BMP 	= (Graphics.__hBMP_prev - Graphics.__hArr) / pointer.size
-		const Pen 	= (Graphics.__hPen_prev - Graphics.__hArr) / pointer.size
-		const Brush = (Graphics.__hBrush_prev - Graphics.__hArr) / pointer.size
-		const Rgn 	= (Graphics.__hRgn_prev - Graphics.__hArr) / pointer.size
-		const Font 	= (Graphics.__hFont_prev - Graphics.__hArr) / pointer.size
+		const PEN 	= (Graphics.__hPen_prev - Graphics.__hArr) / pointer.size
+		const BRUSH = (Graphics.__hBrush_prev - Graphics.__hArr) / pointer.size
+		const RGN 	= (Graphics.__hRgn_prev - Graphics.__hArr) / pointer.size
+		const FONT 	= (Graphics.__hFont_prev - Graphics.__hArr) / pointer.size
 
 		hDC				dptr ?
 		union
@@ -19,10 +19,12 @@
 			__hArr		dptr 5 dup(?)
 		ends
 		
+		make 				dm this:inline
+		create				dm this:inline
 		createCompatible 	dm this
-		destroy 			dm this
+		unmake 				dm this
 		selectObject 		dm this
-		create				dm this;:inline
+
 		rectangle 			dm this:inline
 		fillRect			dm this:inline
 		frameRect			dm this:inline
@@ -36,8 +38,13 @@
 		getBkColor 			dm this:inline
 		getTextColor 		dm this:inline
 		getBkMode 			dm this:inline
-		createObjects		dm this:inline
-		selectObjects 		dm this:inline
+		; createObjects		dm this:inline
+		createCompatibleBMP	dm this ;(pthis:P_Graphics, hDC, cx, cy)
+		createPen			dm this ;(pthis:P_Graphics, style, width, colorref)
+		createSolidBrush	dm this ;(pthis:P_Graphics, colorref)
+		createPatternBrush	dm this ;(pthis:P_Graphics, hBMP)
+		createHatchBrush	dm this ;(pthis:P_Graphics, iHatch, colorref)
+		; selectObjects 		dm this:inline
 		destroyObject		dm this:inline
 		freeObject			dm this:inline
 		setDCBrushColor 	dm this:inline
