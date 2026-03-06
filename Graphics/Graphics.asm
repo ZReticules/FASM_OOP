@@ -257,15 +257,15 @@ macro Graphics.frameRect this, lpRect, hBrush{
 .proc_frame_mode_static
 
 .proc cdecl Graphics.createCompatibleBMP(.pthis:P_Graphics, .hDC, .cx, .cy)
-	@sarg @arg1
-	$call [CreateCompatibleBitmap](@arg2, @arg3, @arg4)
+	@sarg @arg1, @arg2, @arg3, @arg4
+	$call [CreateCompatibleBitmap]([.hDC], [.cx], [.cy])
 	$call [.pthis]::selectObject(pax, Graphics.BMP)
 	ret
 .endp
 
 .proc cdecl Graphics.createPen(.pthis:P_Graphics, .style, .width, .colorref)
-	@sarg @arg1
-	$call [CreatePen](@arg2, @arg3, @arg4)
+	@sarg @arg1, @arg2, @arg3, @arg4
+	$call [CreatePen]([.style], [.width], [.colorref])
 	$call [.pthis]::selectObject(pax, Graphics.PEN)
 	ret
 .endp
@@ -285,8 +285,8 @@ macro Graphics.frameRect this, lpRect, hBrush{
 .endp
 
 .proc cdecl Graphics.createHatchBrush(.pthis:P_Graphics, .iHatch, .colorref)
-	@sarg @arg1
-	$call [CreateHatchBrush](@arg2, @arg3)
+	@sarg @arg1, @arg2, @arg3
+	$call [CreateHatchBrush]([.iHatch], [.colorref])
 	$call [.pthis]::selectObject(pax, Graphics.BRUSH)
 	ret
 .endp
