@@ -24,8 +24,8 @@ struct IRegExp2 IDispatch
 	; HRESULT Test(BSTR input, VARIANT_BOOL* pResult)
     Test            dm ?:virtual/std
 	; HRESULT Replace(BSTR input, VARIANT replace, BSTR* pResult)
-	; x86 @call .re->Replace([testString], VT_BSTR, 0, [replString], 0, addr resultString)
-	; x64 @call .re->Replace([testString], <va_list VT_BSTR, [replString]>, addr resultString)
+	; x86 $call .re::Replace([testString], VT_BSTR, 0, [replString], 0, addr resultString)
+	; x64 $call .re::Replace([testString], <va_list VT_BSTR, [replString]>, addr resultString)
     Replace         dm ?:virtual/std
     replace  		dm this:inline
 ends
@@ -35,8 +35,8 @@ match =x86, __architecture\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IRegExp2 at _this
-		; @call ..this->Replace(srcSysString, vtType, 0, replVal, 0, lpResult)
-		@call IRegExp2::>Replace(this, srcSysString, vtType, 0, replVal, 0, lpResult)
+		; $call ..this::Replace(srcSysString, vtType, 0, replVal, 0, lpResult)
+		$call Replace<IRegExp2>(this, srcSysString, vtType, 0, replVal, 0, lpResult)
 	\\}
 \}
 match =x64, __architecture\{
@@ -44,7 +44,7 @@ match =x64, __architecture\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IRegExp2 at _this
-		@call IRegExp2::>Replace(this, srcSysString, <va_list vtType, replVal>, lpResult)
+		$call Replace<IRegExp2>(this, srcSysString, <va_list vtType, replVal>, lpResult)
 	\\}
 \}
 

@@ -1,6 +1,6 @@
-proc_noprologue
+.proc_frame_mode_static
 
-proc IDocHostUIHandler_s.QueryInterface, this:P_IDocHostUIHandler_s, riid:P_GUID, ppvObject:POINTER
+.proc stdcall IDocHostUIHandler_s.QueryInterface(.pthis, .riid:P_GUID, .ppvObject:POINTER)
 	@sarg @arg1
 	@larg pdx, @arg2, pax, @arg3
 	mov pointer[pax], NULL
@@ -24,7 +24,7 @@ proc IDocHostUIHandler_s.QueryInterface, this:P_IDocHostUIHandler_s, riid:P_GUID
 	jz @f
 		virtObj .this IDocHostUIHandler_s at pcx from @arg1
 		mov pointer[pax], pcx
-		@call .this->AddRef()
+		$call .this::AddRef()
 		mov eax, S_OK
 		ret
 	@@:
@@ -32,56 +32,56 @@ proc IDocHostUIHandler_s.QueryInterface, this:P_IDocHostUIHandler_s, riid:P_GUID
 	mov pointer[pax], NULL
 	mov eax, E_NOINTERFACE
 	ret
-endp
+.endp
 
-proc IDocHostUIHandler_s.ShowContextMenu, this, dwID:DWORD, ppt:POINTER, pcmdtReserved:P_IUnknown, pdispReserved:P_IDispatch
+.proc stdcall IDocHostUIHandler_s.ShowContextMenu(.pthis, .dwID:DWORD, .ppt:POINTER, .pcmdtReserved:P_IUnknown, .pdispReserved:P_IDispatch)
 	mov eax, S_FALSE
 	ret
-endp
+.endp
 
-proc IDocHostUIHandler_s.GetHostInfo, this, pInfo:POINTER
+.proc stdcall IDocHostUIHandler_s.GetHostInfo(.pthis, .pInfo:POINTER)
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
-proc IDocHostUIHandler_s.ShowUI, this, dwID:DWORD, pActiveObject:POINTER, pCommandTarget:POINTER, \
-									pFrame:POINTER, pDoc:POINTER
+.proc stdcall IDocHostUIHandler_s.ShowUI(.pthis, .dwID:DWORD, .pActiveObject:POINTER, .pCommandTarget:POINTER, \
+									.pFrame:POINTER, .pDoc:POINTER)
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
-proc IDocHostUIHandler_s.HideUI, this
+.proc stdcall IDocHostUIHandler_s.HideUI(.pthis)
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
 IDocHostUIHandler_s.UpdateUI = IDocHostUIHandler_s.HideUI
 
-proc IDocHostUIHandler_s.EnableModeless, this, fEnable:DWORD
+.proc stdcall IDocHostUIHandler_s.EnableModeless(.pthis, .fEnable:DWORD)
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
 IDocHostUIHandler_s.OnDocWindowActivate = IDocHostUIHandler_s.EnableModeless
 
 IDocHostUIHandler_s.OnFrameWindowActivate = IDocHostUIHandler_s.EnableModeless
 
-proc IDocHostUIHandler_s.ResizeBorder, this, prcBorder:POINTER, pUIWindow:POINTER, fFrameWindow:DWORD
+.proc stdcall IDocHostUIHandler_s.ResizeBorder(.pthis, .prcBorder:POINTER, .pUIWindow:POINTER, .fFrameWindow:DWORD)
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
-proc IDocHostUIHandler_s.TranslateAccelerator, this, lpMsg:POINTER, pguidCmdGroup:P_GUID, nCmdID:DWORD
+.proc stdcall IDocHostUIHandler_s.TranslateAccelerator(.pthis, .lpMsg:POINTER, .pguidCmdGroup:P_GUID, .nCmdID:DWORD)
 	mov eax, S_FALSE
 	ret
-endp
+.endp
 
-proc IDocHostUIHandler_s.GetOptionKeyPath, this, pchKey:POINTER, dw_:DWORD
+.proc stdcall IDocHostUIHandler_s.GetOptionKeyPath(.pthis, .pchKey:POINTER, .dw:DWORD)
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
-proc IDocHostUIHandler_s.GetDropTarget, this, pchKey:POINTER, ppDropTarget:POINTER
+.proc stdcall IDocHostUIHandler_s.GetDropTarget(.pthis, .pchKey:POINTER, .ppDropTarget:POINTER)
 	cmp @arg3, NULL
 	je @f
 		@larg pdx, @arg3
@@ -89,9 +89,9 @@ proc IDocHostUIHandler_s.GetDropTarget, this, pchKey:POINTER, ppDropTarget:POINT
 	@@:
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
-proc IDocHostUIHandler_s.GetExternal, this, ppDispatch:POINTER
+.proc stdcall IDocHostUIHandler_s.GetExternal(.pthis, .ppDispatch:POINTER)
 	cmp @arg2, NULL
 	je @f
 		@larg pdx, @arg2
@@ -99,10 +99,10 @@ proc IDocHostUIHandler_s.GetExternal, this, ppDispatch:POINTER
 	@@:
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
 IDocHostUIHandler_s.TranslateUrl = IDocHostUIHandler_s.ResizeBorder
 
 IDocHostUIHandler_s.FilterDataObject = IDocHostUIHandler_s.GetDropTarget
 
-proc_resprologue
+.proc_frame_mode_previous

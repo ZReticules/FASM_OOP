@@ -1,7 +1,6 @@
-proc_noprologue
+.proc_frame_mode_static
 
-proc IOleClientSite_s.QueryInterface, this:P_IOleClientSite_s, riid:P_GUID, ppvObject:POINTER
-	@sarg @arg1
+.proc stdcall IOleClientSite_s.QueryInterface(.pthis, .riid:P_GUID, .ppvObject:POINTER)
 	@larg pdx, @arg2, pax, @arg3
 	mov pointer[pax], NULL
 	
@@ -23,22 +22,21 @@ proc IOleClientSite_s.QueryInterface, this:P_IOleClientSite_s, riid:P_GUID, ppvO
 	jz @f
 		virtObj .this IOleClientSite_s at pcx from @arg1
 		mov pointer[pax], pcx
-		@call .this->AddRef()
+		$call .this::AddRef()
 		mov eax, S_OK
 		ret
 	@@:
 	mov pointer[pax], NULL
 	mov eax, E_NOINTERFACE
 	ret
-endp
+.endp
 
-proc IOleClientSite_s.SaveObject, this
-; int3
+.proc stdcall IOleClientSite_s.SaveObject(.pthis)
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
-proc IOleClientSite_s.GetMoniker, this, dwAssign:DWORD, dwWhichMoniker:DWORD, ppmk:POINTER
+.proc stdcall IOleClientSite_s.GetMoniker(.pthis, .dwAssign:DWORD, .dwWhichMoniker:DWORD, .ppmk:POINTER)
 	cmp @arg4, NULL
 	je @f
 		@larg pdx, @arg4
@@ -46,9 +44,9 @@ proc IOleClientSite_s.GetMoniker, this, dwAssign:DWORD, dwWhichMoniker:DWORD, pp
 	@@:
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
-proc IOleClientSite_s.GetContainer, this, ppContainer:POINTER
+.proc stdcall IOleClientSite_s.GetContainer(.pthis, .ppContainer:POINTER)
 	cmp @arg2, NULL
 	je @f
 		@larg pdx, @arg2
@@ -56,16 +54,16 @@ proc IOleClientSite_s.GetContainer, this, ppContainer:POINTER
 	@@:
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
 IOleClientSite_s.ShowObject = IOleClientSite_s.SaveObject
 
-proc IOleClientSite_s.OnShowWindow, this, fShow:DWORD
+.proc stdcall IOleClientSite_s.OnShowWindow(.pthis, fShow:DWORD)
 ; int3
 	mov eax, E_NOTIMPL
 	ret
-endp
+.endp
 
 IOleClientSite_s.RequestNewObjectLayout = IOleClientSite_s.SaveObject
 
-proc_resprologue
+.proc_frame_mode_previous

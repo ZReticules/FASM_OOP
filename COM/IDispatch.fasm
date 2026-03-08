@@ -1,8 +1,6 @@
-proc_noprologue
+.proc_frame_mode_static
 
-proc IDispatch_s.QueryInterface, this:P_IDispatch_s, riid:P_GUID, ppvObject:POINTER
-; int3
-	@sarg @arg1
+.proc stdcall IDispatch_s.QueryInterface(.pthis, .riid:P_GUID, .ppvObject:POINTER)
 	@larg pdx, @arg2, pax, @arg3
 	mov pointer[pax], NULL
 	
@@ -24,39 +22,39 @@ proc IDispatch_s.QueryInterface, this:P_IDispatch_s, riid:P_GUID, ppvObject:POIN
 	jz @f
 		virtObj .this IDispatch_s at pcx from @arg1
 		mov pointer[pax], pcx
-		@call .this->AddRef()
+		$call .this::AddRef()
 		mov eax, S_OK
 		ret
 	@@:
 	mov pointer[pax], NULL
 	mov eax, E_NOINTERFACE
 	ret
-endp
+.endp
 
-proc IDispatch_s.GetTypeInfoCount, this, pctinfo:POINTER
+.proc stdcall IDispatch_s.GetTypeInfoCount(.pthis, .pctinfo:POINTER)
 	@larg pdx, @arg2
 	mov dword[pdx], 0
 	mov eax, S_OK
 	ret
-endp
+.endp
 
-proc IDispatch_s.GetTypeInfo, this, iTInfo:DWORD, lcid:DWORD, ppTInfo:POINTER
+.proc stdcall IDispatch_s.GetTypeInfo(.pthis, .iTInfo:DWORD, .lcid:DWORD, .ppTInfo:POINTER)
 	@larg pdx, @arg3
 	mov pointer[pdx], NULL
 	mov eax, DISP_E_BADINDEX
 	ret
-endp
+.endp
 
-proc IDispatch_s.GetIDsOfNames, this, riid:P_GUID, rgszNames:POINTER, cNames:DWORD, lcid:DWORD, rgDispId:POINTER
+.proc stdcall IDispatch_s.GetIDsOfNames(.pthis, .riid:P_GUID, .rgszNames:POINTER, .cNames:DWORD, .lcid:DWORD, .rgDispId:POINTER)
 	mov pax, DISP_E_UNKNOWNNAME
 	ret
-endp
+.endp
 
-proc IDispatch_s.Invoke, this, dispIdMember:DWORD, riid:P_GUID, lcid:DWORD, wFlags:WORD, \
-    									 pDispParams:P_DISPPARAMS, pVarResult:P_VARIANT, \
-    									 pExcepInfo:P_EXCEPINFO, puArgErr:POINTER
+.proc stdcall IDispatch_s.Invoke(.pthis, .dispIdMember:DWORD, .riid:P_GUID, .lcid:DWORD, .wFlags:WORD, \
+    									 .pDispParams:P_DISPPARAMS, .pVarResult:P_VARIANT, \
+    									 .pExcepInfo:P_EXCEPINFO, .puArgErr:POINTER)
 	mov pax, DISP_E_MEMBERNOTFOUND
 	ret
-endp
+.endp
 
-proc_resprologue
+.proc_frame_mode_previous

@@ -12,25 +12,25 @@ struct COM
 	rb 1
 ends
 
-proc COM.__New c, p_this, src, size
+.proc cdecl COM.__New(.pp_this, src, size)
 	@sarg @arg1, @arg2, @arg3
-	\local pThis:POINTER
-	@call [pThis] = CNV::alloc([size])
-	@call CNV::fill([pThis], [src], [size])
-	mov pax, [pThis]
-	mov pcx, [p_this]
+	.local .p_this:POINTER
+	$call [p_this] = CNV|alloc([size])
+	$call CNV|fill([p_this], [src], [size])
+	mov pax, [p_this]
+	mov pcx, [.pp_this]
 	mov pointer[pcx], pax
 	mov eax, S_OK
 	ret
-endp
+.endp
 
 macro COM.New lpDest, Type\{
 	match =1, Type\#.@WIN_COM\\{
-	    @call [CoCreateInstance](CLSID_\#Type, NULL,\
+	    $call [CoCreateInstance](CLSID_\#Type, NULL,\
 			CLSCTX.INPROC_HANDLER or CLSCTX.INPROC_SERVER or CLSCTX.LOCAL_SERVER,\
 			IID_\#Type, lpDest)
 	rept 0\\{\\} rept 1\\{
-		@call COM.__New(lpDest, const Type, sizeof.\#Type)
+		$call COM.__New(lpDest, const Type, sizeof.\#Type)
 	\\}
 \}
 
@@ -241,10 +241,10 @@ CLSCTX enum \
 	PS_DLL = 0x80000000
 
 typedef CLSCTX, dptr
-; @at_start @call [CoInitialize](0)
+; @at_start $call [CoInitialize](0)
 
 ; @at_end int3 
-; @at_end	@call [CoUninitialize](0)
+; @at_end	$call [CoUninitialize](0)
 
 IID_NULL @const GUID 0x00000000,0x0000,0x0000,<0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00>
 

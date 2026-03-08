@@ -32,13 +32,13 @@ match =x86, __architecture\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IServerXMLHTTPRequest at _this
-		@call IServerXMLHTTPRequest::>waitForResponse_(this, qword timeoutT, qword timeoutV, isSuccessful)
+		$call waitForResponse_<IServerXMLHTTPRequest>(this, qword timeoutT, qword timeoutV, isSuccessful)
 	\\}
 	macro IServerXMLHTTPRequest.setOption this, option, valueT, valueV\\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IServerXMLHTTPRequest at _this
-		@call IServerXMLHTTPRequest::>setOption_(this, option, qword valueT, qword valueV)
+		$call setOption_<IServerXMLHTTPRequest>(this, option, qword valueT, qword valueV)
 	\\}
 \}
 match =x64, __architecture\{
@@ -46,13 +46,13 @@ match =x64, __architecture\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IServerXMLHTTPRequest at _this
-		@call IServerXMLHTTPRequest::>waitForResponse_(this, <va_list timeoutT, timeoutV>, isSuccessful)
+		$call waitForResponse_<IServerXMLHTTPRequest>(this, <va_list timeoutT, timeoutV>, isSuccessful)
 	\\}
 	macro IServerXMLHTTPRequest.setOption this, option, valueT, valueV\\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IServerXMLHTTPRequest at _this
-		@call IServerXMLHTTPRequest::>setOption_(this, option, <va_list valueT, valueV>)
+		$call setOption_<IServerXMLHTTPRequest>(this, option, <va_list valueT, valueV>)
 	\\}
 \}
 

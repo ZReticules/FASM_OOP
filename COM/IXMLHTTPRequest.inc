@@ -64,13 +64,13 @@ match =x86, __architecture\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IXMLHTTPRequest at _this
-		@call IXMLHTTPRequest::>open_(this, method, url, qword asyncT, qword asyncV, qword userT, qword userV, qword passwordT, qword passwordV)
+		$call open_<IXMLHTTPRequest>(this, method, url, qword asyncT, qword asyncV, qword userT, qword userV, qword passwordT, qword passwordV)
 	\\}
 	macro IXMLHTTPRequest.send this, bodyT=VT_ERROR, bodyV=DISP_E_PARAMNOTFOUND\\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IXMLHTTPRequest at _this
-		@call IXMLHTTPRequest::>send_(this, qword bodyT, qword bodyV)
+		$call send_<IXMLHTTPRequest>(this, qword bodyT, qword bodyV)
 	\\}
 \}
 match =x64, __architecture\{
@@ -78,13 +78,13 @@ match =x64, __architecture\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IXMLHTTPRequest at _this
-		@call IXMLHTTPRequest::>open_(this, method, url, <va_list asyncT, asyncV>, <va_list userT, userV>, <va_list passwordT, passwordV>)
+		$call open_<IXMLHTTPRequest>(this, method, url, <va_list asyncT, asyncV>, <va_list userT, userV>, <va_list passwordT, passwordV>)
 	\\}
 	macro IXMLHTTPRequest.send this, bodyT=VT_ERROR, bodyV=DISP_E_PARAMNOTFOUND\\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IXMLHTTPRequest at _this
-		@call IXMLHTTPRequest::>send_(this, <va_list bodyT, bodyV>)
+		$call send_<IXMLHTTPRequest>(this, <va_list bodyT, bodyV>)
 	\\}
 \}
 

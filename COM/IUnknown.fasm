@@ -1,7 +1,6 @@
-proc_noprologue
+.proc_frame_mode_static
 
-proc IUnknown_s.QueryInterface, this:P_IUnknown_s, riid:P_GUID, ppvObject:POINTER
-	@sarg @arg1
+.proc stdcall IUnknown_s.QueryInterface(.pthis:P_IUnknown_s, .riid:P_GUID, .ppvObject:POINTER)
 	@larg pdx, @arg2, pax, @arg3
 	mov pointer[pax], NULL
 	movups xmm0, xword[pdx]
@@ -14,33 +13,33 @@ proc IUnknown_s.QueryInterface, this:P_IUnknown_s, riid:P_GUID, ppvObject:POINTE
 	jz @f
 		virtObj .this IUnknown_s at pcx from @arg1
 		mov pointer[pax], pcx
-		@call .this->AddRef()
+		$call .this::AddRef()
 		mov eax, S_OK
 		ret
 	@@:
 	mov pointer[pax], NULL
 	mov eax, E_NOINTERFACE
 	ret
-endp
+.endp
 
-proc IUnknown_s.AddRef, this:P_IUnknown_s
+.proc stdcall IUnknown_s.AddRef(.pthis:P_IUnknown_s)
 	virtObj .this IUnknown_s at pcx from @arg1
 	lock inc [.this.refCount]
 	mov eax, [.this.refCount]
 	ret
-endp
+.endp
 
-proc IUnknown_s.Release, this:P_IUnknown_s
+.proc stdcall IUnknown_s.Release(.pthis:P_IUnknown_s)
 	virtObj .this IUnknown_s at pcx from @arg1
 	lock dec [.this.refCount]
 	cmp [.this.refCount], 0
 	@block jne @fb
 		@sarg @arg1
-		@call CNV::free(addr .this)
-		mov pcx, [this]
+		$call CNV|free(&.this)
+		mov pcx, [.pthis]
 	@endb 
 	mov eax, [.this.refCount]
 	ret
-endp
+.endp
 
-proc_resprologue
+.proc_frame_mode_previous

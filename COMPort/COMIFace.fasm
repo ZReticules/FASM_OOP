@@ -12,9 +12,6 @@ importlib kernel32,\
 	SetCommMask,\
 	GetOverlappedResult
 
-importlib msvcrt,\
-	atoi
-
 define PURGE_RXCLEAR 	8
 define PURGE_TXCLEAR 	4
 define EV_BREAK			0x0040
@@ -30,91 +27,88 @@ define EV_TXEMPTY		0x0004
 macro COMIface.close this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [CloseHandle]([_this + COMIface.handle])
+	$call [CloseHandle]([_this + COMIface.handle])
 }
 
 macro COMIface.getStat this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [ClearCommError]([_this + COMIface.handle], NULL, addr _this + COMIface.comstat)
+	$call [ClearCommError]([_this + COMIface.handle], NULL, addr _this + COMIface.comstat)
 }
 
 macro COMIface.reset this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [PurgeComm]([_this + COMIface.handle], PURGE_RXCLEAR or PURGE_TXCLEAR)
+	$call [PurgeComm]([_this + COMIface.handle], PURGE_RXCLEAR or PURGE_TXCLEAR)
 }
 
 macro COMIface.getParams this, dcb{
 	local _this
 	inlineObj _this, this, pcx
-	@call [GetCommState]([_this + COMIface.handle], dcb)
+	$call [GetCommState]([_this + COMIface.handle], dcb)
 }
 
 macro COMIface.setParams this, dcb{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SetCommState]([_this + COMIface.handle], dcb)
+	$call [SetCommState]([_this + COMIface.handle], dcb)
 }
 
 macro COMIface.setTimeouts this{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SetCommTimeouts]([_this + COMIface.handle], addr _this + COMIface.timeouts)
+	$call [SetCommTimeouts]([_this + COMIface.handle], addr _this + COMIface.timeouts)
 }
 
 macro COMIface.setup this, dwInQueueSize, dwOutQueueSize{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SetupComm]([_this + COMIface.handle], dwInQueueSize, dwOutQueueSize)
+	$call [SetupComm]([_this + COMIface.handle], dwInQueueSize, dwOutQueueSize)
 }
 
 macro COMIface.setMask this, flags{
 	local _this
 	inlineObj _this, this, pcx
-	@call [SetCommMask]([_this + COMIface.handle], flags)
+	$call [SetCommMask]([_this + COMIface.handle], flags)
 }
 
 macro COMIface.waitEvent this, lpFlags, lpOverlapped{
 	local _this
 	inlineObj _this, this, pcx
-	@call [WaitCommEvent]([_this + COMIface.handle], lpFlags, lpOverlapped)
+	$call [WaitCommEvent]([_this + COMIface.handle], lpFlags, lpOverlapped)
 }
 
-proc_noprologue
+.proc_frame_mode_static
 
-proc COMIface.openA c uses pbx psi, this, lpStr
+.proc cdecl COMIface.openA(.pthis, .p_name) uses pbx psi
 	@sarg @arg2
-	virtObj .this:arg COMIface at pbx from @arg1
-	@call [CreateFileA]([lpStr], GENERIC_READ or GENERIC_WRITE, NULL, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)
+	virtObj .this COMIface at pbx from @arg1
+	$call [CreateFileA]([.p_name], GENERIC_READ or GENERIC_WRITE, NULL, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)
 	xor edx, edx
 	cmp pax, INVALID_HANDLE_VALUE
 	cmove pax, pdx
 	mov [.this.handle], pax
 	.return: ret
-endp
+.endp
 
-proc COMIface.read c, this, lpBuf, cBytes, lpOverlapped
-	virtObj .this:arg COMIface at pcx from @arg1
+.proc cdecl COMIface.read(.pthis, .p_buf, .cBytes, .p_overlapped)
+	virtObj .this COMIface at pcx from @arg1
 	@sarg @arg4
-	@call [ReadFile]([.this.handle], @arg2, @arg3, addr lpOverlapped, @arg4)
-	mov pax, [lpOverlapped]
-	ret
-endp
+	$call [ReadFile]([.this.handle], @arg2, @arg3, &.p_overlapped, @arg4)
+	$return [.p_overlapped]
+.endp
 
-proc COMIface.write c, this, lpBuf, cBytes, lpOverlapped
-	virtObj .this:arg COMIface at pcx from @arg1
+.proc cdecl COMIface.write(.pthis, .p_buf, .cBytes, .p_overlapped)
+	virtObj .this COMIface at pcx from @arg1
 	@sarg @arg4
-	@call [WriteFile]([.this.handle], @arg2, @arg3, addr lpOverlapped, @arg4)
-	mov pax, [lpOverlapped]
-	ret
-endp
+	$call [WriteFile]([.this.handle], @arg2, @arg3, &.p_overlapped, @arg4)
+	$return [.p_overlapped]
+.endp
 
-proc COMIface.getReadedCount c, this, lpOverlapped
-	virtObj .this:arg COMIface at pcx from @arg1
-	@call [GetOverlappedResult]([.this.handle], @arg2, addr lpOverlapped, 0)
-	mov pax, [lpOverlapped]
-	ret
-endp
+.proc cdecl COMIface.getReadedCount(.pthis, .p_overlapped)
+	virtObj .this COMIface at pcx from @arg1
+	$call [GetOverlappedResult]([.this.handle], @arg2, &.p_overlapped, 0)
+	$return [.p_overlapped]
+.endp
 
-proc_resprologue
+.proc_frame_mode_previous
