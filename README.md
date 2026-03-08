@@ -129,7 +129,7 @@ macro Point2.print this{
 	$call [printf](<"x: %d, y: %d", 0Ah>, [_this + Point2.x], [_this + Point2.y])
 }
 ```
-Пример использования fillParam:              
+Пример использования fillGPR:              
 ```asm
 macro mem_mov dst, src, size{
 	fillGPR ecx, size

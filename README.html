@@ -1363,7 +1363,7 @@ body .markdown-body
     <span class="nf">$call</span> <span class="p">[</span><span class="no">printf</span><span class="p">](</span><span class="err">&lt;&quot;</span><span class="no">x</span><span class="p">:</span> <span class="nv">%d</span><span class="p">,</span> <span class="no">y</span><span class="p">:</span> <span class="nv">%d</span><span class="err">&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="no">Ah</span><span class="err">&gt;</span><span class="p">,</span> <span class="p">[</span><span class="no">_this</span> <span class="err">+</span> <span class="no">Point2.x</span><span class="p">],</span> <span class="p">[</span><span class="no">_this</span> <span class="err">+</span> <span class="no">Point2.y</span><span class="p">])</span>
 <span class="err">}</span>
 </pre></div>
-Пример использования fillParam:            <br />
+Пример использования fillGPR:            <br />
 <div class="highlight"><pre><span class="nf">macro</span> <span class="no">mem_mov</span> <span class="no">dst</span><span class="p">,</span> <span class="no">src</span><span class="p">,</span> <span class="no">size</span><span class="err">{</span>
     <span class="nf">fillGPR</span> <span class="no">ecx</span><span class="p">,</span> <span class="no">size</span>
     <span class="nf">fillGPR</span> <span class="no">esi</span><span class="p">,</span> <span class="no">src</span>
