@@ -201,8 +201,9 @@ macro WND.getStockIcon iconId{
 	$call [SHGetStockIconInfo](iconId, SHGSI_ICON or SHGSI_ICONLOCATION, &stockInfo) 
 	mov edx, 0
 	test eax, eax
-	mov pax, [stockInfo + SHSTOCKICONINFO.hIcon]
+	mov pax, pointer[stockInfo + SHSTOCKICONINFO.hIcon]
 	cmovnz eax, edx
+	procbuf_free stockInfo
 }
 
 macro WND.deleteStockIcon hIcon{
