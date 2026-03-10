@@ -612,7 +612,7 @@ rept 1{
 		\\}
 	\}
 	macro @get_result_std dest&\{@get_result_fast dest\}
-	macro @get_result_stdcall &args\{@get_result_fast args\}
+	macro @get_result_stdcall args&\{@get_result_fast args\}
 	macro @get_result_c dest&\{@get_result_fast dest\}
 	macro @get_result_cdecl dest&\{@get_result_fast dest\}
 }
