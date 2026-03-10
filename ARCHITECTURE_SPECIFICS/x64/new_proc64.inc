@@ -330,13 +330,13 @@ rept 1{
 	macro @set_fast_unk_mem src\{
 		sizeof@addr mem_size, src
 		if mem_size = 8
-			@get_fast_qword_mem src
+			@set_fast_qword_mem src
 		else if mem_size = 4
-			@get_fast_dword_mem src
+			@set_fast_dword_mem src
 		else if mem_size = 2
 			@get_fast_word_mem src
 		else
-			@get_fast_byte_mem src
+			@set_fast_byte_mem src
 		end if
 	\}
 	local src_type, src_def
