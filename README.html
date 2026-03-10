@@ -1246,13 +1246,19 @@ body .markdown-body
 <li><a href="#virtual-methods">ООП: Виртуальные методы и абстрактные интерфейсы</a></li>
 <li><a href="#polymorphism">ООП: Наследование и полиморфизм</a></li>
 <li><a href="#$call">Вызов методов и процедур. Типизированные указатели. Макрос $call</a></li>
-<li><a href="#$call_args">Изменения в обработке аргументов $call</a></li>
-<li><a href="#meth_vectors">Обработчики методов</a><ol>
-<li><a href="#virt_obj">Виртуальные обьекты</a></li>
+<li><a href="#$call-args">Изменения в обработке аргументов $call</a></li>
+<li><a href="#method-vectors">Обработчики методов</a><ol>
+<li><a href="#virt-obj">Виртуальные обьекты</a></li>
 <li><a href="#inline">Инлайн методы: специальные возможности</a></li>
 </ol>
 </li>
 <li><a href="#const">Константные поля структур</a>  </li>
+</ol>
+</li>
+<li><a href="#cross-arch">Инструменты кросс-архитектурной компиляции</a><ol>
+<li><a href="#cross-arch-consts">Базовые константы и псевдодирективы</a></li>
+<li><a href="#cross-arch-proc">Аргументы процедуры</a></li>
+<li><a href="#cross-arch-return">Возврат и получение значений</a></li>
 </ol>
 </li>
 </ol>
@@ -1338,11 +1344,11 @@ body .markdown-body
     <span class="nf">ret</span>
 <span class="nf">.endp</span>
 </pre></div></p>
-<h3 id="25-call">2.5. Изменения в обработке аргументов $call<a name="$call_args"></a><a class="headerlink" href="#25-call" title="Permanent link"></a></h3>
+<h3 id="25-call">2.5. Изменения в обработке аргументов $call<a name="$call-args"></a><a class="headerlink" href="#25-call" title="Permanent link"></a></h3>
 <p>В FASM_OOP изменена обработка константных литералов. <code>const</code> теперь собираются в общий пул констант, которые могу пересекаться друг с другом. Для изменяемых статических обьектов используется ключевое слово static, идентичное использованию const.</p>
-<h3 id="26">2.6. Обработчики методов<a name="meth_vectors"></a><a class="headerlink" href="#26" title="Permanent link"></a></h3>
+<h3 id="26">2.6. Обработчики методов<a name="method-vectors"></a><a class="headerlink" href="#26" title="Permanent link"></a></h3>
 <p>Как уже было сказано ранее, обработчиком метода может стать любая процедура/макрос в зависимости от типа метода. Однако FASM_OOP предлагает средства, способные облегчить создание методов, такие как виртуальные обьекты и вспомогательные макросы для инлайн-методов.  </p>
-<h4 id="261">2.6.1. Виртуальные обьекты<a name="virt_obj"></a><a class="headerlink" href="#261" title="Permanent link"></a></h4>
+<h4 id="261">2.6.1. Виртуальные обьекты<a name="virt-obj"></a><a class="headerlink" href="#261" title="Permanent link"></a></h4>
 <p>Для их создания используется макрос virtObj. Виртуальный обьект не инициализирует область памяти, в которой создается и предназначен в первую очередь для удобной работы с передаваемыми в методы адресами обьектов. Пример:            <br />
 <div class="highlight"><pre><span class="nf">.proc</span> <span class="nv">Point2.print</span><span class="p">(</span><span class="nv">.pthis</span><span class="p">)</span>
     <span class="nf">virtObj</span> <span class="nv">.this</span> <span class="nv">Point2</span> <span class="nv">at</span> <span class="nb">ecx</span> <span class="nv">from</span> <span class="p">[</span><span class="nv">.pthis</span><span class="p">]</span>   <span class="c1">; at указывает на адрес, по умолчанию rcx(ecx на x86)</span>
@@ -1379,4 +1385,40 @@ body .markdown-body
     <span class="nf">const</span> <span class="no">b</span> <span class="err">=</span> <span class="mi">6</span>      <span class="err">;</span> <span class="err">создаст</span> <span class="err">константное</span> <span class="err">поле</span> <span class="err">этапа</span> <span class="err">компиляции</span>
 <span class="nf">ends</span>
 </pre></div>
-К создаваемым таким образом полям можно обращаться только через имя структуры(для вышеприведенного примера - MyStruct.a и MyStruct.b соответственно). Константные поля структур так же наследуются, при этом их можно переопределить.  </p></article></body></html>
+К создаваемым таким образом полям можно обращаться только через имя структуры(для вышеприведенного примера - MyStruct.a и MyStruct.b соответственно). Константные поля структур так же наследуются, при этом их можно переопределить.  </p>
+<h2 id="3-">3. Инструменты кросс-архитектурной компиляции<a name="cross-arch"></a><a class="headerlink" href="#3-" title="Permanent link"></a></h2>
+<h3 id="31">3.1. Базовые константы и псевдодирективы<a name="cross-arch-consts"></a><a class="headerlink" href="#31" title="Permanent link"></a></h3>
+<p>Для того, чтобы определить, под какой именно архитектурой вы находитесь, вы можете проверить значение <code>__architecture</code> следующим образом:<br />
+<div class="highlight"><pre><span class="nf">match</span> <span class="err">=</span><span class="no">x86</span><span class="p">,</span> <span class="no">__architecture</span><span class="err">{</span>
+    <span class="err">;</span> <span class="err">что-то</span> <span class="err">архитектурно-специфическое</span>
+<span class="err">}</span>
+</pre></div>
+Для x86-32 имеет значение x86, для x86-64 - x64.<br />
+Стандартные 8 регистров общего назначения имеют псевдонимы начинающиеся с p (<code>pax</code>, <code>pbx</code> и т.д.), все в нижнем регистре, заданные с помощью <code>fix</code>.<br />
+Для определения области данных под размер указателя используется псевдодиректива <code>dptr</code> или <code>rptr</code>. Определены так же константы <code>pointer</code> и <code>POINTER</code>, которые можно использовать для указания типа аргументов или приведения типа для инструкций. Для тех же целей определена константа <code>pointer.size</code>, которая как раз определяет размер указателя на архитектуре(4 на x86-32, 8 на x86-64). Аналогичная константа <code>pointer.shift</code> содержит степень 2-ки указателя.<br />
+Константа <code>PEB</code> содержит адрес PEB для текущей архитектуры.<br />
+Однострочный макрос <code>qword_result</code> содержит формат, в котором традиционно возрващаются значения qword на конкретной архитектуре(rax для x86-64, edx:eax для x86-32).<br />
+Так же определены макросы <code>PTR_MAX</code>, <code>PTR_MIN</code> и <code>UPTR_MAX</code>, которые содержат соответствующие максимальное и минимальное значения для знакового указателя, а так же максимальное значение беззнакового указателя.<br />
+Определены так же псевдонимы под размеры указателя в виде следующих инструкций:<br />
+- movptr(movd/movq)<br />
+- movsptr(movsd/movsq)<br />
+- jpcxz(jecxz/jrcxz)  </p>
+<h3 id="32">3.2. Аргументы процедуры<a name="cross-arch-proc"></a><a class="headerlink" href="#32" title="Permanent link"></a></h3>
+<p>При работе с аргументами обьявленной вами процедуры вы можете использовать псевдонимы для аргументов <code>@arg{N}</code> и <code>@farg{N}</code>, где N - номер аргумента. Для того, чтобы гарантировать загрузку аргумента в память, под него выделенную, можно использовать <code>@sarg</code>. В свою очередь, <code>@larg</code> позволяет загрузить значение аргумента в регистр(GPR или SSE). Пример использования:<br />
+<div class="highlight"><pre><span class="na">.proc</span> <span class="no">cdecl</span> <span class="no">Pointer2.add</span><span class="p">(.</span><span class="no">pthis</span><span class="p">,</span> <span class="no">.num</span><span class="p">)</span>
+    <span class="nf">virtObj</span> <span class="no">.this</span> <span class="no">Pointer2</span> <span class="no">at</span> <span class="no">pcx</span> <span class="no">from</span> <span class="err">@</span><span class="no">arg1</span>
+    <span class="err">@</span><span class="nf">sarg</span> <span class="err">@</span><span class="no">arg2</span>         <span class="err">;</span> <span class="err">гарантировать</span> <span class="err">попадание</span> <span class="err">в</span> <span class="err">память</span>
+    <span class="err">@</span><span class="nf">larg</span> <span class="no">pdx</span><span class="p">,</span> <span class="err">@</span><span class="no">arg2</span>    <span class="err">;</span> <span class="err">загрузить</span> <span class="err">в</span> <span class="err">регистр</span><span class="p">(</span><span class="err">если</span> <span class="err">еще</span> <span class="err">не</span> <span class="err">в</span> <span class="err">нем</span><span class="p">)</span>
+                        <span class="err">;</span> <span class="err">всегда</span> <span class="err">стоит</span> <span class="err">использовать</span> <span class="err">универсальные</span> <span class="err">с</span> <span class="err">префиксом</span> <span class="nf">p</span>
+    <span class="nf">add</span> <span class="p">[.</span><span class="no">this.x</span><span class="p">],</span> <span class="no">edx</span>
+    <span class="nf">add</span> <span class="p">[.</span><span class="no">this.y</span><span class="p">],</span> <span class="no">edx</span>
+    <span class="nf">ret</span>
+<span class="na">.endp</span>
+</pre></div></p>
+<h3 id="33">3.3. Возврат и получение значений<a name="cross-arch-return"></a><a class="headerlink" href="#33" title="Permanent link"></a></h3>
+<p>Для возврата значения из <code>.proc</code> используется макрос <code>$return</code>. <code>$return</code> получает один параметр в формате любого аргумента, допустимого для <code>$call</code>, и загружает значение в соответствующий стандартный контейнер для результата(eax, edx:eax, st0 для x86-32 и rax, xmm0 для x86-64).<br />
+В свою очередь <code>$call</code> умеет получать результат из процедуры следующим образом:<br />
+<code>$call result = proc(args...)</code><br />
+Допустимыми для <code>result</code> являются те типы аргументов для <code>$call</code>, которые способны хранить значения.<br />
+Это касается в том числе и методов.<br />
+Так же <code>$return</code> можно использовать и без аргументов. В таком случае его удобно использовать т.к. он закрывает прологи некоторых расширенных макросов(которые будут рассмотрены позднее).</p></article></body></html>
