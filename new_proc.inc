@@ -164,7 +164,8 @@ rept 1 {
 
 			.locals 
 				..vl rb ..vl_cnt
-		   		..buf_mem rb ..buf_size
+		   		..buf_mem:
+		   			rb ..buf_size
 		   	.endl
 
 		   	proc_buf@space equ ..buf_mem
