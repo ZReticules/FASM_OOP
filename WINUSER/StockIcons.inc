@@ -198,6 +198,7 @@ SIID enum \
 
 macro WND.getStockIcon iconId{
 	procbuf_alloc stockInfo, sizeof.SHSTOCKICONINFO
+	mov [stockInfo + cbSize], sizeof.SHSTOCKICONINFO
 	$call [SHGetStockIconInfo](iconId, SHGSI_ICON or SHGSI_ICONLOCATION, &stockInfo) 
 	mov edx, 0
 	test eax, eax
