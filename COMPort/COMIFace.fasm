@@ -10,6 +10,7 @@ importlib kernel32,\
 	SetupComm,\
 	WriteFile,\
 	SetCommMask,\
+	WaitCommEvent,\
 	GetOverlappedResult
 
 define PURGE_RXCLEAR 	8
