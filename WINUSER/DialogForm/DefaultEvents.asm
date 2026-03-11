@@ -79,7 +79,7 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 ; 	ret
 ; endp
 
-.proc stdcall DIALOGFORM_WM_GETMINMAXINFO_(.p_form, .p_params, .p_eventData)
+.proc stdcall DIALOGFORM_WM_GETMINMAXINFO(.p_form, .p_params, .p_eventData)
 	@sarg @arg3
 	@larg pdx, @arg2
 	virtObj .minMaxInfo MINMAXINFO at pax from [pdx + params.lParam]
@@ -87,15 +87,15 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 	$return 0
 .endp
 
-.proc stdcall DIALOGFORM_WM_GETMINMAXINFO(.p_form:P_DIALOGFORM, .p_params, .p_eventData)
-	@sarg @arg1, @arg2, @arg3
-	virtObj .form DIALOGFORM at pcx from @arg1
-	$call .form.sData.mapDialog::mapRect(&.form.sData.baseRect)
-	mov pax, [.p_eventData]
-	mov pointer[pax - pointer.size], DIALOGFORM_WM_GETMINMAXINFO_
-	$call DIALOGFORM_WM_GETMINMAXINFO_([.p_form], [.p_params], pax)
-	$return 0
-.endp
+; .proc stdcall DIALOGFORM_WM_GETMINMAXINFO(.p_form:P_DIALOGFORM, .p_params, .p_eventData)
+; 	@sarg @arg1, @arg2, @arg3
+; 	virtObj .form DIALOGFORM at pcx from @arg1
+; 	$call .form.sData.mapDialog::mapRect(&.form.sData.baseRect)
+; 	mov pax, [.p_eventData]
+; 	mov pointer[pax - pointer.size], DIALOGFORM_WM_GETMINMAXINFO_
+; 	$call DIALOGFORM_WM_GETMINMAXINFO_([.p_form], [.p_params], pax)
+; 	$return 0
+; .endp
 
 .proc stdcall DIALOGFORM_WM_SIZE(.p_form, .p_params, .p_eventData) uses pbx
 	virtObj .form DIALOGFORM at pbx from @arg1
