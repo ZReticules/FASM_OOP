@@ -41,26 +41,26 @@ macro @on_scaling {
 
 macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 	WM_GETMINMAXINFO event DIALOGFORM_WM_GETMINMAXINFO
-	minMaxRect RECT x, y, cx, cy
+	RECT x, y, cx, cy
 }
 
 .proc_frame_mode_static
 
 ; .proc DIALOGFORM_WM_CTLCOLOR uses pbx psi, lpForm, lpParams, lpEventData
 ; 	@sarg @arg1
-; 	virtObj .params:arg params at pbx from @arg2
+; 	virtObj .params params at pbx from @arg2
 ; 	; $call c [puts]("lol")
 ; 	$call [GetWindowPtrA]([.params.lParam], GWL_USERDATA)
 ; 	; int3
 ; 	test eax, eax
 ; 	jz .noVal
-; 		virtObj .control:arg DLG_SPECIAL_CONTROL at psi from pax
+; 		virtObj .control DLG_SPECIAL_CONTROL at psi from pax
 ; 		$call [SetBkColor]([.params.wParam], [.control.bkColor])
 ; 		$call [SetTextColor]([.params.wParam], [.control.txColor])
 ; 		mov pax, [.control.bgColorBrush]
 ; 		test pax, pax
 ; 			jnz .noVal
-; 		virtObj .form:arg DIALOGFORM at psi from [lpForm]
+; 		virtObj .form DIALOGFORM at psi from [lpForm]
 ; 		mov pax, [.form.hWnd]
 ; 	.noVal:
 ; 	ret
@@ -79,17 +79,26 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 ; 	ret
 ; endp
 
-.proc stdcall DIALOGFORM_WM_GETMINMAXINFO(.lpForm, .lpParams, .lpEventData)
+.proc stdcall DIALOGFORM_WM_GETMINMAXINFO_(.p_form, .p_params, .p_eventData)
 	@sarg @arg3
 	@larg pdx, @arg2
 	virtObj .minMaxInfo MINMAXINFO at pax from [pdx + params.lParam]
 	$call CNV|fill(addr .minMaxInfo.ptMinTrackSize, @arg3, sizeof.RECT)
-	mov eax, 0
-	ret
+	$return 0
 .endp
 
-.proc stdcall DIALOGFORM_WM_SIZE(.lpForm, .lpParams, .lpEventData) uses pbx
-	virtObj .form:arg DIALOGFORM at pbx from @arg1
+.proc stdcall DIALOGFORM_WM_GETMINMAXINFO(.p_form:P_DIALOGFORM, .p_params, .p_eventData)
+	@sarg @arg1, @arg2, @arg3
+	virtObj .form DIALOGFORM at pcx from @arg1
+	$call .form.sData.mapDialog::mapRect(&.form.sData.baseRect)
+	mov pax, [.p_eventData]
+	mov [pax - pointer.size], DIALOGFORM_WM_GETMINMAXINFO_
+	$call DIALOGFORM_WM_GETMINMAXINFO_([.p_form], [.p_params], pax)
+	$return 0
+.endp
+
+.proc stdcall DIALOGFORM_WM_SIZE(.p_form, .p_params, .p_eventData) uses pbx
+	virtObj .form DIALOGFORM at pbx from @arg1
 	; local NewRect:RECT
 	; $call [GetClientRect]([.form.hWnd], addr NewRect)
 	; ; movq xmm0, qword[.form.baseRect.right]
@@ -141,9 +150,9 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 ; .proc COLORED_BUTTON_NM_CUSTOMDRAW uses pbx psi pdi, lpForm, lpNmhdr, lpControl, lpEventData
 ; 	mov eax, CDRF_DODEFAULT
 ; 	; int3
-; 	virtObj .form:arg DIALOGFORM at pbx
+; 	virtObj .form DIALOGFORM at pbx
 ; 	virtObj .nmhdr NMCUSTOMDRAW at pdi from @arg2
-; 	virtObj .cntrl:arg BUTTON at psi
+; 	virtObj .cntrl BUTTON at psi
 ; 	local hBrush:POINTER, hFont:dptr 0, textLen:POINTER, lpText:POINTER, logBrush:LOGBRUSH, hRgn:POINTER
 ; 	; int3
 ; 	cmp dword[.nmhdr.dwDrawStage], CDDS_PREPAINT
