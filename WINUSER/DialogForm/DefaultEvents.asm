@@ -79,7 +79,7 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 ; 	ret
 ; endp
 
-.proc stdcall DIALOGFORM_WM_GETMINMAXINFO(.p_form, .p_params, .p_eventData)
+.proc stdcall DIALOGFORM_WM_GETMINMAXINFO_(.p_form, .p_params, .p_eventData)
 	@sarg @arg3
 	@larg pdx, @arg2
 	virtObj .minMaxInfo MINMAXINFO at pax from [pdx + params.lParam]
