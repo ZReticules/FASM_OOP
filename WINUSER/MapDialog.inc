@@ -26,7 +26,7 @@ ends
 .proc_frame_mode_static
 
 .proc cdecl MapDialog.make(.pthis, .hWnd) uses pbx
-	virtObj .this:arg MapDialog at pbx from @arg1
+	virtObj .this MapDialog at pbx from @arg1
 
 	@sarg @arg2
     .local .coeffRect:RECT
@@ -50,10 +50,10 @@ macro MapDialog.mapRect this, lpRect{
     ; pshufd xmm0, xmm0, 
     ; vpsrlvd xmm0, xmm0, [MapDialog.shiftMap]
     movups xword[_rect], xmm0
-    shr [_rect + RECT.left], 1
-    shr [_rect + RECT.top], 2
-    shr [_rect + RECT.right], 1
-    shr [_rect + RECT.bottom], 2
+    shr [_rect + RECT.left], 2
+    shr [_rect + RECT.top], 3
+    shr [_rect + RECT.right], 2
+    shr [_rect + RECT.bottom], 3
 }
 
 macro MapDialog.mapPoint this, lpPoint{
