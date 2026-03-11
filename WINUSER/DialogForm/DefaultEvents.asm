@@ -90,7 +90,8 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 .proc stdcall DIALOGFORM_WM_GETMINMAXINFO(.p_form:P_DIALOGFORM, .p_params, .p_eventData)
 	@sarg @arg1, @arg2, @arg3
 	virtObj .form DIALOGFORM at pcx from @arg1
-	$call .form.sData.mapDialog::mapRect(@arg3)
+	; $call .form.sData.mapDialog::mapRect(@arg3)
+	$call [MapDialogRect]([.form.hWnd], @arg3)
 	mov pax, [.p_eventData]
 	mov pointer[pax - pointer.size], DIALOGFORM_WM_GETMINMAXINFO_
 	$call DIALOGFORM_WM_GETMINMAXINFO_([.p_form], [.p_params], pax)
