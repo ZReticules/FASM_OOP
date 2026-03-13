@@ -199,8 +199,6 @@ macro WND.isThemeLight{
 		va_list 4\
 	)
 	mov eax, dword[keyVal]
-	bswap eax
-	and eax, 1
 	procbuf_free keyVal
 }
 
