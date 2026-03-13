@@ -593,7 +593,7 @@ ends
 	add eax, [.bmfHeader.bfOffBits]
 	mov [.bmfHeader.bfSize], eax
 
-	local .fHandle:DWORD
+	.local .fHandle:DWORD
 	mov [.bmInfo.bmiHeader.biCompression], BI_RGB 
 	mov eax, [.bitCount]
 	mov [.bmInfo.bmiHeader.biBitCount], ax
@@ -609,9 +609,7 @@ ends
 	ret
 .endp
 
-proc_noprologue
 @arch_include "CNV"
-proc_resprologue
 
 macro CNV.i64ToStr lpBuf, num, radix{
 	$call CNV|i64ToStrVarchar(lpBuf, num, radix, 1)
