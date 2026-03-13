@@ -36,8 +36,11 @@ importlib uxtheme,\
 
 macro @on_scaling {
 	WM_SIZE event DIALOGFORM_WM_SIZE
-	; WM_EXITSIZEMOVE event DIALOGFORM_WM_EXITSIZEMOVE
 } 
+
+macro @on_scaling_redraw {
+	WM_EXITSIZEMOVE event DIALOGFORM_WM_EXITSIZEMOVE
+}
 
 macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 	WM_GETMINMAXINFO event DIALOGFORM_WM_GETMINMAXINFO
@@ -123,6 +126,11 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 		$call [InvalidateRect]([.hWnd], NULL, 1)
 		.return: $return esp
 	.endp
+.endp
+
+.proc stdcall DIALOGFORM_WM_EXITSIZEMOVE(.p_form, .p_params, .p_eventData)
+	$call DIALOGFORM|invalidate(@arg1, NULL, 1)
+	ret
 .endp
 
 ; .proc stdcall DIALOGFORM_WM_EXITSIZEMOVE uses pbx, lpForm, lpParams, lpEventData
