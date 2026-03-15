@@ -1,5 +1,6 @@
 importlib kernel32,\
-	GetModuleHandleA
+	GetModuleHandleA,\
+	ExitProcess
 
 importlib gdi32,\
 	BitBlt,\
@@ -200,6 +201,10 @@ macro WND.isThemeLight{
 	)
 	mov eax, dword[keyVal]
 	procbuf_free keyVal
+}
+
+macro WND.exit exitVal=0{
+	$call [ExitProcess](exitVal)
 }
 
 ; .proc cdecl WND.isThemeLight

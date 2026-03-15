@@ -517,7 +517,7 @@
 	@const_align equ 1
 	__i = 0
 	struc @const argum&{
-		local ..src_const, ..src_start, src_len, ..before_align
+		local ..src_const, ..src_start, src_len, ..before_align, j
 		virtual at 0
 			..src_const::
 			..src_start:
@@ -653,10 +653,9 @@
 	}
 
 	macro @postpone_consts{
+		consts@len = _consts.len
 		@init_consts
 		local const_byte
-		consts@len = _consts.len
-
 		repeat _consts.len
 			load const_byte byte from _consts@addrspace:% - 1
 			store byte const_byte at consts@real_addrspace:_consts_base + % - 1

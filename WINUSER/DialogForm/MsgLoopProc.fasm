@@ -140,7 +140,6 @@ importlib comctl32,\
 	mov [.form.hWnd], pcx
 	mov pbp, [.form.sData.lpClOffsets]
 	$call DLG|setPtr([.hwndDlg], &.form)
-	; $call [SetWindowPtrA]([.hwndDlg], GWL_USERDATA, &.form)
     ; $call [OpenThemeData]([.form.hWnd], L "Menu;Button")
     ; mov [.form.hTheme], pax
 
@@ -162,7 +161,6 @@ importlib comctl32,\
 			$call [GetDlgItem]([.form.hWnd], edi)
 			mov [.cntrl.hWnd], pax
 			$call DLG|setPtr([.cntrl.hWnd], &.cntrl)
-			; $call [SetWindowPtrA]([.cntrl.hWnd], GWL_USERDATA, &.cntrl)
 			$call .form.sData.mapDialog::mapRect(&.cntrl.sData.baseRect)
 			cmp [.cntrl.sData.lpHooks], NULL
 			je .no_hook
@@ -179,7 +177,7 @@ importlib comctl32,\
 	.return: ret
 .endp
 
-.proc stdcall DLG.DialogProc(.hwndDlg, .uMsg, .wParam, .lParam) uses pdi pbx psi
+.proc stdcall DLG.DialogProc(.hwndDlg, .uMsg, .wParam, .lParam) uses pdi pbx
 	virtObj .form DIALOGFORM at pbx
 	@sarg @arg1, @arg2, @arg3, @arg4
 	mov eax, dword[.uMsg]
@@ -212,7 +210,6 @@ importlib comctl32,\
 			movzx pdi, word[pdi + (pcx - 1) * 4 + 2]
 			cmp pointer[.form + pdi], 0
 				jz .after_event
-			mov psi, [.form + pdi]
 			$call std pointer[.form + pdi](&.form, &.hwndDlg, addr .form + pdi + pointer.size)
 			jmp .after_event
 		.not_my_event:
@@ -220,6 +217,8 @@ importlib comctl32,\
 	.after_event:
 	cmp [.uMsg], WM_CLOSE
 		je .close_event
+	; cmp [.uMsg], WM_DESTROY
+	; 	je .destroy_event
 	.return: ret
 
 	.init_event:
@@ -238,11 +237,20 @@ importlib comctl32,\
 		jmp .return
 		
 	.close_event:
-	; int3
 		cmp pax, NULL
 		cmove pax, [.wParam]
 		$call [.form.__close](&.form, &.hwndDlg, pax)
 		jmp .return
+		
+	; .destroy_event:
+	; 	$call [EnumChildWindows]([.form.hWnd], .ptr_remove_callback, NULL)
+	; 	$call DLG|removePtr([.form.hWnd])
+	; 	$return 0
+
+	; .proc stdcall .ptr_remove_callback(.hWnd, .lParam)
+	; 	$call DLG|removePtr(@arg1)
+	; 	$return esp
+	; .endp
 .endp
 
 .proc_frame_mode_previous

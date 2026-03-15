@@ -123,7 +123,7 @@
 		; getWindowSize 			dm this:inline
 	ends
 
-	struct params
+	struct Params
 		hWnd 	dptr ?
 		uMsg 	dptr ?
 		wParam 	dptr ?
@@ -149,7 +149,7 @@
 					formType\\#.hooks\
 				>, \
 				formType\\#_DlgTemplate, \
-				NONE, NONE, _initvals
+				NONE, _initvals
 		rept 0\\{\\}match formType, formInfo\\{
 			name formInfo NONE, \
 				formType\\#.cdit, \
@@ -160,7 +160,7 @@
 					formType\\#.hooks\
 				>, \
 				formType\\#_DlgTemplate, \
-				NONE, NONE
+				NONE
 		\\}
 	\}
 

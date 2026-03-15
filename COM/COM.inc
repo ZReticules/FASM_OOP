@@ -12,12 +12,12 @@ struct COM
 	rb 1
 ends
 
-.proc cdecl COM.__New(.pp_this, src, size)
+.proc cdecl COM.__New(.pp_this, .src, .size)
 	@sarg @arg1, @arg2, @arg3
 	.local .p_this:POINTER
-	$call [p_this] = CNV|alloc([size])
-	$call CNV|fill([p_this], [src], [size])
-	mov pax, [p_this]
+	$call [.p_this] = CNV|alloc([.size])
+	$call CNV|fill([.p_this], [.src], [.size])
+	mov pax, [.p_this]
 	mov pcx, [.pp_this]
 	mov pointer[pcx], pax
 	mov eax, S_OK

@@ -90,7 +90,7 @@ macro @init_tls{
 	match =@init_tls, @init_tls\{
 		local _used
 		virtual at $
-			proc false_TLS.init, handle, reason, reserved
+			.proc false_TLS.init(.handle, .reason, .reserved)
 			false_TLS._start:
 			irpv mac, TLS_Marcoses\\{
 				match macr, mac\\\{
@@ -103,58 +103,55 @@ macro @init_tls{
 				match macr, mac\\\{
 					macr
 				\\\}
-				; match name, \\\`mac\\\{display name\\\}
 			\\}
 			false_TLS._end:
-			endp
+			.endp
 			_used = false_TLS.init
 			false_TLS._initSize = false_TLS._start - false_TLS._exit
 		end virtual
 		
-		proc_noprologue
+		.proc_frame_mode_static
 		if false_TLS._exit <> false_TLS._end
 			align 8
-			ThreadCount dptr 0
+			TLS.ThreadCount dptr 0
 		end if
 		if false_TLS._initSize | false_TLS._exit <> false_TLS._end
-			proc TLS.startInit, handle, reason, reserved
-
+			.proc stdcall TLS.startInit(.handle, .reason, .reserved)
 				@sarg @arg1, @arg2
 				if false_TLS._exit <> false_TLS._end
 					switch @arg2
 						case TLS_THREAD_DETACH
-							lock dec [ThreadCount]
-							jmp end_case
+							lock dec [TLS.ThreadCount]
+							ret
 						case TLS_THREAD_ATTACH
-							lock inc [ThreadCount]
+							lock inc [TLS.ThreadCount]
+							ret
 					end_switch
 				end if
 				cmp @arg2, TLS_PROCESS_ATTACH
 				jne TLS.startInit.return
 					if false_TLS._exit <> false_TLS._end
-						lock inc [ThreadCount]
+						lock inc [TLS.ThreadCount]
 					end if
 					irpv mac, TLS_Marcoses\\{
 						match macr, mac\\\{
 							macr
 						\\\}
-						; match name, \\\`mac\\\{display name\\\}
 					\\}
 				TLS.startInit.return: ret
-			endp
+			.endp
 		end if
 		if false_TLS._exit <> false_TLS._end
-			proc TLS.exitInit, handle, reason, reserved
+			.proc stdcall TLS.exitInit(.handle, .reason, .reserved)
 				@sarg @arg1, @arg2
-				
-				cmp @arg2, TLS_PROCESS_DETACH
-					je TLS.exitInit.do_exit
-				cmp @arg2, TLS_THREAD_DETACH
-					jne TLS.exitInit.return
-				cmp [ThreadCount], 0
-					je TLS.exitInit.do_exit
+				cmp [.reason], TLS_PROCESS_DETACH
+					je .do_exit
+				cmp [.reason], TLS_THREAD_DETACH
+					jne .return
+				cmp [TLS.ThreadCount], 0
+					je .do_exit
 				ret
-				TLS.exitInit.do_exit:
+				.do_exit:
 
 					irpv mac, TLS_Marcoses_end\\{
 						\\reverse
@@ -163,15 +160,14 @@ macro @init_tls{
 						\\\}
 						; match name, \\\`mac\\\{display name\\\}
 					\\}
-				TLS.exitInit.return: ret
-			endp
+				.return: ret
+			.endp
 			TLS_AddCallback TLS.exitInit
 		end if
 		
-		proc_resprologue
+		.proc_frame_mode_previous
 		if Has_Tls
-		; display "lol"
-			; section ".tls" readable writeable
+			section ".tls" readable writeable
 			align 16
 			data 9
 				_TLS_DIR _IMAGE_TLS_DIRECTORY 0, 0, tls_index, tls_callbacks, 0, 0

@@ -12,7 +12,7 @@ DLG.__usedProp = 0
 
 macro DLG.at_start{
 	if used DLG.__usedProp
-		$call [DLG.atom] = [AddAtomA]("FASM_OOP_WinPtr")
+		$call [DLG.atom] = [AddAtomA](<const db "FASM_OOP_WinPtr", 0>)
 	end if
 }
 

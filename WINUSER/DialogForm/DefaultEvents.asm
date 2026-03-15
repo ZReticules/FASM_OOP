@@ -49,43 +49,10 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 
 .proc_frame_mode_static
 
-; .proc DIALOGFORM_WM_CTLCOLOR uses pbx psi, lpForm, lpParams, lpEventData
-; 	@sarg @arg1
-; 	virtObj .params params at pbx from @arg2
-; 	; $call c [puts]("lol")
-; 	$call [GetWindowPtrA]([.params.lParam], GWL_USERDATA)
-; 	; int3
-; 	test eax, eax
-; 	jz .noVal
-; 		virtObj .control DLG_SPECIAL_CONTROL at psi from pax
-; 		$call [SetBkColor]([.params.wParam], [.control.bkColor])
-; 		$call [SetTextColor]([.params.wParam], [.control.txColor])
-; 		mov pax, [.control.bgColorBrush]
-; 		test pax, pax
-; 			jnz .noVal
-; 		virtObj .form DIALOGFORM at psi from [lpForm]
-; 		mov pax, [.form.hWnd]
-; 	.noVal:
-; 	ret
-; endp
-
-; .proc ret_white, lpForm, lpParams, lpEventData
-; 	$call c [printf]("lol")
-; 	$call [GetStockObject](BLACK_BRUSH)
-; 	ret
-; endp
-
-; .proc DIALOGFORM_WM_CTLCOLORDLG, lpForm, lpParams, lpEventData
-; 	; int3
-; 	@larg pcx, @arg1
-; 	mov pax, [pcx + DIALOGFORM.bgColorBrush]
-; 	ret
-; endp
-
 .proc stdcall DIALOGFORM_WM_GETMINMAXINFO_(.p_form, .p_params, .p_eventData)
 	@sarg @arg3
 	@larg pdx, @arg2
-	virtObj .minMaxInfo MINMAXINFO at pax from [pdx + params.lParam]
+	virtObj .minMaxInfo MINMAXINFO at pax from [pdx + Params.lParam]
 	$call CNV|fill(addr .minMaxInfo.ptMinTrackSize, @arg3, sizeof.RECT)
 	$return 0
 .endp
