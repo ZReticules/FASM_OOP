@@ -770,7 +770,7 @@ macro CNV.uintToWStr lpBuf, num, radix{
 
     mov pbx, [.p_str]
     mov ecx, [.radix]
-    mov edx, [.charSize]
+    mov edx, dword[.charSize]
     xor esi, esi
     cmp byte[pbx], "-"
         cmove esi, edx
