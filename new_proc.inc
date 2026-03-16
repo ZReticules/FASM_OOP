@@ -315,7 +315,7 @@ rept 1 {
 						..bytes @const cwstr _mp2
 						define _def ..bytes
 					\\\\\}
-					match =_type | \\\`_mp2, _type |  _mp2\\\\\{
+					match =_type | \\\`_mp2, _type | _mp2\\\\\{
 						define _type _mp1 lit
 						\\\\\local ..bytes
 						..bytes @const cstr _mp2
@@ -379,6 +379,7 @@ rept 1 {
 			define _def src
 		\\}
 		match _mp1 _mp2|_mp3, _type|_def\\{
+			display \\`_mp2, 0Ah
 			restore _type, _def
 			define type _mp1 _mp2
 			define def _mp3
@@ -431,8 +432,8 @@ rept 1 {
 			..bytes @const cstr args
 			define _results ..bytes
 		\\}
-		\common
 		restore _type
+		\common
 		rept 1 _cntr:counter\\{
 			__argscount__ equ _cntr
 		\\}
