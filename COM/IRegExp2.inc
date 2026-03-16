@@ -44,7 +44,7 @@ match =x64, __architecture\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IRegExp2 at _this
-		$call Replace<IRegExp2>(this, srcSysString, <va_list vtType, replVal>, lpResult)
+		$call Replace<IRegExp2>(this, srcSysString, <va_list vtType, replVal, 0>, lpResult)
 	\\}
 \}
 

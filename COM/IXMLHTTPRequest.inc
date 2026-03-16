@@ -78,13 +78,13 @@ match =x64, __architecture\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IXMLHTTPRequest at _this
-		$call open_<IXMLHTTPRequest>(this, method, url, <va_list asyncT, asyncV>, <va_list userT, userV>, <va_list passwordT, passwordV>)
+		$call open_<IXMLHTTPRequest>(this, method, url, <va_list asyncT, asyncV, 0>, <va_list userT, userV, 0>, <va_list passwordT, passwordV, 0>)
 	\\}
 	macro IXMLHTTPRequest.send this, bodyT=VT_ERROR, bodyV=DISP_E_PARAMNOTFOUND\\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IXMLHTTPRequest at _this
-		$call send_<IXMLHTTPRequest>(this, <va_list bodyT, bodyV>)
+		$call send_<IXMLHTTPRequest>(this, <va_list bodyT, bodyV, 0>)
 	\\}
 \}
 

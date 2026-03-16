@@ -46,13 +46,13 @@ match =x64, __architecture\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IServerXMLHTTPRequest at _this
-		$call waitForResponse_<IServerXMLHTTPRequest>(this, <va_list timeoutT, timeoutV>, isSuccessful)
+		$call waitForResponse_<IServerXMLHTTPRequest>(this, <va_list timeoutT, timeoutV, 0>, isSuccessful)
 	\\}
 	macro IServerXMLHTTPRequest.setOption this, option, valueT, valueV\\{
 		; \\local ..this, _this
 		; inlineObj _this, this, pcx
 		; virtObj ..this IServerXMLHTTPRequest at _this
-		$call setOption_<IServerXMLHTTPRequest>(this, option, <va_list valueT, valueV>)
+		$call setOption_<IServerXMLHTTPRequest>(this, option, <va_list valueT, valueV, 0>)
 	\\}
 \}
 
