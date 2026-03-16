@@ -379,7 +379,6 @@ rept 1 {
 			define _def src
 		\\}
 		match _mp1 _mp2|_mp3, _type|_def\\{
-			display \\`_mp2, 0Ah
 			restore _type, _def
 			define type _mp1 _mp2
 			define def _mp3
