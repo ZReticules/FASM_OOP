@@ -24,7 +24,7 @@
 				value rq 1
 			ends
 			struct
-				lpStr 	rptr 1
+				p_str 	rptr 1
 				len 	rd 1
 				isConst rb 1
 			ends
@@ -58,7 +58,7 @@
 	ends
 
 	struct JSONException
-		lpSmb		dptr ?
+		p_smb		dptr ?
 		pointIndex	dptr ?
 	ends
 

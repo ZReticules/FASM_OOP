@@ -9,8 +9,8 @@ struct JSONIterContext
 					negExp	rd 1
 				ends
 				struct  	; arrays and objects
-					lpRoot	rptr 1
-					lpKey 	rptr 1
+					p_root	rptr 1
+					p_key 	rptr 1
 					keyLen	rd 1
 					keyEsc	rd 1
 				ends
@@ -25,7 +25,7 @@ struct JSONIterContext
 			escaped	rd 1
 		ends
 	ends
-	pUtf8Len	rptr 1
+	p_utf8Len	rptr 1
 	end 		rptr 1
 ends
 
@@ -82,7 +82,7 @@ JSONIterObjCtxState enum \
 		.local .s_psi:POINTER
 		mov [.s_psi], psi
 		movptr psi, xmm0
-		mov [.this.lpStr], psi
+		mov [.this.p_str], psi
 		mov [.this.len], eax
 		cmp eax, -1
 		jne @f
@@ -94,8 +94,8 @@ JSONIterObjCtxState enum \
 		mov [.this.isConst], al
 			cmovz psi, [.s_psi]
 			jz .return
-		$call [.this.lpStr] = CNV|alloc([.this.len])
-		$call CNV|fill([.this.lpStr], psi, [.this.len])
+		$call [.this.p_str] = CNV|alloc([.this.len])
+		$call CNV|fill([.this.p_str], psi, [.this.len])
 		mov psi, [.s_psi]
 		ret
 
@@ -127,7 +127,7 @@ JSONIterObjCtxState enum \
 		ret
 .endp
 
-.proc cdecl JSONNode.__from_string(.pthis, .lpString, .lpLen) uses pbx psi
+.proc cdecl JSONNode.__from_string(.pthis, .p_string, .p_len) uses pbx psi
 	@sarg @arg3	
 	virtObj .this JSONNode at pbx from @arg1
 	@larg psi, @arg2
@@ -135,7 +135,7 @@ JSONIterObjCtxState enum \
 	
 	.local .ctx:JSONIterContext
 
-	mov [.ctx.pUtf8Len], pax
+	mov [.ctx.p_utf8Len], pax
 	movzx eax, byte[psi]
 	switch eax
 		case 'n'
@@ -162,7 +162,7 @@ JSONIterObjCtxState enum \
 			mov [.this.jType], JSONTypes.NUMBER
 			mov [.ctx.result.sign], 0
 			cmp eax, '-'
-			mov pdx, [.lpLen]
+			mov pdx, [.p_len]
 			jne @f
 				mov [.ctx.result.sign], 1
 				inc psi
@@ -208,10 +208,10 @@ JSONIterObjCtxState enum \
 			jmp end_case
 		case +'"'
 			mov [.this.jType], JSONTypes.STRING
-			mov pdx, [.lpLen]
+			mov pdx, [.p_len]
 			inc dword[pdx]
 			inc psi
-			mov [.this.lpStr], psi
+			mov [.this.p_str], psi
 			mov [.this.isConst], 1
 			mov [.ctx.escaped], 0
 			$call Utf8|iterate(psi, -1, .utf8_callback_string, &.ctx)
@@ -220,7 +220,7 @@ JSONIterObjCtxState enum \
 			mov pax, [.ctx.end]
 			sub pax, 2
 			mov [.this.len], eax
-			$call Utf8|unEsc([.this.lpStr], [.this.lpStr], eax)
+			$call Utf8|unEsc([.this.p_str], [.this.p_str], eax)
 			sub [.this.len], eax
 			add eax, [.this.len]
 			add eax, 2
@@ -228,14 +228,14 @@ JSONIterObjCtxState enum \
 		case '['
 			mov [.this.jType], JSONTypes.ARRAY
 			mov [.this.selectedNode], NULL
-			mov pdx, [.lpLen]
+			mov pdx, [.p_len]
 			inc dword[pdx]
 			inc psi
 			$call CNV|alloc(addr 4 + 4 + JSONNode.ARRAY_DEFAULT_SIZE * sizeof.JSONNode)
 			mov [.this.subNodes], pax
 			mov [pax + JSONFlatArray.capacity], JSONNode.ARRAY_DEFAULT_SIZE
 			mov [pax + JSONFlatArray.len], 0
-			mov [.ctx.lpRoot], pbx
+			mov [.ctx.p_root], pbx
 			mov [.ctx.state], JSONIterArrCtxState.comma
 			$call Utf8|iterate(psi, -1, .utf8_callback_array, &.ctx)
 			dec psi
@@ -245,12 +245,12 @@ JSONIterObjCtxState enum \
 		case '{'
 			mov [.this.jType], JSONTypes.OBJECT
 			mov [.this.selectedNode], NULL
-			mov pdx, [.lpLen]
+			mov pdx, [.p_len]
 			inc dword[pdx]
 			inc psi
 			$call [.this.subNodes] = CNV|alloc(sizeof.SimpleDict)
 			$call SimpleDict|make([.this.subNodes], JSONNode.ARRAY_DEFAULT_SIZE)
-			mov [.ctx.lpRoot], pbx
+			mov [.ctx.p_root], pbx
 			mov [.ctx.state], JSONIterArrCtxState.comma
 			mov [.ctx.keyEsc], 0
 			$call Utf8|iterate(psi, -1, .utf8_callback_object, &.ctx)
@@ -261,8 +261,8 @@ JSONIterObjCtxState enum \
 			jmp end_case
 		case_default
 			.local .jsonExcept:JSONException
-			mov [.jsonExcept.lpSmb], psi
-			mov pax, [.ctx.pUtf8Len]
+			mov [.jsonExcept.p_smb], psi
+			mov pax, [.ctx.p_utf8Len]
 			mov eax, dword[pax]
 			mov [.jsonExcept.pointIndex], pax
 			$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
@@ -278,13 +278,13 @@ JSONIterObjCtxState enum \
 
 	.utf8_callback_null = .utf8_callback_bool
 	
-	.proc cdecl .utf8_callback_bool(.lpSmb, .codepoint:DWORD, .lParam, .lpSkipBytes)
+	.proc cdecl .utf8_callback_bool(.p_smb, .codepoint:DWORD, .lParam, .p_skipBytes)
 		@sarg @arg2
 		@larg pax, @arg1
 		virtObj .ctx JSONIterContext at pcx from @arg3
 		mov [.ctx.end], pax
 
-		mov pdx, [.ctx.pUtf8Len]
+		mov pdx, [.ctx.p_utf8Len]
 		inc dword[pdx]
 
 		mov pdx, [.ctx.cmpstr]
@@ -298,8 +298,8 @@ JSONIterObjCtxState enum \
 		.return: ret
 		.error:
 			.local .jsonExcept:JSONException
-			mov [.jsonExcept.lpSmb], pax
-			mov pax, [.ctx.pUtf8Len]
+			mov [.jsonExcept.p_smb], pax
+			mov pax, [.ctx.p_utf8Len]
 			mov eax, dword[pax]
 			mov [.jsonExcept.pointIndex], pax
 			$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
@@ -307,12 +307,12 @@ JSONIterObjCtxState enum \
 			; $call [ExitProcess](0)
 	.endp
 
-	.proc cdecl .utf8_callback_number(.lpSmb, .codepoint, .lParam, .lpSkipBytes)
+	.proc cdecl .utf8_callback_number(.p_smb, .codepoint, .lParam, .p_skipBytes)
 		@larg pax, @arg1, pdx, @arg2
 		virtObj .ctx JSONIterContext at pcx from @arg3
 		mov [.ctx.end], pax
 		
-		mov pax, [.ctx.pUtf8Len]
+		mov pax, [.ctx.p_utf8Len]
 		inc dword[pax]
 		
 		mov pax, [.ctx.end]
@@ -332,6 +332,7 @@ JSONIterObjCtxState enum \
 						paddq xmm0, xmm2
 						movq [.ctx.result.intVal], xmm0
 						jmp .return
+
 					case_default ; JSONIterNumCtxState.order, JSONIterNumCtxState.dot 
 						mov [.ctx.state], JSONIterNumCtxState.fractal
 						cmp edx, "0"
@@ -339,6 +340,7 @@ JSONIterObjCtxState enum \
 							mov [.ctx.state], JSONIterNumCtxState.order
 							inc [.ctx.result.order]
 							jmp .return
+
 						@@:
 					case JSONIterNumCtxState.fractal
 						movq xmm0, [.ctx.result.fracVal]
@@ -351,6 +353,7 @@ JSONIterObjCtxState enum \
 						paddq xmm0, xmm2
 						movq [.ctx.result.fracVal], xmm0
 						jmp .return
+
 					case JSONIterNumCtxState.e
 						mov [.ctx.state], JSONIterNumCtxState.exp
 					case JSONIterNumCtxState.exp
@@ -368,9 +371,10 @@ JSONIterObjCtxState enum \
 					case JSONIterNumCtxState.integer
 						mov [.ctx.state], JSONIterNumCtxState.order
 						jmp .return
+
 					case_default
-						mov [.jsonExcept.lpSmb], pax
-						mov pax, [.ctx.pUtf8Len]
+						mov [.jsonExcept.p_smb], pax
+						mov pax, [.ctx.p_utf8Len]
 						mov eax, dword[pax]
 						mov [.jsonExcept.pointIndex], pax
 						$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
@@ -384,9 +388,10 @@ JSONIterObjCtxState enum \
 					case JSONIterNumCtxState.integer, JSONIterNumCtxState.fractal
 						mov [.ctx.state], JSONIterNumCtxState.e
 						jmp .return
+
 					case_default
-						mov [.jsonExcept.lpSmb], pax
-						mov pax, [.ctx.pUtf8Len]
+						mov [.jsonExcept.p_smb], pax
+						mov pax, [.ctx.p_utf8Len]
 						mov eax, dword[pax]
 						mov [.jsonExcept.pointIndex], pax
 						$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
@@ -398,9 +403,10 @@ JSONIterObjCtxState enum \
 					case JSONIterNumCtxState.e
 						mov [.ctx.negExp], esp
 						jmp .return
+
 					case_default
-						mov [.jsonExcept.lpSmb], pax
-						mov pax, [.ctx.pUtf8Len]
+						mov [.jsonExcept.p_smb], pax
+						mov pax, [.ctx.p_utf8Len]
 						mov eax, dword[pax]
 						mov [.jsonExcept.pointIndex], pax
 						$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
@@ -411,13 +417,14 @@ JSONIterObjCtxState enum \
 				movd xmm0, [.ctx.state]
 				switch [.ctx.state]
 					case JSONIterNumCtxState.integer, JSONIterNumCtxState.fractal, JSONIterNumCtxState.exp, JSONIterNumCtxState.order
-						mov pax, [.ctx.pUtf8Len]
+						mov pax, [.ctx.p_utf8Len]
 						dec dword[pax]
 						xor eax, eax
 						jmp .return
+
 					case_default
-						mov [.jsonExcept.lpSmb], pax
-						mov pax, [.ctx.pUtf8Len]
+						mov [.jsonExcept.p_smb], pax
+						mov pax, [.ctx.p_utf8Len]
 						mov eax, dword[pax]
 						mov [.jsonExcept.pointIndex], pax
 						$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
@@ -428,11 +435,11 @@ JSONIterObjCtxState enum \
 		.return: ret
 	.endp
 
-	.proc cdecl .utf8_callback_string(.lpSmb, .codepoint, .lParam, .lpSkipBytes)
+	.proc cdecl .utf8_callback_string(.p_smb, .codepoint, .lParam, .p_skipBytes)
 		@larg pax, @arg1
 		virtObj .ctx JSONIterContext at pcx from @arg3
 		
-		mov pcx, [.ctx.pUtf8Len]
+		mov pcx, [.ctx.p_utf8Len]
 		inc dword[pcx]
 
 		mov pcx, @arg3
@@ -447,22 +454,23 @@ JSONIterObjCtxState enum \
 				mov [.ctx.escaped], 1
 			case_default
 				ret
+
 			case '"'
 				mov [.ctx.strEnd], pax
 				inc pax
 				mov [.ctx.end], pax
-				xor pax, pax
+				xor eax, eax
 		end_switch
 		.return: ret
 	.endp
 
-	.proc cdecl .utf8_callback_array(.lpSmb, .codepoint, .lParam, .lpSkipBytes)
+	.proc cdecl .utf8_callback_array(.p_smb, .codepoint, .lParam, .p_skipBytes)
 		@sarg @arg4
 		; int3
 		@larg pax, @arg1
 		virtObj .ctx JSONIterContext at pcx from @arg3
 		
-		mov pcx, [.ctx.pUtf8Len]
+		mov pcx, [.ctx.p_utf8Len]
 		inc dword[pcx]
 		@larg pcx, @arg3
 		
@@ -474,14 +482,16 @@ JSONIterObjCtxState enum \
 				xor pax, pax
 			case 0Ah, " ", 09h, 0Dh
 				ret
+
 			case ","
 				mov [.ctx.state], JSONIterArrCtxState.comma
 				ret
+
 			case_default
 				cmp [.ctx.state], JSONIterArrCtxState.comma
 				je @f
-					mov [.jsonExcept.lpSmb], pax
-					mov pax, [.ctx.pUtf8Len]
+					mov [.jsonExcept.p_smb], pax
+					mov pax, [.ctx.p_utf8Len]
 					mov eax, dword[pax]
 					mov [.jsonExcept.pointIndex], pax
 					$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
@@ -489,24 +499,24 @@ JSONIterObjCtxState enum \
 					; $call [ExitProcess](0)
 				@@:
 				mov [.ctx.state], JSONIterArrCtxState.noСomma
-				mov pdx, [.ctx.pUtf8Len]
+				mov pdx, [.ctx.p_utf8Len]
 				dec dword[pdx]
 				$call c .new_element(&.ctx, pax)
-				mov pdx, [.lpSkipBytes]
+				mov pdx, [.p_skipBytes]
 				mov pointer[pdx], pax
 		end_switch
 		.return: ret
 
-		.proc cdecl .new_element(.p_ctx, .lpStr) uses pbx psi pdi
+		.proc cdecl .new_element(.p_ctx, .p_str) uses pbx psi pdi
 			virtObj .ctx JSONIterContext at pbx from @arg1
 			@larg psi, @arg2
-			virtObj .root JSONNode at pdi from [.ctx.lpRoot]
+			virtObj .root JSONNode at pdi from [.ctx.p_root]
 
 			.local .result:POINTER, .new:P_JSONNode
 
 			$call [.new] = CNV|alloc(sizeof.JSONNode)
 			
-			$call [.new]::__from_string(psi, [.ctx.pUtf8Len])
+			$call [.new]::__from_string(psi, [.ctx.p_utf8Len])
 			mov pointer[.result], pax
 			$call .root::append([.new])
 			mov pax, [.result]
@@ -514,12 +524,12 @@ JSONIterObjCtxState enum \
 		.endp 
 	.endp
 
-	.proc cdecl .utf8_callback_object(.lpSmb, .codepoint, .lParam, .lpSkipBytes)
+	.proc cdecl .utf8_callback_object(.p_smb, .codepoint, .lParam, .p_skipBytes)
 		@sarg @arg4
 		@larg pax, @arg1
 		virtObj .ctx JSONIterContext at pcx from @arg3
 		
-		mov pcx, [.ctx.pUtf8Len]
+		mov pcx, [.ctx.p_utf8Len]
 		inc dword[pcx]
 		mov pcx, @arg3
 
@@ -528,13 +538,14 @@ JSONIterObjCtxState enum \
 		je @f
 			mov [.ctx.keyEsc], 0
 			ret
+
 		@@:
 		switch @arg2
 			case '}'
 				switch [.ctx.state]
 					case_default
-						mov [.jsonExcept.lpSmb], pax
-						mov pax, [.ctx.pUtf8Len]
+						mov [.jsonExcept.p_smb], pax
+						mov pax, [.ctx.p_utf8Len]
 						mov eax, dword[pax]
 						mov [.jsonExcept.pointIndex], pax
 						$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
@@ -547,11 +558,12 @@ JSONIterObjCtxState enum \
 				end_switch
 			case 0Ah, " ", 09h, 0Dh
 				ret
+
 			case ","
 				switch [.ctx.state]
 					case_default
-						mov [.jsonExcept.lpSmb], pax
-						mov pax, [.ctx.pUtf8Len]
+						mov [.jsonExcept.p_smb], pax
+						mov pax, [.ctx.p_utf8Len]
 						mov eax, dword[pax]
 						mov [.jsonExcept.pointIndex], pax
 						$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
@@ -571,9 +583,10 @@ JSONIterObjCtxState enum \
 						mov [.ctx.state], JSONIterObjCtxState.colon
 					case JSONIterObjCtxState.keyOpened
 						ret
+
 					case_default
-						mov [.jsonExcept.lpSmb], pax
-						mov pax, [.ctx.pUtf8Len]
+						mov [.jsonExcept.p_smb], pax
+						mov pax, [.ctx.p_utf8Len]
 						mov eax, dword[pax]
 						mov [.jsonExcept.pointIndex], pax
 						$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
@@ -585,13 +598,14 @@ JSONIterObjCtxState enum \
 					case JSONIterObjCtxState.comma
 						mov [.ctx.state], JSONIterObjCtxState.keyOpened
 						inc pax
-						mov [.ctx.lpKey], pax
+						mov [.ctx.p_key], pax
 						ret
+
 					case JSONIterObjCtxState.keyOpened
 						mov [.ctx.state], JSONIterObjCtxState.keyClosed
-						mov pdx, [.ctx.lpKey]
+						mov pdx, [.ctx.p_key]
 						; int3
-						sub pax, [.ctx.lpKey]
+						sub pax, [.ctx.p_key]
 						; neg eax
 						mov [.ctx.keyLen], eax
 						ret
@@ -604,26 +618,28 @@ JSONIterObjCtxState enum \
 							mov [.ctx.keyEsc], 1
 						@@:
 						ret
+
 					case_default
-						mov [.jsonExcept.lpSmb], pax
-						mov pax, [.ctx.pUtf8Len]
+						mov [.jsonExcept.p_smb], pax
+						mov pax, [.ctx.p_utf8Len]
 						mov eax, dword[pax]
 						mov [.jsonExcept.pointIndex], pax
 						; $call c [printf]("%c\n", @arg2)
 						$call Exception|raise(Exception.EXCEPTION_RETURN, sizeof.JSONException shr pointer.shift, &.jsonExcept)
 						; $call c [printf]("Unexpected character %c, place: %s\n", edx, pax)
 						; $call [ExitProcess](0)
+
 					case JSONIterObjCtxState.colon
 						mov [.ctx.state], JSONIterObjCtxState.noСomma
-						mov pdx, [.ctx.lpRoot]
+						mov pdx, [.ctx.p_root]
 						mov pdx, [pdx + JSONNode.subNodes]
 						movptr xmm0, pdx
-						mov pdx, [.ctx.pUtf8Len]
+						mov pdx, [.ctx.p_utf8Len]
 						dec dword[pdx]
 
 						$call c .new_element(pointer xmm0, &.ctx, pax)
 						; int3
-						mov pdx, [.lpSkipBytes]
+						mov pdx, [.p_skipBytes]
 						mov pointer[pdx], pax
 						; jmp .return
 				end_switch
@@ -631,7 +647,7 @@ JSONIterObjCtxState enum \
 		end_switch
 		.return: ret
 
-		.proc cdecl .new_element(.lpSimpleDict, .p_ctx, .lpStr) uses pbx psi pdi
+		.proc cdecl .new_element(.p_simpleDict, .p_ctx, .p_str) uses pbx psi pdi
 			virtObj .dict SimpleDict at pbx from @arg1
 			virtObj .ctx JSONIterContext at pdi from @arg2
 			@larg psi, @arg3
@@ -640,21 +656,21 @@ JSONIterObjCtxState enum \
 			$call [.new] = CNV|alloc(sizeof.JSONNode)
 			
 			; int3
-			$call JSONNode|__from_string([.new], psi, [.ctx.pUtf8Len])
+			$call JSONNode|__from_string([.new], psi, [.ctx.p_utf8Len])
 			mov pointer[.result], pax
 			lea pdx, [psi + pax]
 			; int3
 
-			$call Utf8|unEsc([.ctx.lpKey], [.ctx.lpKey], [.ctx.keyLen])
+			$call Utf8|unEsc([.ctx.p_key], [.ctx.p_key], [.ctx.keyLen])
 			sub [.ctx.keyLen], eax
-			$call .dict::set([.ctx.lpKey], [.ctx.keyLen], [.new], 1)
+			$call .dict::set([.ctx.p_key], [.ctx.keyLen], [.new], 1)
 			mov pax, [.result]
 			ret
 		.endp
 	.endp
 .endp
 
-.proc cdecl JSONNode.append(.pthis, .lpNode) uses pbx psi
+.proc cdecl JSONNode.append(.pthis, .p_node) uses pbx psi
 	virtObj .this JSONNode at pbx from @arg1
 	@larg pdx, @arg2
 	movzx eax, [.this.jType]
@@ -693,7 +709,7 @@ JSONIterObjCtxState enum \
 			$call psi = CNV|realloc(psi, addr sizeof.JSONFlatArray + pax * pointer.size)
 			mov [.this.subNodes], psi
 			mov eax, [.subNodes.len]
-			mov pdx, [.lpNode]
+			mov pdx, [.p_node]
 		@@:
 		inc [.subNodes.len]
 		mov pointer[.subNodes.data + pax * pointer.size], pdx
@@ -713,8 +729,8 @@ JSONIterObjCtxState enum \
 	switch [.this.jType]
 		case JSONTypes.ARRAY, JSONTypes.OBJECT
 			cmp [.this.selectedNode], NULL
-				cmovne psi, [.this.selectedNode]
-			jmp end_case
+			cmovne psi, [.this.selectedNode]
+			; jmp end_case
 		case_default
 	end_switch
 
@@ -742,6 +758,7 @@ JSONIterObjCtxState enum \
 		cmp edx, [pax + JSONFlatArray.len]
 			cmovae pax, pcx
 			jae .return
+
 		mov pdx, pointer[pax + JSONFlatArray.data + pdx * pointer.size]
 		mov [.this.selectedNode], pdx
 		mov pax, JSONRetCodes.SUCCESS
@@ -754,6 +771,7 @@ JSONIterObjCtxState enum \
 		mov pax, JSONRetCodes.INVALID_KEY
 		cmp pdx, NULL
 			je .return 
+
 		mov [.this.selectedNode], pdx
 		mov pax, JSONRetCodes.SUCCESS
 		jmp .return
@@ -786,7 +804,8 @@ JSONIterObjCtxState enum \
 
 				case JSONTypes.OBJECT
 					cmp [.this.selectedNode], NULL
-						cmovne psi, [.this.selectedNode]
+					cmovne psi, [.this.selectedNode]
+					
 					virtObj .dict SimpleDict at pdi from [.selected.subNodes]
 					$call .dict::get(@arg2, @arg3, @arg4)
 					ret
@@ -831,11 +850,11 @@ JSONIterObjCtxState enum \
 				$call c [.func](pointer[psi], ebp, NULL, [.lParam])
 				test eax, eax
 					jz @fb
+
 				inc pbp
 				add psi, pointer.size
 				cmp psi, pdi
-				jne @sb
-			@endb
+			@endb jne @sb
 			mov eax, JSONRetCodes.SUCCESS
 			jmp .return
 
@@ -871,21 +890,17 @@ JSONIterObjCtxState enum \
 			switch [.selected.jType]
 				case JSONTypes.ARRAY
 					mov pax, [.selected.subNodes]
-					mov eax, [pax + JSONFlatArray.len]
-					ret
+					$return [pax + JSONFlatArray.len]
 
 				case JSONTypes.OBJECT
 					mov pax, [.selected.subNodes]
-					mov eax, [pax + SimpleDict.len]
-					ret
+					$return [pax + SimpleDict.len]
 
 				case JSONTypes.STRING
-					mov eax, [.selected.len]
-					ret
+					$return [.selected.len]
 
 				case_default
-					mov pax, -1
-					ret
+					$return -1
 			end_switch
 	end_switch
 .endp
@@ -898,7 +913,7 @@ JSONIterObjCtxState enum \
 		case JSONTypes.STRING
 			cmp [.this.isConst], 0
 			jne @f
-				$call CNV|free([.this.lpStr])
+				$call CNV|free([.this.p_str])
 			@@:
 		case_default ; JSONTypes.BOOL, JSONTypes.NULL, JSONTypes.NUMBER
 			ret
@@ -921,8 +936,7 @@ JSONIterObjCtxState enum \
 		
 		$call [.node]::unmake()
 		$call CNV|free([.node])
-		mov eax, esp
-		ret
+		$return esp
 	.endp
 .endp
 
