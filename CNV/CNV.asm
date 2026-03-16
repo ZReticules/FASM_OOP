@@ -740,7 +740,7 @@ macro CNV.uintToWStr lpBuf, num, radix{
 }
 
 ; len CAN`T be -1
-.proc cdecl CNV.strVarcharToI64(.p_str, .len:DWORD, .radix:DWORD, .charSize:DWORD) uses pbx psi pdi pbp
+.proc cdecl CNV.strVarcharToI64(.p_str, .len:DWORD, .radix:DWORD, .charSize) uses pbx psi pdi pbp
     @sarg @arg1, @arg2, @arg3, @arg4
     @larg pax, @arg3
 
@@ -859,7 +859,7 @@ macro CNV.uintToWStr lpBuf, num, radix{
 .endp
 
 ; len CAN`T be -1 
-.proc cdecl CNV.strVarcharToI32(.p_str, .len:DWORD, .radix, .charSize:DWORD) uses pbx psi pdi pbp
+.proc cdecl CNV.strVarcharToI32(.p_str, .len:DWORD, .radix, .charSize) uses pbx psi pdi pbp
     @sarg @arg1, @arg2, @arg3, @arg4
     @larg pax, @arg3
 
@@ -881,7 +881,7 @@ macro CNV.uintToWStr lpBuf, num, radix{
     mov [.radix], eax
 
     mov eax, [.len]
-    mov ecx, [.charSize]
+    mov ecx, dword[.charSize]
     bsf ecx, ecx
     shl eax, cl
     mov pdi, [.p_str]
@@ -889,7 +889,7 @@ macro CNV.uintToWStr lpBuf, num, radix{
 
     mov pbx, [.p_str]
     mov ecx, [.radix]
-    mov edx, [.charSize]
+    mov edx, dword[.charSize]
     xor esi, esi
     cmp byte[pbx], "-"
         cmove esi, edx
