@@ -322,11 +322,23 @@
 
 ; typedef
 	macro typedef name, type{
+		virtual at 0
+			type ?
+			sizeof.#name = $
+		end virtual
 		struc name args&\{
-			. type args
+			match , args\\{
+				. type ?
+			rept 0 rept 1\\{\\}
+				. type args
+			\\}
 		\}
 		macro name args&\{
-			type args
+			match , args\\{
+				type ?
+			rept 0 rept 1\\{\\}
+				type args
+			\\}
 		\}
 	}
 
