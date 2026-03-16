@@ -329,14 +329,14 @@
 		struc name args&\{
 			match , args\\{
 				. type ?
-			rept 0 rept 1\\{\\}
+			rept 0\\{\\}rept 1\\{
 				. type args
 			\\}
 		\}
 		macro name args&\{
 			match , args\\{
 				type ?
-			rept 0 rept 1\\{\\}
+			rept 0\\{\\}rept 1\\{
 				type args
 			\\}
 		\}
