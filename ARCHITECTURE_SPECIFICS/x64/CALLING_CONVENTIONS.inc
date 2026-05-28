@@ -1,8 +1,8 @@
-__std_call equ oop
+__std_call equ @oop
 
-__obj_call equ oop
+__obj_call equ @oop
 
-__struc_call equ oop
+__struc_call equ @oop
 
 _oop_default fix
 
@@ -771,6 +771,8 @@ macro @oopcall proc,[arg]{
 		lea rsp, [rsp + stackspace]
 	end if 
 }
+
+macro @@oopcall args&{@oopcall args}
 
 macro @jret argums&{
 	local cntargs, cntcall, cntrcall, ..lastpoint, has_jret
