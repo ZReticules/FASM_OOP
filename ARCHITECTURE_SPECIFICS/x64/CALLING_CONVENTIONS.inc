@@ -1,8 +1,8 @@
-__std_call equ @oop
+__std_call equ oop
 
-__obj_call equ @oop
+__obj_call equ oop
 
-__struc_call equ @oop
+__struc_call equ oop
 
 _oop_default fix
 
