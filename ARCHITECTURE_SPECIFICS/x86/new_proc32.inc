@@ -37,7 +37,14 @@ rept 1{
 	\}
 	macro bp@catch varname, procorigin, parambytes, localbytes\{
 		if parambytes | localbytes
-			virtual at procorigin\#varname + parambytes + stackshift@proc + procorigin\#.regs_count * 4 + 8
+			; if procorigin\#varname - ebp > 0
+			\local loc
+			loc = procorigin\#.locals_size
+			if loc and 0x3
+				loc = (loc and 0xFFFFFFFFFFFFFFFC) + 0x4
+			end if
+			; %display_num parambytes + procorigin\#.locals_size + stackshift@proc + procorigin\#.regs_count * 4 + 8, 16
+			virtual at procorigin\#varname + parambytes + procorigin\#.locals_size + stackshift@proc + procorigin\#.regs_count * 4 + 8
 				varname:
 			end virtual
 		else

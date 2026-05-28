@@ -125,12 +125,12 @@
 	macro cstdio_init \{
 		if used cstdio_iob
 			match =msvcrt, dllname\\{
-				mov pax, [_iob]
-				mov [stdin], pax
-				add pax, 10h + 4 * pointer.size
-				mov [stdout], pax
-				add pax, 10h + 4 * pointer.size
-				mov [stderr], pax
+				mov rax, [_iob]
+				mov [stdin], rax
+				add rax, 10h + 4 * 8
+				mov [stdout], rax
+				add rax, 10h + 4 * 8
+				mov [stderr], rax
 			\\}
 			match =ucrtbase, dllname\\{
 				$call [stdin] = c [__acrt_iob_func](0)

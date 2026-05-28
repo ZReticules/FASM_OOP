@@ -6,10 +6,11 @@ rept 1{
 		loc = (localbytes + 15) and (not 15)
 		parmbase@proc equ rbp + 16
 		localbase@proc equ rbp - loc
+		stackshift@proc equ (loc + fill)
 		push rbp
 		mov rbp,rsp
 		if loc+fill
-			sub rsp,loc+fill
+			sub rsp,stackshift@proc
 		end if
 		counter = 0
 		irps reg, reglist \\{ 
@@ -31,7 +32,7 @@ rept 1{
 		\\} 
 	\}
 	macro bp@close args&\{
-		restore parmbase@proc, localbase@proc
+		restore parmbase@proc, localbase@proc, stackshift@proc
 	\}
 	local paramshift
 	macro bp@catch varname, procorigin, parambytes, localbytes\{
@@ -42,7 +43,13 @@ rept 1{
 			paramshift = paramshift - paramshift and 15 + 16
 		end if
 		match _mp1, proc@name\\{
-			virtual at procorigin\#varname + paramshift + stackshift@proc + procorigin\#.regs_count * 8 + 8 * (((_mp1\\#.regs_count and 1) + 1) and 1) + 8
+			\\local loc
+			loc = procorigin\#.locals_size
+			if loc and 0xf
+				loc = (loc and 0xFFFFFFFFFFFFFFF0) + 0x10
+			end if
+			; %display_num procorigin\#.locals_size, 16
+			virtual at procorigin\#varname + paramshift + loc + stackshift@proc + procorigin\#.regs_count * 8 + 8 * (((_mp1\\#.regs_count and 1) + 1) and 1) + 8
 				varname:
 			end virtual
 		\\}

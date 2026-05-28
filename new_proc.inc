@@ -14,18 +14,21 @@ macro .proc_frame_mode_static{
 	prologue@.proc equ sp@prologue
 	epilogue@.proc equ sp@epilogue
 	close@.proc equ sp@close
+	catchparams@.proc equ sp@catch
 }
 
 macro .proc_frame_mode_standard{
 	prologue@.proc equ bp@prologue
 	epilogue@.proc equ bp@epilogue
 	close@.proc equ bp@close
+	catchparams@.proc equ bp@catch
 }
 
 macro .proc_frame_mode_previous{
 	restore prologue@.proc
 	restore epilogue@.proc
 	restore close@.proc
+	restore catchparams@.proc
 }
 
 .proc_frame_mode_standard

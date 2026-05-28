@@ -905,15 +905,22 @@
 							define conv _mp4
 							_type equ _mp5\\\\\#.Type
 							define object addr _mp5
-						rept 0\\\\\{\\\\\} rept 1\\\\\{
-							_type equ _mp1\\\#.Type
+						rept 0\\\\\{\\\\\} match _mp4, _mp1\\\#.Type\\\\\{
+							_type equ _mp4
 							define object addr _mp1
+							match _mp5, _mp2\\\#.Conv\\\\\#_mp4 \\\\\\{
+								define conv _mp5
+							\\\\\\}
 						\\\\\}
 					\\\\}
 					match [_mp4], _mp1\\\\{
-						define conv cdecl
-						_type equ _mp4\\\\#.BaseType
-						define object [_mp4]
+						match _mp5, _mp4\\\\#.BaseType\\\\\{
+							_type equ _mp5
+							define object [_mp4]
+							match _mp6, _mp2\\\#.Conv\\\\\#_mp5 \\\\\\{
+								define conv _mp6
+							\\\\\\}
+						\\\\\}
 					\\\\}
 					match _mp4, _type\\\\{
 						mtable equ _mp4\\\\#.Table
@@ -965,9 +972,10 @@
 						define conv _mp4
 						_type equ _mp5
 						mtable equ _mp5\\\\#.Table
-					rept 0\\\\{\\\\} rept 1\\\\{
+					rept 0\\\\{\\\\} match _mp4, _mp2\\\#.Conv\\\#_mp1 \\\\{
 						_type equ _mp1
 						mtable equ _mp1\\\#.Table
+						define conv _mp4
 					\\\\}
 					match _mp4|_mp5|_mp6, _type|mtable|conv\\\\{
 						match =static | _mp7 | _mp8, _mp2\\\#.Type\\\\#_mp4 | @\\\\#_mp6\\\\#call | callargs\\\\\{
@@ -1014,8 +1022,9 @@
 					match _mp4 _mp5, _mp1\\\\{
 						define conv _mp4
 						_proc equ _mp5
-					rept 0\\\\{\\\\} rept 1\\\\{
+					rept 0\\\\{\\\\} match _mp4, _mp1\\\#.Conv\\\#_mp2 \\\\{
 						_proc equ _mp1
+						define conv _mp4
 					\\\\}
 					mtable equ _mp2\\\#.Table
 					match _mp4|_mp5|_mp6, _proc|mtable|conv\\\\{

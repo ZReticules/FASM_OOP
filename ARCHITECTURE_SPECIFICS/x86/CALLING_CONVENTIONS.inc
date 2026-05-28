@@ -616,7 +616,7 @@ rept 1{
 	local _mp1, _mp2
 	macro __virtobj@call object, type, procName, methTable\{
 		match [_mp1], object\\{
-			mov eax, [object]
+			mov eax, object
 			mov eax, [eax + type\#.VTable]
 		rept 0\\{\\}rept 1\\{
 			match _mp1 _mp2, object\\\{
