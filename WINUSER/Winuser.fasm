@@ -1,5 +1,6 @@
 importlib kernel32,\
 	GetModuleHandleA,\
+	GetModuleHandleW,\
 	ExitProcess
 
 importlib gdi32,\
@@ -21,12 +22,15 @@ define MAX_PATH 260
 
 if used WND.hModule
 	WND.hModule dptr ?
+	; WND.hModuleW dptr ?
 end if
 
 macro WND.moduleInit{
 	if used WND.hModule
 		$call [GetModuleHandleA](0)
 		mov [WND.hModule], pax
+		; $call [GetModuleHandleW](0)
+		; mov [WND.hModuleW], pax
 	end if
 }
 

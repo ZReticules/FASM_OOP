@@ -256,4 +256,6 @@ struct MENUBARINFO
 	dwFlags 	dptr ?
 ends
 
+WM_APP = 0x8000
+
 @endm
