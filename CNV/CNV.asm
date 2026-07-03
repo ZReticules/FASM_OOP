@@ -564,7 +564,7 @@ struct BITMAPINFO
 	bmiColors rptr 1
 ends
 
-.proc cdecl CNV.BMPToFile(.hBmp, .p_fname, .bitCount)
+.proc cdecl CNV.BMPToFile(.hBmp, .p_fname, .bitCount:DWORD)
 	@sarg @arg1, @arg2, @arg3
 	.local .bmInfo:BITMAPINFO
 	$call CNV|fill(&.bmInfo, <const BITMAPINFO <sizeof.BITMAPINFOHEADER, 0, 0, 0, 0, 0>>, sizeof.BITMAPINFO)
