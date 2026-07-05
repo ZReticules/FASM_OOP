@@ -9,6 +9,20 @@ importlib comctl32,\
 
 .proc_frame_mode_static
 
+DLG.hasControls = 0
+DLG.usedControls = 0
+
+DLG.hasMainHooks = 0
+DLG.usedMainHooks = 0
+
+macro DLG.useControls{
+	DLG.usedControls = DLG.hasControls 
+}
+
+macro DLG.useMainHooks{
+	DLG.usedMainHooks = DLG.hasMainHooks 
+}
+
 .proc stdcall DLG.hookEventsChecker(.hWnd, .uMsg, .wParam, .lParam, .uIdSubclass, .dwRefData) uses psi pdi
 	@sarg @arg1, @arg2, @arg3, @arg4
 	$call DLG|getPtr(@arg1)
@@ -143,14 +157,21 @@ importlib comctl32,\
     ; $call [OpenThemeData]([.form.hWnd], L "Menu;Button")
     ; mov [.form.hTheme], pax
 
+    if DLG.usedMainHooks
+
 	cmp [.form.sData.lpHooks], 0
 	je .no_main_hook
 		$call [SetWindowSubclass]([.form.hWnd], DLG.hooksMainChecker, -1, &.form)
 	.no_main_hook:
 
+	end if
+
 	; with mapDialog:MapDialog([.form.hWnd])
 	$call .form.sData.mapDialog::make([.form.hWnd])
 	$call .form.sData.mapDialog::mapRect(&.form.sData.baseRect)
+	
+	if used DLG.hasControls
+    
     cmp [.form.idCount], 0
     je .no_childs
 		mov edi, [.form.idCount]
@@ -174,6 +195,9 @@ importlib comctl32,\
 		$call CNV|fill(&.form.sData.defaultSize, &.sizesRect.right, sizeof.POINT)
 		$call .form::scaleChilds()
 	.no_childs:
+
+	end if
+	
 	.return: ret
 .endp
 

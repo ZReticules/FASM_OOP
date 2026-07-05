@@ -202,6 +202,9 @@
 	ends
 
 	macro ShblDialog_Mem formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION or WS_SYSMENU or WS_MINIMIZEBOX or WS_MAXIMIZEBOX or DS_CENTER, _styleEx = NULL\{
+		if formType\#.hooks.counter > 0
+			DLG.useMainHooks
+		end if
 		local const_mem
 		macro const_mem\\{
 			\\local controlCounter
@@ -259,6 +262,9 @@
 				db (4-($ mod 4)) dup(0) 	; выравнивание
 			\\\}
 			formType\#.cdit = controlCounter
+			if controlCounter > 0
+				DLG.useControls
+			end if
 		\\}
 		@const_align equ 4
 		formType\#_DlgTemplate @const const_mem
@@ -291,6 +297,9 @@
 	ends
 
 	macro ShblDialog_Mem_Ex formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION or WS_SYSMENU or WS_MINIMIZEBOX or WS_MAXIMIZEBOX or DS_CENTER, _styleEx = NULL\{
+		if formType\#.hooks.counter > 0
+			DLG.useMainHooks
+		end if
 		local const_mem
 		macro const_mem\\{
 			\\local controlCounter
@@ -347,6 +356,9 @@
 				align 4
 			\\\}
 			formType\#.cdit = controlCounter
+			if controlCounter > 0
+				DLG.useControls
+			end if
 		\\}
 		@const_align equ 4
 		formType\#_DlgTemplate @const const_mem
