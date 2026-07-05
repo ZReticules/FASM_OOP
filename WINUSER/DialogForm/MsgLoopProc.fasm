@@ -157,7 +157,7 @@ macro DLG.useMainHooks{
     ; $call [OpenThemeData]([.form.hWnd], L "Menu;Button")
     ; mov [.form.hTheme], pax
 
-    if DLG.usedMainHooks
+    if DLG.hasMainHooks
 
 	cmp [.form.sData.lpHooks], 0
 	je .no_main_hook
