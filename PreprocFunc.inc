@@ -1,12 +1,15 @@
 virtual at 0
 	..numeric_buff::
-	rb 64
+	rb 65
 end virtual
 
 macro %display_num num, radix{
 	local i, _num, digit
 	_num = num
 	i = 0
+	if _num < 0
+		_num = -_num
+	end if
 	while _num
 		digit = _num mod radix
 		if digit > 9
@@ -21,6 +24,10 @@ macro %display_num num, radix{
 	if ~num
 		store byte "0" at ..numeric_buff:0
 		i = 1
+	end if
+	if num < 0
+		store byte "-" at ..numeric_buff:i
+		i = i + 1
 	end if
 	repeat i
 		load digit byte from ..numeric_buff:i-%
