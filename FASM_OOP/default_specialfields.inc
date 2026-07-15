@@ -143,7 +143,7 @@ macro specialfields_ends_default name{
 		; 	.Lp equ .VTable
 		; \\}
         match , @struct \\{ 
-            define field@struct .,name,<args> 
+            field@struct equ struct@aligner, ., name, <args> 
         \\}
         match no, @struct \\{
 			match =name#.__interface, name#.__interface \\\{					;проверяем, нужно ли создать VTable
@@ -166,7 +166,7 @@ macro specialfields_ends_default name{
 		\common
         match , @struct \\{ 
         	\\local anonymous
-            define field@struct anonymous,name,<args> 
+            field@struct equ struct@aligner, anonymous, name, <args> 
         \\}
         match no, @struct \\{ 
 			match =name#.__interface, name#.__interface \\\{					;проверяем, нужно ли создать VTable
@@ -188,7 +188,7 @@ macro specialfields_ends_default name{
 	struc P_#name args&\{
         
         match |pname, @struct|P_#name \\{ 
-            define field@struct .,pname,<args> 
+            field@struct equ struct@aligner, ., pname, <args> 
         rept 0\\{\\}rept 1\\{
 			match , args\\\{
 				. dptr ?

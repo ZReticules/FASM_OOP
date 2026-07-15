@@ -170,7 +170,7 @@ macro ends {
 		\\}
 		match name=,fields,fields@struct \\{ 
 			restore @struct
-			make@struct name,fields
+			make@struct name, fields
 			define fields@\\#name fields 
 		\\}
 		end virtual 
@@ -213,9 +213,9 @@ macro enable@substruct {
 		match , field \\{ 
 			match any, type \\\{ 
 				enable@substruct
-		       	make@substruct <type>, parent, sub def
+		       	make@substruct aligner, <type>, parent, sub def
 		       	purge make@substruct
-		       	fields_list equ fields_list, ., sub, 
+		       	fields_list equ fields_list, aligner, ., sub, 
 	       	\\\} 
        	\\}
 		match any, field \\{ 
