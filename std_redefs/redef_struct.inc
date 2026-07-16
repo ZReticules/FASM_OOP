@@ -91,12 +91,18 @@ macro gen_sizeof [suff, size]{
 gen_sizeof b, 1, w, 2, u, 2, d, 4, p, 6, f, 6, q, 8, t, 10
 
 
+c_aligner@pack_align equ 0x7FFFFFFFFFFFFFFF
 macro c_aligner result, alignof, type, base, current{
-	if ~definite alignof.#type
-		alignof.#type = 1
+	; if ~definite alignof.#type
+	; 	alignof.#type = 1
+	; end if
+	if alignof.#type <= c_aligner@pack_align
+		result = (alignof.#type - ((current - base) mod alignof.#type)) * (1 - (1 shr ((current - base) mod alignof.#type)))
+		alignof = alignof.#type
+	else
+		result = (c_aligner@pack_align - ((current - base) mod c_aligner@pack_align)) * (1 - (1 shr ((current - base) mod c_aligner@pack_align)))
+		alignof = c_aligner@pack_align
 	end if
-	result = (alignof.#type - ((current - base) mod alignof.#type)) * (1 - (1 shr ((current - base) mod alignof.#type)))
-	alignof = alignof.#type
 }
 
 macro alignas_aligner val, result, alignof, type, base, current{
@@ -118,8 +124,11 @@ macro struct name {
 	field@struct equ name
 	struct@my_aligner equ struct@aligner
 	match child parent, name \{ 
+		child\#@defined equ 1
 		restore field@struct
 		field@struct equ child,fields@\#parent 
+	rept 0\{\}rept 1\{
+		name#@defined equ 1
 	\}
 	sub@struct equ
 	irp suff, b, w, u, d, p, f, q, t\{

@@ -48,22 +48,16 @@ macro EDIT.replaceSelected this, lpStr{
 	$call [SendMessageA]([_this + EDIT.hWnd], EM_REPLACESEL, 0, lpStr)
 }
 
-macro EDIT.setLimit this, _count{
-	local _this
-	inlineObj _this, this, pcx
-	$call [SendMessageA]([_this + EDIT.hWnd], EM_SETLIMITTEXT, _count, 0)
-}
-
 .proc cdecl EDIT.addText(.pthis, .lpStr) uses pbx
 	virtObj .this EDIT at pbx from @arg1
 	@sarg @arg2
 
 	.local .start_:DWORD, .end_:DWORD
-	$call .this->getSelected(&.start_, &.end_)
-	$call .this->getTextLen()
-	$call .this->setSelected(eax, eax)
-	$call .this->replaceSelected([.lpStr])
-	$call .this->setSelected([.start_], [.end_])
+	$call .this::getSelected(&.start_, &.end_)
+	$call .this::getTextLen()
+	$call .this::setSelected(eax, eax)
+	$call .this::replaceSelected([.lpStr])
+	$call .this::setSelected([.start_], [.end_])
 	ret
 .endp
 

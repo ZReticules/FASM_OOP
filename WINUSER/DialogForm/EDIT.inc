@@ -13,7 +13,6 @@ struct EDIT CONTROL
 	getSelected		dm this:inline
 	setSelected		dm this:inline
 	replaceSelected	dm this:inline
-	setLimit 		dm this:inline
 	addText			dm this
 
 	const CType equ "Edit"
