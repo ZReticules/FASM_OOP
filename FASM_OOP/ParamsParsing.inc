@@ -16,7 +16,7 @@ macro @fillGPR reg*, src*{
 		define matched
 	\}
 	match any[addr], _ definition\{
-		mov reg, qword definition
+		mov reg, qword [addr]
 		define matched
 	\}
 	match =matched, matched\{
