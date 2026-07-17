@@ -16,6 +16,7 @@ struct EDIT CONTROL
 	setSelectedW		dm this:inline
 	replaceSelected		dm this:inline
 	replaceSelectedW	dm this:inline
+	clearUndo 			dm this:inline
 	addText				dm this
 	addTextW			dm this
 
