@@ -36,16 +36,34 @@ macro EDIT.getSelected this, lpStart, lpEnd{
 	$call [SendMessageA]([_this + EDIT.hWnd], EM_GETSEL, lpStart, lpEnd)
 }
 
+macro EDIT.getSelectedW this, lpStart, lpEnd{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageW]([_this + EDIT.hWnd], EM_GETSEL, lpStart, lpEnd)
+}
+
 macro EDIT.setSelected this, start, end{
 	local _this
 	inlineObj _this, this, pcx
 	$call [SendMessageA]([_this + EDIT.hWnd], EM_SETSEL, start, end)
 }
 
+macro EDIT.setSelectedW this, start, end{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageW]([_this + EDIT.hWnd], EM_SETSEL, start, end)
+}
+
 macro EDIT.replaceSelected this, lpStr{
 	local _this
 	inlineObj _this, this, pcx
 	$call [SendMessageA]([_this + EDIT.hWnd], EM_REPLACESEL, 0, lpStr)
+}
+
+macro EDIT.replaceSelectedW this, lpWstr{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageW]([_this + EDIT.hWnd], EM_REPLACESEL, 0, lpWstr)
 }
 
 .proc cdecl EDIT.addText(.pthis, .lpStr) uses pbx
@@ -58,6 +76,19 @@ macro EDIT.replaceSelected this, lpStr{
 	$call .this::setSelected(eax, eax)
 	$call .this::replaceSelected([.lpStr])
 	$call .this::setSelected([.start_], [.end_])
+	ret
+.endp
+
+.proc cdecl EDIT.addTextW(.pthis, .lpWstr) uses pbx
+	virtObj .this EDIT at pbx from @arg1
+	@sarg @arg2
+
+	.local .start:DWORD, .end:DWORD
+	$call .this::getSelectedW(&.start, &.end)
+	$call .this::getTextLenW()
+	$call .this::setSelectedW(eax, eax)
+	$call .this::replaceSelectedW([.lpWstr])
+	$call .this::setSelectedW([.start], [.end])
 	ret
 .endp
 
