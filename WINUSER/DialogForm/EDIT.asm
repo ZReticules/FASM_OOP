@@ -66,6 +66,12 @@ macro EDIT.replaceSelectedW this, lpWstr{
 	$call [SendMessageW]([_this + EDIT.hWnd], EM_REPLACESEL, 0, lpWstr)
 }
 
+macro EDIT.clearUndo this{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + EDIT.hWnd], EM_EMPTYUNDOBUFFER, 0, NULL)
+}
+
 .proc cdecl EDIT.addText(.pthis, .lpStr) uses pbx
 	virtObj .this EDIT at pbx from @arg1
 	@sarg @arg2
