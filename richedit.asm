@@ -17,3 +17,15 @@ macro __RICHEDIT.setTextColor this, colorref{
 	$call [SendMessageA]([_this + __RICHEDIT.hWnd], EM_SETCHARFORMAT, SCF_ALL, &_cf)
 	procbuf_free _cf
 }
+
+macro __RICHEDIT.enableStyle this, style{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + __RICHEDIT.hWnd], EM_SETEDITSTYLE, style, style);
+}
+
+macro __RICHEDIT.disableStyle this, style{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + __RICHEDIT.hWnd], EM_SETEDITSTYLE, 0, style);
+}
