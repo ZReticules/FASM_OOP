@@ -5,11 +5,11 @@ importlib user32,\
 	DestroyIcon 
 
 struct SHSTOCKICONINFO
-	cbSize			dptr sizeof.SHSTOCKICONINFO
-	hIcon			dptr ?
-	iSysImageIndex	dd ?
-	iIcon			dd ?
-	szPath 			dw MAX_PATH dup(?)
+	cbSize			dd sizeof.SHSTOCKICONINFO
+	hIcon			rptr 1
+	iSysImageIndex	rd 1
+	iIcon			rd 1
+	szPath 			rw MAX_PATH
 ends
 
 define SHGSI_ICONLOCATION  0

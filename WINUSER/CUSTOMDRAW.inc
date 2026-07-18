@@ -24,11 +24,11 @@ define MPI_DISABLEDHOT	4
 
 struct NMCUSTOMDRAW
 	hdr 		NMHDR
-	dwDrawStage rptr 1
+	dwDrawStage rd 1
 	hdc 		rptr 1
 	rc 			RECT
 	dwItemSpec 	rptr 1
-	uItemState 	rptr 1
+	uItemState 	rd 1
 	lItemlParam rptr 1
 ends
 

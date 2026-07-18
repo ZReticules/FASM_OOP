@@ -208,6 +208,8 @@ TDCBF_CANCEL_BUTTON = 0x8
 TDCBF_RETRY_BUTTON 	= 0x10
 TDCBF_CLOSE_BUTTON 	= 0x20
 
+struct@aligner equ c_aligner
+
 include "Graphics\Graphics.inc"
 include "WINUSER\CUSTOMDRAW.inc"
 include "WINUSER\Winuser.fasm"
@@ -240,21 +242,14 @@ define MNS_NOCHECK 0x80000000
 define MNS_NOTIFYBYPOS 0x08000000
 
 struct MENUBARINFO
-	cbSize 		dd ?;
-	match =x64, __architecture\{
-		struct
-			rcBar 		RECT;
-			dd ?
-		ends
-	rept 0\{\}rept 1\{
-		struct
-			rcBar 		RECT;
-		ends
-	\}
-	hMenu		dptr ?;
-	hwndMenu	dptr ?;
-	dwFlags 	dptr ?
+	cbSize 		rd 1
+	rcBar 		RECT;
+	hMenu		rptr 1
+	hwndMenu	rptr 1
+	dwFlags 	rd 1
 ends
+
+restore struct@aligner
 
 WM_APP = 0x8000
 

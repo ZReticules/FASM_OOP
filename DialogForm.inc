@@ -2,6 +2,8 @@
 
 	include "Winuser.inc"
 
+	struct@aligner equ c_aligner
+
 	struct DLG
 		setPtr 		dm this:inline	; (handle, value) -> void
 		getPtr 		dm this:inline	; (handle) -> ptr
@@ -365,4 +367,5 @@
 		restore @const_align
 		purge const_mem 
 	\}
+	restore struct@aligner
 @endm
