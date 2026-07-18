@@ -1396,9 +1396,12 @@ body .markdown-body
 К создаваемым таким образом полям можно обращаться только через имя структуры(для вышеприведенного примера - MyStruct.a и MyStruct.b соответственно). Константные поля структур так же наследуются, при этом их можно переопределить.  </p>
 <h3 id="28">2.8. Структуры и выравнивание<a name="align"></a><a class="headerlink" href="#28" title="Permanent link"></a></h3>
 <p>Для удобства работы с структурами из языка Си был расширен стандартный функционал структур путем замены стандартного заголовка struct.inc на модифицированный. Новый заголовок позволяет выбрать режим выравнивания для структур, для совместимости со стандартыми заголовками по умолчанию включен режим default(аналог packed в Си - смещения полей не выравниваются). Переключать режимы выравнивания позволяют следующие макросы:<br />
-<div class="highlight"><pre><span class="na">.alignmode_default</span>  <span class="err">;</span> <span class="err">перевод</span> <span class="err">в</span> <span class="err">стандартный</span> <span class="err">режим</span>
-<span class="na">.alignmode_cdecl</span>    <span class="err">;</span> <span class="err">Си</span><span class="p">-</span><span class="err">подобный</span> <span class="err">режим</span> <span class="err">выравнивания</span>
-<span class="na">.alignmode_previous</span> <span class="err">;</span> <span class="err">возврат</span> <span class="err">к</span> <span class="err">предыдущему</span> <span class="err">режиму</span> <span class="err">выравнивания</span>
+<div class="highlight"><pre><span class="na">.alignmode_default</span>      <span class="err">;</span> <span class="err">перевод</span> <span class="err">в</span> <span class="err">стандартный</span> <span class="err">режим</span>
+<span class="na">.alignmode_cdecl</span>        <span class="err">;</span> <span class="err">Си</span><span class="p">-</span><span class="err">подобный</span> <span class="err">режим</span> <span class="err">выравнивания</span>
+<span class="na">.alignmode_previous</span>     <span class="err">;</span> <span class="err">возврат</span> <span class="err">к</span> <span class="err">предыдущему</span> <span class="err">режиму</span> <span class="err">выравнивания</span>
+<span class="na">.alignmoe_set_pack</span>      <span class="err">;</span> <span class="err">задает</span> <span class="err">максимальную</span> <span class="err">гранцу</span> <span class="err">выравнивания</span> <span class="err">в</span> <span class="err">режиме</span> <span class="no">cdecl</span>
+                        <span class="err">;</span> <span class="err">аналог</span> <span class="nf">pragma</span> <span class="no">packed</span>
+<span class="na">.alignmoe_restore_pack</span>  <span class="err">;</span> <span class="err">возврат</span> <span class="err">к</span> <span class="err">предыдущей</span> <span class="err">верхней</span> <span class="err">границе</span> <span class="err">выравнивания</span>
 </pre></div>
 Данные макросы управляют глобальным режимом выравнивания. Для точечного выравнивания стоит использовать макрос <code>alignas</code>. Его можно использовать при обьявлении новой структуры или для одного из полей структуры:<br />
 <div class="highlight"><pre><span class="nf">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span> <span class="no">struct</span> <span class="no">Foo</span>  <span class="err">;</span> <span class="err">если</span> <span class="err">указать</span> <span class="err">число</span><span class="p">,</span> <span class="err">по</span> <span class="err">нему</span> <span class="err">будет</span> <span class="err">выравниваться</span> <span class="err">размер</span> <span class="err">всей</span> <span class="err">структуры</span> 
@@ -1408,7 +1411,7 @@ body .markdown-body
                         <span class="err">;</span> <span class="err">взят</span> <span class="err">от</span> <span class="err">типа</span>
 <span class="nf">ends</span> 
 </pre></div>
-Для совместимости с C++ при наследовании структур в любом режиме смещение первого поля от начала структуры будет больше или равно размеру родителя. По аналогии с sizeof теперь можно получить выравнивание структуры с помощью alignof.    </p>
+Для совместимости с C++ при наследовании структур в любом режиме смещение первого поля от начала структуры будет больше или равно размеру родителя. По аналогии с sizeof теперь можно получить выравнивание структуры с помощью alignof.  </p>
 <h2 id="3-">3. Инструменты кросс-архитектурной компиляции<a name="cross-arch"></a><a class="headerlink" href="#3-" title="Permanent link"></a></h2>
 <h3 id="31">3.1. Базовые константы и псевдодирективы<a name="cross-arch-consts"></a><a class="headerlink" href="#31" title="Permanent link"></a></h3>
 <p>Для того, чтобы определить, под какой именно архитектурой вы находитесь, вы можете проверить значение <code>__architecture</code> следующим образом:<br />
