@@ -180,7 +180,7 @@ macro ends {
 				err
 			end if 
 		\\}
-		match name=,aligner1=,fields,fields@struct \\{ 
+		match name=,aligner1=,fields, fields@struct \\{ 
 			restore @struct
 			match parent, name\\#@parent\\\{
 				\\\local aligner
@@ -198,8 +198,8 @@ macro ends {
 				\\\\}
 				match parent_fields, fields@\\\#parent\\\\{
 					make@struct name, parent_fields, aligner, fields
+					define fields@\\#name parent_fields, aligner, fields
 				\\\\}
-				define fields@\\#name parent_fields, aligner, fields
 			rept 0\\\{\\\}rept 1\\\{
 				make@struct name, aligner1, fields
 				define fields@\\#name aligner1, fields 
@@ -209,8 +209,8 @@ macro ends {
 			match parent, name\\#@parent\\\{
 				match parent_fields, fields@\\\#parent\\\\{
 					make@struct name, parent_fields
+					define fields@\\#name parent_fields
 				\\\\}
-				define fields@\\#name parent_fields
 			\\\}
 		\\}
 		end virtual 
