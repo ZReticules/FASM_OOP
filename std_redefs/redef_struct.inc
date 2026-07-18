@@ -125,10 +125,13 @@ macro struct name {
 	struct@my_aligner equ struct@aligner
 	match child parent, name \{ 
 		child\#@defined equ 1
+		child\#@parent equ parent
 		restore field@struct
-		field@struct equ child,fields@\#parent 
+		field@struct equ child
+		; field@struct equ child,fields@\#parent 
 	rept 0\{\}rept 1\{
 		name#@defined equ 1
+		name#@parent equ
 	\}
 	sub@struct equ
 	irp suff, b, w, u, d, p, f, q, t\{
@@ -177,10 +180,29 @@ macro ends {
 				err
 			end if 
 		\\}
-		match name=,fields,fields@struct \\{ 
+		match name=,aligner1=,fields,fields@struct \\{ 
 			restore @struct
-			make@struct name, fields
-			define fields@\\#name fields 
+			match parent, name\\#@parent\\\{
+				\\\local aligner
+				macro aligner any&\\\\{
+					alignas_aligner alignof.\\\#parent, any
+				\\\\}
+				match parent_fields, fields@\\\#parent\\\\{
+					make@struct name, parent_fields, aligner, fields
+				\\\\}
+				define fields@\\#name parent_fields, aligner, fields
+			rept 0\\\{\\\}rept 1\\\{
+				make@struct name, aligner1, fields
+				define fields@\\#name aligner1, fields 
+			\\\}
+		rept 0\\{\\}match name, fields@struct\\{
+			restore @struct
+			match parent, name\\#@parent\\\{
+				match parent_fields, fields@\\\#parent\\\\{
+					make@struct name, parent_fields
+				\\\\}
+				define fields@\\#name parent_fields
+			\\\}
 		\\}
 		end virtual 
 	\}
