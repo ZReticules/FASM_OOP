@@ -1,7 +1,7 @@
 @module RichEditWinAPI
 
-struct@aligner equ c_aligner
-c_aligner@pack_align equ 4
+.alignmode_cdecl
+.alignmode_set_pack 4
 
 ; To mimic older RichEdit behavior, set _RICHEDIT_VER to appropriate value
 ;		Version 1.0 	0x0100	
@@ -1393,7 +1393,7 @@ AURL_ENABLEEA			= 1	; Deprecated: use AURL_ENABLEEAURLS
 GCM_TOUCHMENU		= 0x4000	; Deprecated: Use GCMF_TOUCHMENU
 GCM_MOUSEMENU		= 0x2000	; Deprecated: Use GCMF_MOUSEMENU
 
-restore c_aligner@pack_align
-restore struct@aligner
+.alignmode_restore_pack
+.alignmode_previous
 
 @endm

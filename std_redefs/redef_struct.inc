@@ -556,6 +556,6 @@ macro .alignmode_set_pack val{
 	aligner@pack_align equ val
 }
 
-macro alignmode_restore_pack{
+macro .alignmode_restore_pack{
 	restore aligner@pack_align
 }
