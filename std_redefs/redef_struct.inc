@@ -91,17 +91,17 @@ macro gen_sizeof [suff, size]{
 gen_sizeof b, 1, w, 2, u, 2, d, 4, p, 6, f, 6, q, 8, t, 10
 
 
-c_aligner@pack_align equ 0x7FFFFFFFFFFFFFFF
+aligner@pack_align equ 0x7FFFFFFFFFFFFFFF
 macro c_aligner result, alignof, type, base, current{
 	; if ~definite alignof.#type
 	; 	alignof.#type = 1
 	; end if
-	if alignof.#type <= c_aligner@pack_align
+	if alignof.#type <= aligner@pack_align
 		result = (alignof.#type - ((current - base) mod alignof.#type)) * (1 - (1 shr ((current - base) mod alignof.#type)))
 		alignof = alignof.#type
 	else
-		result = (c_aligner@pack_align - ((current - base) mod c_aligner@pack_align)) * (1 - (1 shr ((current - base) mod c_aligner@pack_align)))
-		alignof = c_aligner@pack_align
+		result = (aligner@pack_align - ((current - base) mod aligner@pack_align)) * (1 - (1 shr ((current - base) mod aligner@pack_align)))
+		alignof = aligner@pack_align
 	end if
 }
 
@@ -184,8 +184,17 @@ macro ends {
 			restore @struct
 			match parent, name\\#@parent\\\{
 				\\\local aligner
-				macro aligner any&\\\\{
-					alignas_aligner alignof.\\\#parent, any
+				macro aligner result, alignof, type, base, current\\\\{
+					\\\\local res1, res2, aof1, aof2
+					alignas_aligner alignof.\\\#parent, res1, aof1, type, base, current
+					aligner1 res2, aof2, type, base, current
+					if res1 > res2
+						result = res1
+						alignof = aof1
+					else
+						result = res2
+						alignof = aof2
+					end if
 				\\\\}
 				match parent_fields, fields@\\\#parent\\\\{
 					make@struct name, parent_fields, aligner, fields
@@ -529,4 +538,24 @@ macro alignas val&{
     		restore struct@aligner
 		\\}
 	\}
+}
+
+macro .alignmode_cdecl{
+	struct@aligner equ c_aligner
+}
+
+macro .alignmode_default{
+	struct@aligner equ default_aligner
+}
+
+macro .alignmode_previous{
+	restore struct@aligner
+}
+
+macro .alignmode_set_pack val{
+	aligner@pack_align equ val
+}
+
+macro alignmode_restore_pack{
+	restore aligner@pack_align
 }

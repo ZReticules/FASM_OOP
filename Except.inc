@@ -1,5 +1,7 @@
 @module Except
 
+.alignmode_cdecl
+
 importlib kernel32,\
 	AddVectoredExceptionHandler,\
 	RemoveVectoredExceptionHandler,\
@@ -119,5 +121,7 @@ macro end_try \{
 	..skip_noexcept:
 	restore last@no_except, break_try
 \}
+
+.alignmode_previous
 
 @endm

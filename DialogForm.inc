@@ -2,7 +2,7 @@
 
 include "Winuser.inc"
 
-struct@aligner equ c_aligner
+.alignmode_cdecl
 
 struct DLG
 	setPtr 		dm this:inline	; (handle, value) -> void
@@ -183,7 +183,7 @@ include "WINUSER\DIALOGFORM\DialogForm.asm"
 include "WINUSER\DIALOGFORM\DefaultEvents.asm"
 include "WINUSER\DIALOGFORM\MsgLoopProc.fasm"
 
-struct@aligner equ default_aligner
+.alignmode_default
 
 struct DLGTEMPLATE
 	style dd ?
@@ -229,7 +229,7 @@ struct DLGITEMTEMPLATEEX
 	id		dd ?
 ends
 
-restore struct@aligner
+.alignmode_previous
 
 macro ShblDialog_Mem formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_CAPTION or WS_SYSMENU or WS_MINIMIZEBOX or WS_MAXIMIZEBOX or DS_CENTER, _styleEx = NULL\{
 	if formType\#.hooks.counter > 0
@@ -371,5 +371,7 @@ macro ShblDialog_Mem_Ex formType, _Text = "DialogForm", _style=WS_VISIBLE or WS_
 	restore @const_align
 	purge const_mem 
 \}
-restore struct@aligner
+
+.alignmode_previous
+
 @endm

@@ -208,7 +208,7 @@ TDCBF_CANCEL_BUTTON = 0x8
 TDCBF_RETRY_BUTTON 	= 0x10
 TDCBF_CLOSE_BUTTON 	= 0x20
 
-struct@aligner equ c_aligner
+.alignmode_cdecl
 
 include "Graphics\Graphics.inc"
 include "WINUSER\CUSTOMDRAW.inc"
@@ -249,8 +249,8 @@ struct MENUBARINFO
 	dwFlags 	rd 1
 ends
 
-restore struct@aligner
-
 WM_APP = 0x8000
+
+.alignmode_previous
 
 @endm

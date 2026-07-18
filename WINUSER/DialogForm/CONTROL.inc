@@ -2,7 +2,7 @@
 
 include "control_specialfields.inc"
 
-struct@aligner equ c_aligner
+.alignmode_cdecl
 
 struct ScaleMode
 	x 	db ?
@@ -69,6 +69,6 @@ include "LISTBOX.inc"
 include "COMBOBOX.inc"
 include "LISTVIEW.inc"
 
-restore struct@aligner
+.alignmode_previous
 
 @endm
