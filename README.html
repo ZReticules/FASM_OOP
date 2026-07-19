@@ -1285,13 +1285,13 @@ body .markdown-body
 <!-- 2. <a href="#string">Строки</a> -->
 <!-- 3. <a href="#cstdio">Стандартный ввод-вывод Си</a> -->
 <!-- 4. <a href="#winuser">Заголовок Winuser.inc</a> -->
-<!-- 5. <a href="#dialogform">Оконные приложения</a> -->
-<!-- 6. <a href="#hook">Хуки функций</a> -->
-<!-- 7. <a href="#utf8">Работа с Utf8</a> -->
-<!-- 8. <a href="#simple-dict">Словари</a> -->
-<!-- 9. <a href="#json">Парсер JSON</a> -->
-<!-- 10. <a href="#COM">COM-обьекты</a> -->
-<!-- 11. <a href="#includeobj">Линковка .obj</a> --></li>
+<!-- 5. <a href="#hook">Хуки функций</a> -->
+<!-- 6. <a href="#utf8">Работа с Utf8</a> -->
+<!-- 7. <a href="#simple-dict">Словари</a> -->
+<!-- 8. <a href="#json">Парсер JSON</a> -->
+<!-- 9. <a href="#COM">COM-обьекты</a> -->
+<!-- 10. <a href="#includeobj">Линковка .obj</a> -->
+<!-- 11. <a href="#dialogform">Оконные приложения</a> --></li>
 </ol>
 </li>
 </ol>
@@ -1654,13 +1654,16 @@ body .markdown-body
 <span class="na">.endp</span>
 
 <span class="na">.proc</span> <span class="no">main</span>
-    <span class="na">.with</span> <span class="err">&lt;</span><span class="no">.b</span><span class="p">:</span><span class="no">Foo</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="err">&#39;</span><span class="no">a</span><span class="err">&#39;</span><span class="p">)</span><span class="err">&gt;</span><span class="p">,</span> <span class="err">&lt;</span><span class="no">.d</span><span class="p">:</span><span class="no">Foo</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="err">&#39;</span><span class="no">b</span><span class="err">&#39;</span><span class="p">)</span><span class="err">&gt;</span>
+    <span class="na">.with</span> <span class="err">&lt;</span><span class="no">.a</span><span class="p">:</span><span class="no">Foo</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="err">&#39;</span><span class="no">a</span><span class="err">&#39;</span><span class="p">)</span><span class="err">&gt;</span><span class="p">,</span><span class="err">\</span> <span class="err">;</span> <span class="err">чисто</span> <span class="err">конструктор</span>
+            <span class="err">&lt;</span><span class="nl">.b:</span><span class="nf">Foo</span><span class="err">&lt;</span><span class="no">NULL</span><span class="err">&gt;</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="err">&#39;</span><span class="no">b</span><span class="err">&#39;</span><span class="p">)</span><span class="err">&gt;</span><span class="p">,</span><span class="err">\</span> <span class="err">;</span> <span class="err">константная</span> <span class="err">инициализация</span> <span class="err">+</span> <span class="err">конструктор</span>
+            <span class="err">&lt;</span><span class="nl">.c:</span><span class="nf">Foo</span><span class="err">&lt;</span><span class="no">NULL</span><span class="err">&gt;&gt;</span><span class="p">,</span><span class="err">\</span> <span class="err">;</span> <span class="err">только</span> <span class="err">константная</span> <span class="err">инициализация</span>
+            <span class="err">&lt;</span><span class="nl">.d:</span><span class="nf">Foo</span><span class="err">&gt;</span> <span class="err">;</span> <span class="err">без</span> <span class="err">константной</span> <span class="err">инициализации</span> <span class="err">или</span> <span class="err">конструктора</span>
         <span class="err">;</span> <span class="nf">code</span>
     <span class="na">.end_with</span> <span class="err">;</span> <span class="err">вызов</span> <span class="err">деструкторов</span><span class="p">,</span> <span class="err">закрытие</span> <span class="err">блока</span>
     <span class="nf">ret</span>
 <span class="na">.endp</span>
 </pre></div>
-Так же есть макросы которые позволяют преждевременно вызвать завершение блока(деструкторы обьектов)  </p>
+Так же есть макросы которые позволяют преждевременно вызвать завершение блока(деструкторы обьектов). Константная инициализация может разрушать значения несохраняемых по abi win32 регистров.  </p>
 <ul>
 <li><code>$return</code> - закрывает все блоки и выходит из функции</li>
 <li><code>exit@with</code> - закрывает все вложенные уровни <code>.with</code></li>
