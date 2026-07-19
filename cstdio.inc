@@ -113,6 +113,11 @@
 	define SEEK_SET 0
 	define SEEK_CUR 1
 	define SEEK_END 2
+	define _IOFBF 0
+	define _IONBF 0x0004
+	define _IOLBF 0x0040
+	define L_tmpnam 260
+	define TMP_MAX 0x7fff
 
 	stdin 	equ cstdio_iob
 	stdout 	equ (cstdio_iob+pointer.size)
