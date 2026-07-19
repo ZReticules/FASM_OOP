@@ -1269,12 +1269,37 @@ body .markdown-body
 <li><a href="#cross-arch-return">Возврат и получение значений</a></li>
 </ol>
 </li>
+<li><a href="#additional-macro">Дополнительные макросы</a><ol>
+<li><a href="#module">Include guard(<code>@module</code>)</a></li>
+<li><a href="#importlib">Импорт процедур</a></li>
+<li><a href="#enum">Перечисление enum</a></li>
+<li><a href="#switch">Конструкция switch-case</a></li>
+<li><a href="#@block">Альтернативные анонимные метки</a></li>
+<li><a href="#variables">Особые зоны переменных. Пул констант</a></li>
+<li><a href="#tls">Работа с TLS(Thread Local Storage)</a></li>
+<li><a href="#at_start-at_end">Инициализация и закрытие модулей. @at_start и @at_end</a></li>
+<li><a href="#cstr">Строковые литералы в стиле Си</a></li>
+<li><a href="#with">Автоматическое освобождение ресурсов. Макрос <code>.with</code></a>
+<!-- 5. <a href="#additional-headers">Дополнительные заголовки</a> -->
+<!-- 1. <a href="#try-catch">Обработка исключений</a> -->
+<!-- 2. <a href="#string">Строки</a> -->
+<!-- 3. <a href="#cstdio">Стандартный ввод-вывод Си</a> -->
+<!-- 4. <a href="#winuser">Заголовок Winuser.inc</a> -->
+<!-- 5. <a href="#dialogform">Оконные приложения</a> -->
+<!-- 6. <a href="#hook">Хуки функций</a> -->
+<!-- 7. <a href="#utf8">Работа с Utf8</a> -->
+<!-- 8. <a href="#simple-dict">Словари</a> -->
+<!-- 9. <a href="#json">Парсер JSON</a> -->
+<!-- 10. <a href="#COM">COM-обьекты</a> -->
+<!-- 11. <a href="#includeobj">Линковка .obj</a> --></li>
 </ol>
-<h2 id="1">1. Введение<a name="intro"></a><a class="headerlink" href="#1" title="Permanent link"></a></h2>
+</li>
+</ol>
+<h2 id="1">1. Введение<a name="intro"/><a class="headerlink" href="#1" title="Permanent link"></a></h2>
 <p>Данный проект создавался как расширение стандартных макросов FASM для обеспечения языковой поддержки парадигмы обьектно-ориентированного программирования(на уровне, при котором язык все еще останется низкоуровневым и количество действий под капотом остается минимальным). В процессе развития некоторые стандартные макросы(proc и семейство invoke) были полностью переосмыслены и переработаны, так же были созданы средства, позволяющие обеспечивать кросс-компиляцию приложений под Windows на архитектуры x86-32 и x86-64, выросла стандантрная библиотека и разработан инструментарий для облегченной разработки диалоговых окон на WinAPI.<br />
-<em><strong>Важно! Для обьявления и вызова процедур используется пакет <a class="magiclink magiclink-github magiclink-repository" href="https://github.com/ZReticules/FASM-procedures-package-by-Hermes" title="GitHub Repository: ZReticules/FASM-procedures-package-by-Hermes">ZReticules/FASM-procedures-package-by-Hermes</a>. Формат параметров, передаваемых при вызове процедур и методов, соответствует спецификации, описанной в данном пакете.</strong></em></p>
-<h2 id="2">2. ООП<a name="oop"></a><a class="headerlink" href="#2" title="Permanent link"></a></h2>
-<h3 id="21">2.1. ООП: Методы и соглашения о вызовах<a name="methods"></a><a class="headerlink" href="#21" title="Permanent link"></a></h3>
+<em><strong>Важно! Для обьявления и вызова процедур используется пакет <a class="magiclink magiclink-github magiclink-repository" href="https://github.com/ZReticules/FASM-procedures-package-by-Hermes" title="GitHub Repository: ZReticules/FASM-procedures-package-by-Hermes">ZReticules/FASM-procedures-package-by-Hermes</a>. Формат параметров, передаваемых при вызове процедур и методов, соответствует спецификации, описанной в данном пакете, за исключением строковыx литералы, для них вместо db/du используется <a href="#cstr">cstr/cwstr</a></strong></em></p>
+<h2 id="2">2. ООП<a name="oop"/><a class="headerlink" href="#2" title="Permanent link"></a></h2>
+<h3 id="21">2.1. ООП: Методы и соглашения о вызовах<a name="methods"/><a class="headerlink" href="#21" title="Permanent link"></a></h3>
 <p>Базово существует 2 типа методов - <code>static</code> и <code>inline</code>. Статический метод - функция, имеющая к структуре чисто формальное отношение, привязка статических методов к структуре это не более чем возможность использовать синтаксический сахар при вызове. Инлайн метод, в свою очередь, является макросом, который можно будет вызвать с тем же самым синтаксическим сахаром. Визуально вызов статического и инлайн метода не отличаются, что позволяет при последующих изменениях в коде не менять всю кодовую базу при смене типа метода.<br />
 Так же при обьявлении метода можно указать соглашение о вызовах.<br />
 Ниже можно увидеть пример:<br />
@@ -1291,7 +1316,7 @@ body .markdown-body
 Обьявление методов структуры не зависит от обьявления полей.<br />
 В более ранних версиях для обьявления методов использовалось ключевое словво method. Оно так же поддерживается.<br />
 <!-- _**Важно! Если у структуры или ее предка имеется хоть 1 виртуальный метод, то для структуры создается таблица виртуальных методов, а каждый обьект будет так же содаржать в себе указатель на эту таблицу. Для совместимости с предками без виртуальных методов - по отрицательнму смещению.**_   --></p>
-<h3 id="22">2.2. ООП: Виртуальные методы и абстрактные интерфейсы<a name="virtual-methods"></a><a class="headerlink" href="#22" title="Permanent link"></a></h3>
+<h3 id="22">2.2. ООП: Виртуальные методы и абстрактные интерфейсы<a name="virtual-methods"/><a class="headerlink" href="#22" title="Permanent link"></a></h3>
 <p>Отдельно существует особый тип методов - виртуальные методы. Они реализуются через таблицы виртуальных методов. Виртуальные методы доступны только если в череде предков имеется структура <code>@interface</code>:
 <div class="highlight"><pre><span class="nf">struct</span> <span class="no">Point2</span> <span class="err">@</span><span class="no">interface</span>
     <span class="nf">x</span> <span class="no">dd</span> <span class="err">?</span>
@@ -1308,7 +1333,7 @@ body .markdown-body
 <span class="nf">ends</span>
 </pre></div>
 В таком случае таблица виртуальных методов не будет создана. Переопределив константу <a class="magiclink magiclink-github magiclink-mention" href="https://github.com/abstract" title="GitHub User: abstract">@abstract</a> для наследника вы можете создать конкретную реализацию абстрактного интерфейса, где вам нужно будет самостоятельно реализовать все методы.  </p>
-<h3 id="23">2.3. ООП: Наследование и полиморфизм<a name="polymorphism"></a><a class="headerlink" href="#23" title="Permanent link"></a></h3>
+<h3 id="23">2.3. ООП: Наследование и полиморфизм<a name="polymorphism"/><a class="headerlink" href="#23" title="Permanent link"></a></h3>
 <p>Все методы предка передаются потомку при стандартном наследовании структур в FASM. Потомок может переопределить для себя поведение методов предка - для этого используется макрос override. Синтаксис следующий
 <div class="highlight"><pre><span class="nf">struct</span> <span class="no">Point3</span> <span class="no">Point2</span>
     <span class="nf">z</span> <span class="no">dd</span> <span class="err">?</span>
@@ -1317,7 +1342,7 @@ body .markdown-body
 <span class="nf">ends</span>
 </pre></div>
 При перегрузке допустимо менять только типы static и inline. Не допускается смена типа виртуальных методов. Изменить соглашение о вызовах так же возможно.  </p>
-<h3 id="24-call">2.4. Вызов методов и процедур. Типизированные указатели. Макрос $call<a name="$call"></a><a class="headerlink" href="#24-call" title="Permanent link"></a></h3>
+<h3 id="24-call">2.4. Вызов методов и процедур. Типизированные указатели. Макрос $call<a name="$call"/><a class="headerlink" href="#24-call" title="Permanent link"></a></h3>
 <p>Так же в функционал макроса <code>struct</code> добавляется создание типа указателя на структуру при обьявлении структуры. Такой типизированный указатель всегда имеет форму P_StructName. То есть для структуры Point2 будет создан так же тип P_Point2. Это позволяет вызывать методы даже для обьектов, находящихся в динамической памяти не тратя регистр для хранения указателя.<br />
 Для вызова как методов структур, так и обычных методов используется макрос <code>$call</code>. 
 Есть два способа вызова методов: по имени структуры и по имени обьекта. Примеры
@@ -1352,11 +1377,11 @@ body .markdown-body
     <span class="nf">ret</span>
 <span class="nf">.endp</span>
 </pre></div></p>
-<h3 id="25-call">2.5. Изменения в обработке аргументов $call<a name="$call-args"></a><a class="headerlink" href="#25-call" title="Permanent link"></a></h3>
+<h3 id="25-call">2.5. Изменения в обработке аргументов $call<a name="$call-args"/><a class="headerlink" href="#25-call" title="Permanent link"></a></h3>
 <p>В FASM_OOP изменена обработка константных литералов. <code>const</code> теперь собираются в общий пул констант, которые могу пересекаться друг с другом. Для изменяемых статических обьектов используется ключевое слово static, идентичное использованию const.</p>
-<h3 id="26">2.6. Обработчики методов<a name="method-vectors"></a><a class="headerlink" href="#26" title="Permanent link"></a></h3>
+<h3 id="26">2.6. Обработчики методов<a name="method-vectors"/><a class="headerlink" href="#26" title="Permanent link"></a></h3>
 <p>Как уже было сказано ранее, обработчиком метода может стать любая процедура/макрос в зависимости от типа метода. Однако FASM_OOP предлагает средства, способные облегчить создание методов, такие как виртуальные обьекты и вспомогательные макросы для инлайн-методов.  </p>
-<h4 id="261">2.6.1. Виртуальные обьекты<a name="virt-obj"></a><a class="headerlink" href="#261" title="Permanent link"></a></h4>
+<h4 id="261">2.6.1. Виртуальные обьекты<a name="virt-obj"/><a class="headerlink" href="#261" title="Permanent link"></a></h4>
 <p>Для их создания используется макрос virtObj. Виртуальный обьект не инициализирует область памяти, в которой создается и предназначен в первую очередь для удобной работы с передаваемыми в методы адресами обьектов. Пример:            <br />
 <div class="highlight"><pre><span class="nf">.proc</span> <span class="nv">Point2.print</span><span class="p">(</span><span class="nv">.pthis</span><span class="p">)</span>
     <span class="nf">virtObj</span> <span class="nv">.this</span> <span class="nv">Point2</span> <span class="nv">at</span> <span class="nb">ecx</span> <span class="nv">from</span> <span class="p">[</span><span class="nv">.pthis</span><span class="p">]</span>   <span class="c1">; at указывает на адрес, по умолчанию rcx(ecx на x86)</span>
@@ -1367,7 +1392,7 @@ body .markdown-body
 <span class="nf">.endp</span>
 </pre></div>
 Создаваемый таким образом обьект является глобальным, допускается (и рекомендуется) использование локальных меток как в примере.  </p>
-<h4 id="262">2.6.2. Инлайн методы: специальные возможности<a name="inline"></a><a class="headerlink" href="#262" title="Permanent link"></a></h4>
+<h4 id="262">2.6.2. Инлайн методы: специальные возможности<a name="inline"/><a class="headerlink" href="#262" title="Permanent link"></a></h4>
 <p>В макросы-обработичики инлайн методов параметры передаются так, как если бы они передавались и в статические/виртуальные методы. Однако если в самом методе нам надо выполнить какие-то операции над обьектом, у нас могут возникнуть сложности с тем, чтобы получить значение поля обьекта или переместить параметр в регистр. Для решения этих проблем были созданы макросы fillGPR и inlineObj. Так же для таких методов можно получить количество аргументов в виде переменной этапа компиляции <code>__argscount__</code>.<br />
 Пример использования inlineObj:            <br />
 <div class="highlight"><pre><span class="nf">macro</span> <span class="no">Point2.print</span> <span class="no">this</span><span class="err">{</span>
@@ -1385,7 +1410,7 @@ body .markdown-body
     <span class="na">rep</span> <span class="nf">movsb</span>
 <span class="err">}</span>
 </pre></div></p>
-<h3 id="27">2.7. Константные поля структур<a name="const"></a><a class="headerlink" href="#27" title="Permanent link"></a></h3>
+<h3 id="27">2.7. Константные поля структур<a name="const"/><a class="headerlink" href="#27" title="Permanent link"></a></h3>
 <p>Макрос const может создавать константы этапа препроцессинга и константы этапа компиляции для структур. Пример:     <br />
 <div class="highlight"><pre><span class="nf">struct</span> <span class="no">MyStruct</span>
     <span class="nf">dd</span> <span class="err">?</span>
@@ -1394,7 +1419,7 @@ body .markdown-body
 <span class="nf">ends</span>
 </pre></div>
 К создаваемым таким образом полям можно обращаться только через имя структуры(для вышеприведенного примера - MyStruct.a и MyStruct.b соответственно). Константные поля структур так же наследуются, при этом их можно переопределить.  </p>
-<h3 id="28">2.8. Структуры и выравнивание<a name="align"></a><a class="headerlink" href="#28" title="Permanent link"></a></h3>
+<h3 id="28">2.8. Структуры и выравнивание<a name="align"/><a class="headerlink" href="#28" title="Permanent link"></a></h3>
 <p>Для удобства работы с структурами из языка Си был расширен стандартный функционал структур путем замены стандартного заголовка struct.inc на модифицированный. Новый заголовок позволяет выбрать режим выравнивания для структур, для совместимости со стандартыми заголовками по умолчанию включен режим default(аналог packed в Си - смещения полей не выравниваются). Переключать режимы выравнивания позволяют следующие макросы:<br />
 <div class="highlight"><pre><span class="na">.alignmode_default</span>      <span class="err">;</span> <span class="err">перевод</span> <span class="err">в</span> <span class="err">стандартный</span> <span class="err">режим</span>
 <span class="na">.alignmode_cdecl</span>        <span class="err">;</span> <span class="err">Си</span><span class="p">-</span><span class="err">подобный</span> <span class="err">режим</span> <span class="err">выравнивания</span>
@@ -1411,9 +1436,9 @@ body .markdown-body
                         <span class="err">;</span> <span class="err">взят</span> <span class="err">от</span> <span class="err">типа</span>
 <span class="nf">ends</span> 
 </pre></div>
-Для совместимости с C++ при наследовании структур в любом режиме смещение первого поля от начала структуры будет больше или равно размеру родителя. По аналогии с sizeof теперь можно получить выравнивание структуры с помощью alignof.  </p>
-<h2 id="3-">3. Инструменты кросс-архитектурной компиляции<a name="cross-arch"></a><a class="headerlink" href="#3-" title="Permanent link"></a></h2>
-<h3 id="31">3.1. Базовые константы и псевдодирективы<a name="cross-arch-consts"></a><a class="headerlink" href="#31" title="Permanent link"></a></h3>
+Для совместимости с C++ при наследовании структур в любом режиме смещение первого поля от начала структуры будет больше или равно размеру родителя. По аналогии с sizeof теперь можно получить выравнивание структуры с помощью <code>alignof.StructName</code>.  </p>
+<h2 id="3-">3. Инструменты кросс-архитектурной компиляции<a name="cross-arch"/><a class="headerlink" href="#3-" title="Permanent link"></a></h2>
+<h3 id="31">3.1. Базовые константы и псевдодирективы<a name="cross-arch-consts"/><a class="headerlink" href="#31" title="Permanent link"></a></h3>
 <p>Для того, чтобы определить, под какой именно архитектурой вы находитесь, вы можете проверить значение <code>__architecture</code> следующим образом:<br />
 <div class="highlight"><pre><span class="nf">match</span> <span class="err">=</span><span class="no">x86</span><span class="p">,</span> <span class="no">__architecture</span><span class="err">{</span>
     <span class="err">;</span> <span class="err">что-то</span> <span class="err">архитектурно-специфическое</span>
@@ -1429,7 +1454,7 @@ body .markdown-body
 - movptr(movd/movq)<br />
 - movsptr(movsd/movsq)<br />
 - jpcxz(jecxz/jrcxz)  </p>
-<h3 id="32">3.2. Аргументы процедуры<a name="cross-arch-proc"></a><a class="headerlink" href="#32" title="Permanent link"></a></h3>
+<h3 id="32">3.2. Аргументы процедуры<a name="cross-arch-proc"/><a class="headerlink" href="#32" title="Permanent link"></a></h3>
 <p>При работе с аргументами обьявленной вами процедуры вы можете использовать псевдонимы для аргументов <code>@arg{N}</code> и <code>@farg{N}</code>, где N - номер аргумента. Для того, чтобы гарантировать загрузку аргумента в память, под него выделенную, можно использовать <code>@sarg</code>. В свою очередь, <code>@larg</code> позволяет загрузить значение аргумента в регистр(GPR или SSE). Пример использования:<br />
 <div class="highlight"><pre><span class="na">.proc</span> <span class="no">cdecl</span> <span class="no">Point2.add</span><span class="p">(.</span><span class="no">pthis</span><span class="p">,</span> <span class="no">.num</span><span class="p">)</span>
     <span class="nf">virtObj</span> <span class="no">.this</span> <span class="no">Point2</span> <span class="no">at</span> <span class="no">pcx</span> <span class="no">from</span> <span class="err">@</span><span class="no">arg1</span>
@@ -1441,10 +1466,204 @@ body .markdown-body
     <span class="nf">ret</span>
 <span class="na">.endp</span>
 </pre></div></p>
-<h3 id="33">3.3. Возврат и получение значений<a name="cross-arch-return"></a><a class="headerlink" href="#33" title="Permanent link"></a></h3>
+<h3 id="33">3.3. Возврат и получение значений<a name="cross-arch-return"/><a class="headerlink" href="#33" title="Permanent link"></a></h3>
 <p>Для возврата значения из <code>.proc</code> используется макрос <code>$return</code>. <code>$return</code> получает один параметр в формате любого аргумента, допустимого для <code>$call</code>, и загружает значение в соответствующий стандартный контейнер для результата(eax, edx:eax, st0 для x86-32 и rax, xmm0 для x86-64).<br />
 В свою очередь <code>$call</code> умеет получать результат из процедуры следующим образом:<br />
 <code>$call result = proc(args...)</code><br />
 Допустимыми для <code>result</code> являются те типы аргументов для <code>$call</code>, которые способны хранить значения.<br />
 Это касается в том числе и методов.<br />
-Так же <code>$return</code> можно использовать и без аргументов. В таком случае его удобно использовать т.к. он закрывает прологи некоторых расширенных макросов(которые будут рассмотрены позднее).</p></article></body></html>
+Так же <code>$return</code> можно использовать и без аргументов. В таком случае его удобно использовать т.к. он закрывает прологи некоторых расширенных макросов(которые будут рассмотрены позднее).  </p>
+<h2 id="4">4. Дополнительные макросы<a name="additional-macro"/><a class="headerlink" href="#4" title="Permanent link"></a></h2>
+<h3 id="41-include-guardmodule">4.1. Include guard(<code>@module</code>)<a name="module"/><a class="headerlink" href="#41-include-guardmodule" title="Permanent link"></a></h3>
+<p>Для предотвращения множественных вставок одного и того же загловочного файла в C/C++ используется так называемый include guard. С такой же целью была добавлена следующая конструкция<br />
+<div class="highlight"><pre><span class="err">@</span><span class="nf">module</span> <span class="no">Name</span>
+<span class="err">;</span> <span class="nf">data</span>
+<span class="err">@</span><span class="nf">endm</span>
+</pre></div>
+В данном случае происходит увеличение уровня вложенности {}, это означает что становится доступная директива local, что позволит обьявлять локальные идентификаторы, а так же что обьявления макросов или иные директивы, использующие {}, потребуют экранирования с помощью <code>\</code><br />
+<div class="highlight"><pre><span class="err">@</span><span class="nf">module</span> <span class="no">Foo</span>
+<span class="nf">macro</span> <span class="no">bar</span><span class="err">\{\}</span>
+<span class="err">@</span><span class="nf">endm</span>
+</pre></div></p>
+<h3 id="42">4.2. Импорт процедур<a name="module"/><a class="headerlink" href="#42" title="Permanent link"></a></h3>
+<p>Для импорта процедур используется макрос <code>includelib</code>. Он позволяет перечислить импортируемые процедуры в любой точке кода, что позволяет делать импорты рядом с функциями, что их используют. По сути это удобная обертка над import и library макросами из стандартного набора. Примеры:
+<div class="highlight"><pre><span class="nf">importlib</span> <span class="no">msvcrt</span><span class="p">,</span><span class="err">\</span> <span class="err">;</span> <span class="err">по</span> <span class="err">умолчанию</span> <span class="err">трансляция</span> <span class="err">в</span> <span class="err">строку</span> <span class="err">и</span> <span class="err">добавление</span> <span class="no">.dll</span>
+    <span class="nf">printf</span><span class="p">,</span><span class="err">\</span>
+    <span class="nf">putwc</span><span class="err">=&quot;</span><span class="no">_putwc</span><span class="err">&quot;</span>  <span class="err">;</span> <span class="err">если</span> <span class="err">хотим</span> <span class="err">сделать</span> <span class="err">псевдоним</span>
+
+<span class="nf">importlib</span> <span class="no">winuser</span><span class="err">=&quot;</span><span class="no">user32.dll</span><span class="err">&quot;</span><span class="p">,</span><span class="err">\</span> <span class="err">;</span> <span class="err">если</span> <span class="err">хотим</span> <span class="err">написать</span> <span class="err">полное</span>
+                                <span class="err">\;</span> <span class="err">название</span> <span class="err">библиотеки</span>
+    <span class="nf">MessageBox</span><span class="err">=&quot;</span><span class="no">MessageBoxA</span><span class="err">&quot;</span>
+</pre></div>
+Одну и ту же функцию из одной и той же библиотеки можно импортировать несколько раз. При попытке импорта одного и того же символьного имени из разных библиотек будет выведена ошибка.  </p>
+<h3 id="43-enum">4.3. Перечисления enum<a name="enum"/><a class="headerlink" href="#43-enum" title="Permanent link"></a></h3>
+<p>Для удобного создания перечислений можно использовать макрос enum<br />
+<div class="highlight"><pre><span class="nf">Foo</span> <span class="no">enum</span> <span class="no">FIRST</span><span class="p">,</span><span class="err">\</span> <span class="err">;</span> <span class="no">Foo.FIRST</span> <span class="err">=</span> <span class="mi">0</span> 
+    <span class="no">SECOND</span><span class="p">,</span><span class="err">\</span> <span class="err">;</span> <span class="no">Foo.SECOND</span> <span class="err">=</span> <span class="mi">1</span>
+    <span class="nf">THIRD</span><span class="err">=</span><span class="mi">14</span><span class="p">,</span><span class="err">\</span> <span class="err">;</span> <span class="no">Foo.THIRD</span> <span class="err">=</span> <span class="mi">14</span>
+    <span class="nf">FOURTH</span>      <span class="err">;</span> <span class="no">Foo.FOURTH</span> <span class="err">=</span> <span class="mi">15</span>
+</pre></div>
+Если не писать имя перечисления перед enum, префикс не будет добавляться.  </p>
+<h3 id="44-switch-case">4.4. Конструкция switch-case<a name="switch"/><a class="headerlink" href="#44-switch-case" title="Permanent link"></a></h3>
+<p>Макрос switch-case позволяет выбирать блок кода на основе соответствия значения переменной/регистра/состояния флагов тому или иному состоянию. Этот макрос не генеирует таблицу прыжков, а использует прямые сравнения с помощью cmp.<br />
+<div class="highlight"><pre><span class="nf">switch</span> <span class="no">eax</span>
+    <span class="nf">case</span> <span class="mi">1</span> <span class="err">;</span> <span class="err">одно</span> <span class="err">значение</span>
+        <span class="err">;</span> <span class="nf">code</span>
+        <span class="nf">jmp</span> <span class="no">end_case</span> <span class="err">;</span> <span class="err">аналог</span> <span class="no">break</span>
+    <span class="nf">case</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span> <span class="err">;</span> <span class="err">несколько</span> <span class="err">значений</span>
+        <span class="err">;</span> <span class="nf">code</span>
+        <span class="err">;</span> <span class="err">как</span> <span class="err">в</span> <span class="nf">C</span><span class="p">,</span> <span class="err">можно</span> <span class="err">провалиться</span> <span class="err">из</span> <span class="err">предыдущего</span> <span class="err">блока</span> <span class="err">в</span>
+        <span class="err">;</span> <span class="err">следующий</span>
+    <span class="nf">case</span> <span class="p">[</span><span class="no">var1</span><span class="p">]</span> <span class="no">...</span> <span class="err">+</span><span class="p">[</span><span class="no">var2</span><span class="p">]</span> <span class="err">;</span> <span class="err">диапазон</span> <span class="err">значений</span>
+                            <span class="err">;</span> <span class="err">+</span> <span class="err">означает</span> <span class="err">включение</span> <span class="err">границы</span> <span class="err">в</span> <span class="err">диапазон</span>
+        <span class="err">;</span> <span class="nf">code</span>
+        <span class="nf">jmp</span> <span class="no">start_case</span>      <span class="err">;</span> <span class="err">можно</span> <span class="err">так</span> <span class="err">же</span> <span class="err">прыгнуть</span> <span class="err">к</span> <span class="err">началу</span>
+                            <span class="err">;</span> <span class="err">всех</span> <span class="err">проверок,</span> <span class="err">таким</span> <span class="err">получая</span> <span class="err">что-то</span> <span class="err">похожее</span> <span class="err">на</span> <span class="err">цикл</span> <span class="err">Дейкстры</span> 
+    <span class="nf">case</span> <span class="no">F</span> <span class="no">nz</span>               <span class="err">;</span> <span class="err">срабатывает</span> <span class="err">если</span> <span class="err">флаг</span> <span class="err">поднят</span><span class="p">,</span> <span class="err">сравнения</span> <span class="err">не</span> <span class="err">происходит</span>
+        <span class="err">;</span> <span class="nf">code</span>
+        <span class="nf">jmp</span> <span class="no">end_case</span>
+    <span class="nf">case</span> <span class="no">t</span> <span class="mi">0x100</span>            <span class="err">;</span> <span class="err">вместо</span> <span class="no">cmp</span> <span class="err">используется</span> <span class="no">test</span>
+                            <span class="err">;</span> <span class="err">прыжок</span> <span class="err">выполняется</span> <span class="err">если</span> <span class="err">после</span> <span class="nf">test</span> <span class="err">опущен</span> <span class="no">ZF</span>
+        <span class="err">;</span> <span class="nf">code</span>
+        <span class="nf">jmp</span> <span class="no">end_case</span>
+    <span class="nf">case</span> <span class="no">tn</span> <span class="mi">0x10</span>            <span class="err">;</span> <span class="err">аналогично</span> <span class="no">t</span><span class="p">,</span> <span class="err">но</span> <span class="err">если</span> <span class="no">ZF</span> <span class="err">поднят</span>
+        <span class="err">;</span> <span class="nf">code</span>
+        <span class="nf">jmp</span> <span class="no">end_case</span>
+    <span class="nf">case_default</span>            <span class="err">;</span> <span class="err">блок</span> <span class="err">по</span> <span class="err">умолчанию</span> <span class="err">если</span> <span class="err">ни</span> <span class="err">один</span> <span class="err">не</span> <span class="err">сработал</span>
+        <span class="err">;</span> <span class="nf">code</span>
+        <span class="err">;</span> <span class="err">для</span> <span class="err">последнего</span> <span class="err">блока</span> <span class="nf">jmp</span> <span class="no">end_case</span> <span class="err">не</span> <span class="err">нужен</span>
+<span class="nf">end_switch</span>
+</pre></div>
+Если использовать только проверку флагов, switch можно использовать без аргумента.  </p>
+<h3 id="45">4.5. Альтернативные анонимные метки<a name="variables"/><a class="headerlink" href="#45" title="Permanent link"></a></h3>
+<p>Стандартыне анонимные метки <code>@@</code> довольно удобны, однако они ограничены невозможностью многоуровневой вложенности. Для  решения этой проблемы введена конструкция <a class="magiclink magiclink-github magiclink-mention" href="https://github.com/lock" title="GitHub User: lock">@lock</a> &hellip; <a class="magiclink magiclink-github magiclink-mention" href="https://github.com/endb" title="GitHub User: endb">@endb</a>
+<div class="highlight"><pre><span class="err">@</span><span class="nf">block</span> <span class="err">&lt;</span><span class="no">initcode1</span><span class="err">&gt;</span><span class="p">,</span> <span class="err">&lt;</span><span class="no">initcode2</span><span class="err">&gt;</span>
+<span class="err">;</span> <span class="nf">code</span>
+<span class="nf">jmp</span> <span class="err">@</span><span class="no">fb</span> <span class="err">;</span> <span class="err">прыжок</span> <span class="err">к</span> <span class="err">концу</span> <span class="err">блока</span>
+<span class="nf">jmp</span> <span class="err">@</span><span class="no">sb</span> <span class="err">;</span> <span class="err">прыжок</span> <span class="err">к</span> <span class="err">началу</span> <span class="err">блока</span>
+<span class="err">@</span><span class="nf">endb</span> <span class="err">&lt;</span><span class="no">closecode1</span><span class="err">&gt;</span><span class="p">,</span> <span class="err">&lt;</span><span class="no">closecode2</span><span class="err">&gt;</span>
+</pre></div>
+Конструкция обеспечивает возможность вкладывать анонимные блоки друг в друга. Код инициализации не является частью блока, то есть прыжок к началу не достигнет инициализации. Код завершения является частью блока и прыжок к концу выполнит этот код. Инициализация и завершение являются опциональными.  </p>
+<h3 id="46">4.6. Особые зоны переменных. Пул констант<a name="@const"/><a class="headerlink" href="#46" title="Permanent link"></a></h3>
+<p>Фреймворк делит статическую память на три условных зоны: неинициализированная зона, статическая зона и пул констант. Статическая зона содержит изменяемые статические переменные, у которых может быть задано начальное значение. Неинициализированная зона отличается отсутствем инициализирующего значения, память под эти переменные не будет занимать места в исполняемом файле, а будет выделена ОС при загрузке в память.<br />
+Для обьявления переменных в этих зонах были так же введены следующие макросы<br />
+<div class="highlight"><pre><span class="err">;</span> <span class="err">статический</span> <span class="err">блок</span>
+<span class="nf">statics</span>
+    <span class="nf">a</span> <span class="no">db</span> <span class="mi">10</span>  <span class="err">;</span> <span class="err">метки</span> <span class="err">имеют</span> <span class="err">глобальный</span> <span class="err">характер</span>
+    <span class="na">.b</span> <span class="no">dd</span> <span class="mi">10</span> <span class="err">;</span> <span class="err">внутри</span> <span class="err">функций</span> <span class="err">лучше</span> <span class="err">начинать</span> <span class="err">имя</span> <span class="err">с</span> <span class="err">точки</span>
+<span class="nf">ends</span>
+<span class="err">;</span> <span class="err">так</span> <span class="err">же</span> <span class="err">доступно</span> <span class="err">однострочное</span> <span class="err">обьявление</span>
+<span class="nf">static</span> <span class="no">foo</span><span class="p">:</span><span class="no">DWORD</span><span class="p">,</span> <span class="no">bar</span><span class="p">[</span><span class="mi">10</span><span class="p">]:</span><span class="no">BYTE</span><span class="p">,</span> <span class="err">&lt;</span><span class="no">jar</span><span class="p">:</span><span class="no">db</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="err">&gt;</span>
+
+<span class="err">;</span> <span class="err">блок</span> <span class="err">неинициализированной</span> <span class="err">памяти</span>
+<span class="nf">bss</span> 
+    <span class="no">a</span> <span class="no">db</span> <span class="mi">10</span> <span class="err">;</span> <span class="err">инициализирующие</span> <span class="err">значения</span> <span class="err">будут</span> <span class="err">проигнорированы</span>
+<span class="nf">endb</span>
+<span class="nf">bss</span> <span class="no">foo</span><span class="p">:</span><span class="no">DWORD</span><span class="p">,</span> <span class="no">bar</span><span class="p">[</span><span class="mi">10</span><span class="p">]:</span><span class="no">BYTE</span> <span class="err">;</span> <span class="err">аналогично</span> <span class="err">однострочное</span> <span class="err">обьявление</span>
+
+<span class="err">;</span> <span class="err">константный</span> <span class="err">блок</span> <span class="err">-</span> <span class="err">только</span> <span class="err">однострочное</span> <span class="err">обьявление</span>
+<span class="err">@</span><span class="nf">const_align</span> <span class="no">equ</span> <span class="mi">16</span>     <span class="err">;</span> <span class="err">опционально</span> <span class="err">можно</span> <span class="err">задать</span> <span class="err">выравнивание</span> <span class="err">последующих</span> <span class="err">констант</span> <span class="err">в</span> <span class="err">памяти</span>
+
+<span class="nf">foo</span> <span class="err">@</span><span class="no">const</span> <span class="no">db</span> <span class="err">&quot;</span><span class="mi">123</span><span class="err">&quot;</span><span class="p">,</span> <span class="mi">0</span>  <span class="err">;</span> <span class="err">Константы</span> <span class="err">могут</span> <span class="err">пересекаться</span> <span class="err">в</span> <span class="err">памяти</span>
+
+<span class="nf">restore</span> <span class="err">@</span><span class="no">const_align</span>    <span class="err">;</span> <span class="err">восстановить</span> <span class="err">предыдущие</span> <span class="err">настройки</span> <span class="err">выравнивания</span>
+
+<span class="nf">bar</span> <span class="err">@</span><span class="no">const</span> <span class="no">db</span> <span class="err">&quot;</span><span class="mi">23</span><span class="err">&quot;</span>      <span class="err">;</span> <span class="err">Данное</span> <span class="err">значение</span> <span class="err">уже</span> <span class="err">было</span> <span class="err">сохранено</span> <span class="err">в</span> <span class="err">пуле</span> <span class="err">ранее</span>
+                        <span class="err">;</span> <span class="err">как</span> <span class="err">часть</span> <span class="err">другой</span> <span class="err">константы,</span> <span class="err">так</span> <span class="err">что</span> <span class="nf">bar</span> <span class="err">=</span> <span class="no">foo</span> <span class="err">+</span> <span class="mi">1</span>
+</pre></div>
+Константная зона предполагает, что данная переменная НИКОГДА не будет меняться. Полагаясь на это, FASM_OOP использует общий перекрывающийся пул констант. Cоздаваемая в константном пуле метка не содержит информации о типе, при необходимости используйте virtual или virtObj.  </p>
+<h3 id="47-tlsthread-local-stotage">4.7. Работа с TLS(Thread Local Stotage)<a name="tls"/><a class="headerlink" href="#47-tlsthread-local-stotage" title="Permanent link"></a></h3>
+<p>Для упрощения работы с tls-колбеками используется макрос <code>TLS_AddCallback</code>
+<div class="highlight"><pre><span class="na">.proc</span> <span class="no">TLS_proc</span><span class="p">(.</span><span class="no">handle</span><span class="p">,</span> <span class="no">.reason</span><span class="p">,</span> <span class="no">.reserved</span><span class="p">)</span>
+    <span class="err">;</span> <span class="nf">code</span>
+    <span class="nf">ret</span>
+<span class="na">.endp</span>
+<span class="nf">TLS_AddCallback</span> <span class="no">TLS_proc</span>
+</pre></div>
+Это позволяет определить функции, которые будут вызываться при создании и завершении потока. Обратите внимание, что и при начале, и при завершении потока вызывается одна и та же функция. Для конкретной причины проверьте значение аргумента <code>.reason</code> на соответствие одной из нижеперечисленных констант:  </p>
+<ul>
+<li>TLS_PROCESS_DETACH  </li>
+<li>TLS_PROCESS_ATTACH  </li>
+<li>TLS_THREAD_ATTACH  </li>
+<li>TLS_THREAD_DETACH  </li>
+</ul>
+<h3 id="48-at_start-at_end">4.8. Инициализация и закрытие модулей. <code>@at_start</code> и <code>@at_end</code><a name="at_start-at_end"/><a class="headerlink" href="#48-at_start-at_end" title="Permanent link"></a></h3>
+<p>Для предварительной инициализации кода(например, при создании модулей) можно использовать макросы <code>@at_start</code> и <code>@at_end</code>:
+<div class="highlight"><pre><span class="nf">handle</span> <span class="no">rptr</span> <span class="mi">1</span>   <span class="err">;</span> <span class="err">так</span><span class="p">,</span> <span class="err">например</span><span class="p">,</span> <span class="err">можно</span> <span class="err">один</span> <span class="err">раз</span> <span class="err">получить</span> <span class="err">и</span> <span class="err">постоянно</span> <span class="err">переиспользовать</span>
+                    <span class="err">;</span> <span class="err">какой-то</span> <span class="err">постоянно</span> <span class="err">нужный</span> <span class="err">дескриптор.</span> <span class="err">Например,</span> <span class="err">дескриптор</span> <span class="err">кучи</span> <span class="err">или</span> <span class="err">модуля</span>
+<span class="nf">macro</span> <span class="no">module_init</span><span class="err">{</span>
+    <span class="nf">$call</span> <span class="p">[</span><span class="no">handle</span><span class="p">]</span> <span class="err">=</span> <span class="no">get_handle</span><span class="p">()</span>
+    <span class="err">;</span> <span class="nf">code</span>
+<span class="err">}</span>
+<span class="err">@</span><span class="nf">at_start</span> <span class="no">module_init</span>
+
+<span class="err">;</span> <span class="err">а</span> <span class="err">затем</span> <span class="err">освободить</span> <span class="err">его</span>
+<span class="nf">macro</span> <span class="no">module_end</span><span class="err">{</span>
+    <span class="nf">$call</span> <span class="no">del_handle</span><span class="p">([</span><span class="no">handle</span><span class="p">])</span>
+    <span class="err">;</span> <span class="nf">code</span>
+<span class="err">}</span>
+<span class="err">@</span><span class="nf">at_end</span> <span class="no">module_end</span>
+</pre></div></p>
+<p><em><strong>Важно! Обратите внимание, что составление списка инициализаторов происходит на этапе текстового препроцессинга. Такой код приведет к ошибке:</strong></em><br />
+<div class="highlight"><pre><span class="nf">if</span> <span class="no">used</span> <span class="no">foo</span>
+    <span class="nf">bar</span> <span class="no">db</span> <span class="err">&quot;</span><span class="no">text</span><span class="err">&quot;</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="err">@</span><span class="nf">at_start</span> <span class="no">$call</span> <span class="no">c</span> <span class="p">[</span><span class="no">puts</span><span class="p">](</span><span class="no">bar</span><span class="p">)</span>
+    <span class="nl">foo:</span>
+        <span class="err">;</span> <span class="nf">code</span>
+<span class="nf">end</span> <span class="no">if</span>
+</pre></div></p>
+<p><em><strong>Чтобы избежать этого, вложите if внутрь:</strong></em><br />
+<div class="highlight"><pre><span class="nf">if</span> <span class="no">used</span> <span class="no">foo</span>
+    <span class="nf">bar</span> <span class="no">db</span> <span class="err">&quot;</span><span class="no">text</span><span class="err">&quot;</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="nf">macro</span> <span class="no">foo_init</span><span class="err">{</span>
+        <span class="nf">if</span> <span class="no">used</span> <span class="no">foo</span>
+            <span class="nf">$call</span> <span class="no">c</span> <span class="p">[</span><span class="no">puts</span><span class="p">](</span><span class="no">bar</span><span class="p">)</span>
+        <span class="nf">end</span> <span class="no">if</span>
+    <span class="err">}</span>
+    <span class="err">@</span><span class="nf">at_start</span> <span class="no">foo_init</span>
+    <span class="nl">foo:</span>
+        <span class="err">;</span> <span class="nf">code</span>
+<span class="nf">end</span> <span class="no">if</span>
+</pre></div></p>
+<h3 id="49">4.9. Строковые литералы в стиле Си<a name="cstr"/><a class="headerlink" href="#49" title="Permanent link"></a></h3>
+<p>Си дает весьма удобный способ обьявления строковых литералов, который позволяет без прерывания литерала вставлять спецсимволы и байтовые значения посреди литерала, используя экранируемые последовательности <code>\</code>. Для использования таких строк в FASM_OOP можно использовать следующие макросы:<br />
+<div class="highlight"><pre><span class="nf">a</span> <span class="no">cstr</span> <span class="err">&quot;</span><span class="no">Hello</span><span class="p">!</span><span class="err">\</span><span class="no">n</span><span class="err">&quot;</span> <span class="err">;</span> <span class="err">си</span><span class="p">-</span><span class="err">строка</span>
+<span class="nf">b</span> <span class="no">cwstr</span> <span class="err">&quot;</span><span class="no">Goodbye</span><span class="err">\</span><span class="mi">10</span><span class="err">\</span><span class="no">x19</span><span class="err">\</span><span class="no">t</span><span class="err">&quot;</span> <span class="err">;</span> <span class="err">широкая</span> <span class="err">си</span><span class="p">-</span><span class="err">строка</span><span class="p">(</span><span class="no">WCHAR</span><span class="p">)</span>
+</pre></div>
+Макросы следуют спецификации Си при парсинге литералов. Получающиеся строки всегда нуль-терминированы.</p>
+<h3 id="410-with">4.10. Автоматическое освобождение ресурсов. Макрос <code>.with</code><a name="with"/><a class="headerlink" href="#410-with" title="Permanent link"></a></h3>
+<p>Для управления временем жизни обьекта можно использовать макрос <code>.with</code>. Он позволяет обьявить несколько обьектов, вызвать для них конструкторы(если они имеются для типа) в начале блока и вызвать деструкторы(опять же если имеются) в конце блока или при использовании $return. Пример:<br />
+<div class="highlight"><pre><span class="nf">struct</span> <span class="no">Foo</span>
+    <span class="nf">make</span> <span class="no">dm</span> <span class="no">this</span>
+    <span class="nf">unmake</span> <span class="no">dm</span> <span class="no">this</span>
+    <span class="nf">p_data</span> <span class="no">rptr</span> <span class="mi">1</span>
+<span class="nf">ends</span>
+
+<span class="na">.proc</span> <span class="no">cdecl</span> <span class="no">Foo.make</span><span class="p">(.</span><span class="no">pthis</span><span class="p">:</span><span class="no">P_Foo</span><span class="p">,</span> <span class="no">.size</span><span class="p">:</span><span class="no">DWORD</span><span class="p">,</span> <span class="no">.val</span><span class="p">:</span><span class="no">BYTE</span><span class="p">)</span> <span class="no">uses</span> <span class="no">pbx</span>
+    <span class="nf">virtObj</span> <span class="no">.this</span> <span class="no">Foo</span> <span class="no">at</span> <span class="no">pbx</span> <span class="no">from</span> <span class="err">@</span><span class="no">arg1</span>
+    <span class="err">@</span><span class="nf">sarg</span> <span class="err">@</span><span class="no">arg2</span><span class="p">,</span> <span class="err">@</span><span class="no">arg3</span>
+    <span class="nf">$call</span> <span class="p">[.</span><span class="no">this.p_data</span><span class="p">]</span> <span class="err">=</span> <span class="p">[</span><span class="no">malloc</span><span class="p">]([.</span><span class="no">size</span><span class="p">])</span>
+    <span class="nf">$call</span> <span class="p">[</span><span class="no">memset</span><span class="p">]([.</span><span class="no">this.p_data</span><span class="p">],</span> <span class="p">[.</span><span class="no">val</span><span class="p">])</span>
+    <span class="nf">ret</span>
+<span class="na">.endp</span>
+
+<span class="na">.proc</span> <span class="no">cdecl</span> <span class="no">Foo.unmake</span><span class="p">(.</span><span class="no">pthis</span><span class="p">)</span> <span class="no">uses</span> <span class="no">pbx</span>
+    <span class="nf">virtObj</span> <span class="no">.this</span> <span class="no">Foo</span> <span class="no">at</span> <span class="no">pbx</span> <span class="no">from</span> <span class="err">@</span><span class="no">arg1</span>
+    <span class="nf">$call</span> <span class="p">[</span><span class="no">free</span><span class="p">]([.</span><span class="no">this.p_data</span><span class="p">])</span>
+    <span class="nf">ret</span>
+<span class="na">.endp</span>
+
+<span class="na">.proc</span> <span class="no">main</span>
+    <span class="na">.with</span> <span class="err">&lt;</span><span class="no">.b</span><span class="p">:</span><span class="no">Foo</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="err">&#39;</span><span class="no">a</span><span class="err">&#39;</span><span class="p">)</span><span class="err">&gt;</span><span class="p">,</span> <span class="err">&lt;</span><span class="no">.d</span><span class="p">:</span><span class="no">Foo</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="err">&#39;</span><span class="no">b</span><span class="err">&#39;</span><span class="p">)</span><span class="err">&gt;</span>
+        <span class="err">;</span> <span class="nf">code</span>
+    <span class="na">.end_with</span> <span class="err">;</span> <span class="err">вызов</span> <span class="err">деструкторов</span><span class="p">,</span> <span class="err">закрытие</span> <span class="err">блока</span>
+    <span class="nf">ret</span>
+<span class="na">.endp</span>
+</pre></div>
+Так же есть макросы которые позволяют преждевременно вызвать завершение блока(деструкторы обьектов)  </p>
+<ul>
+<li><code>$return</code> - закрывает все блоки и выходит из функции</li>
+<li><code>exit@with</code> - закрывает все вложенные уровни <code>.with</code></li>
+<li><code>break@with</code> - закрывает один ближайший уровень</li>
+</ul>
+<p><em><strong>Категорически не рекомендуется делать прыжок за пределы блока <code>.with</code> без вызова оного из этих макросов - это может привести к тому, что деструкторы не будут вызваны!</strong></em></p></article></body></html>

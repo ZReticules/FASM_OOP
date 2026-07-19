@@ -41,7 +41,7 @@
 
 
 ; switch
-	macro switch variable{
+	macro switch variable=NULL{
 		local _switch, ..end_case, ..start_case, ..case_code, ..switch_megalabel, len_data
 		end_case equ ..end_case
 		start_case equ ..case_code
