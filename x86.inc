@@ -2,6 +2,7 @@ __architecture fix x86
 NONE fix
 
 include "PreprocFunc.inc"
+include "Constructions/std-types-consts.inc"
 include "Constructions/High-level.inc"
 include "Constructions/Low-level.inc"
 include "ARCHITECTURE_SPECIFICS/x86/CONSTANTS.inc"
@@ -21,6 +22,7 @@ include 'macro/com32.inc'
 include 'macro/import32.inc'
 include 'macro/export.inc'
 include 'macro/resource.inc'
+include 'macro/if.inc'
 
 struc TCHAR [val] { 
 	common 

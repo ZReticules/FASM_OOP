@@ -2,7 +2,7 @@
 	
 include "IUnknown.inc"
 
-typedef DISPID, dptr
+typedef DISPID, pointer
 
 struct DISPPARAMS
 	rgvarg				P_VARIANT

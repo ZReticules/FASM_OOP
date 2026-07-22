@@ -365,7 +365,7 @@ rept 1{
 			movd dword[args_start + stack_space - stack_counter], adef
 		rept 0\\{\\}rept 1\\{
 			if ~reg_double_\#argn eq adef
-				movd reg_double_\#argn, adef
+				movq reg_double_\#argn, adef
 			end if
 		\\}
 	\}
@@ -425,6 +425,58 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], adef
 		rept 0\\{\\}rept 1\\{
 			movd reg_double_\#argn, adef
+		\\}
+	\}
+	macro fast@load_double_FPU args_start, stack_space, stack_counter, argn, adef\{
+		stack_counter = stack_counter + 8
+		match =st0, adef\\{rept 0\\{\\}rept 1\\{
+			fxch adef
+		\\}
+		%preproc_cmp cmpres, argn, 4
+		match =GT, cmpres\\{
+			fstp qword[args_start + stack_space - stack_counter]
+		rept 0\\{\\}rept 1\\{
+			fstp qword[args_start + stack_space - stack_counter]
+			movq reg_double_\#argn, qword[args_start + stack_space - stack_counter]
+		\\}
+	\}
+	macro fast@load_float_FPU args_start, stack_space, stack_counter, argn, adef\{
+		stack_counter = stack_counter + 8
+		match =st0, adef\\{rept 0\\{\\}rept 1\\{
+			fxch adef
+		\\}
+		%preproc_cmp cmpres, argn, 4
+		match =GT, cmpres\\{
+			fstp dword[args_start + stack_space - stack_counter]
+		rept 0\\{\\}rept 1\\{
+			fstp dword[args_start + stack_space - stack_counter]
+			movd reg_double_\#argn, dword[args_start + stack_space - stack_counter]
+		\\}
+	\}
+	macro fast@load_qword_FPU args_start, stack_space, stack_counter, argn, adef\{
+		stack_counter = stack_counter + 8
+		match =st0, adef\\{rept 0\\{\\}rept 1\\{
+			fxch adef
+		\\}
+		%preproc_cmp cmpres, argn, 4
+		match =GT, cmpres\\{
+			fstp qword[args_start + stack_space - stack_counter]
+		rept 0\\{\\}rept 1\\{
+			fstp qword[args_start + stack_space - stack_counter]
+			mov reg_qword_\#argn, qword[args_start + stack_space - stack_counter]
+		\\}
+	\}
+	macro fast@load_dword_FPU args_start, stack_space, stack_counter, argn, adef\{
+		stack_counter = stack_counter + 8
+		match =st0, adef\\{rept 0\\{\\}rept 1\\{
+			fxch adef
+		\\}
+		%preproc_cmp cmpres, argn, 4
+		match =GT, cmpres\\{
+			fstp dword[args_start + stack_space - stack_counter]
+		rept 0\\{\\}rept 1\\{
+			fstp dword[args_start + stack_space - stack_counter]
+			mov reg_dword_\#argn, dword[args_start + stack_space - stack_counter]
 		\\}
 	\}
 	macro fast@load args_start, stack_space, stack_counter, argn, atype, adef\{
@@ -511,16 +563,24 @@ rept 1{
 
 rept 1{
 	macro @get_fast_qword_GPR dest\{
-		mov dest, rax
+		match =rax, dest\\{rept 0\\{\\}rept 1\\{
+			mov dest, rax
+		\\}
 	\}
 	macro @get_fast_dword_GPR dest\{
-		mov dest, eax
+		match =eax, dest\\{rept 0\\{\\}rept 1\\{
+			mov dest, eax
+		\\}
 	\}
 	macro @get_fast_word_GPR dest\{
-		mov dest, ax
+		match =ax, dest\\{rept 0\\{\\}rept 1\\{
+			mov dest, ax
+		\\}
 	\}
 	macro @get_fast_byte_GPR dest\{
-		mov dest, al
+		match =al, dest\\{rept 0\\{\\}rept 1\\{
+			mov dest, al
+		\\}
 	\}
 	macro @get_fast_double_GPR dest\{
 		movq dest, xmm0
@@ -535,7 +595,7 @@ rept 1{
 	\}
 	macro @get_fast_float_SSE dest\{
 		match =xmm0, dest\\{rept 0\\{\\}rept 1\\{
-			movd dest, xmm0
+			movq dest, xmm0
 		\\}
 	\}
 	macro @get_fast_qword_SSE dest\{

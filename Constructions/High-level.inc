@@ -321,26 +321,167 @@
 	}
 
 ; typedef
-	macro typedef name, type{
-		virtual at 0
-			type ?
-			sizeof.#name = $
-		end virtual
-		struc name args&\{
-			match , args\\{
-				. type ?
-			rept 0\\{\\}rept 1\\{
-				. type args
+	macro typedef name, origin{
+		match =1, origin#@builtin\{
+			struc name val=?\\{
+			    match , @struct \\\{ 
+			    	common
+			    	field@struct equ struct@aligner, ., origin#@datadef, <val> 
+				\\\}
+			    match no, @struct \\\{
+					label . origin
+			        origin#@datadef val
+			    \\\}
+			\\}
+			macro name val=?\\{
+			    match , @struct \\\{ 
+			    	common
+	        		\local anonymous
+			    	field@struct equ struct@aligner, anonymous, origin#@datadef, <val> 
+				\\\}
+			    match no, @struct \\\{
+					label . origin
+			        origin#@datadef val
+			    \\\}
+			\\}
+			name#@typedef equ 1
+			name#@defined equ 1
+			as_#name equ origin
+			match _mp1, origin#@datadef\\{
+				sizeof.#name = sizeof.\\#_mp1
 			\\}
 		\}
-		macro name args&\{
-			match , args\\{
-				type ?
-			rept 0\\{\\}rept 1\\{
-				type args
+		match =1|origin_t, origin#@typedef|as_#origin\{
+			struc name val=?\\{
+			    match , @struct \\\{ 
+			    	common
+			    	field@struct equ struct@aligner, ., origin_t\#@datadef, <val> 
+				\\\}
+			    match no, @struct \\\{
+					label . origin_t
+			        origin_t\#@datadef val
+			    \\\}
 			\\}
+			macro name val=?\\{
+			    match , @struct \\\{ 
+			    	common
+	        		\local anonymous
+			    	field@struct equ struct@aligner, anonymous, origin_t\#@datadef, <val> 
+				\\\}
+			    match no, @struct \\\{
+					label . origin_t
+			        origin_t\#@datadef val
+			    \\\}
+			\\}
+			name#@typedef equ 1
+			name#@defined equ 1
+			as_#name equ origin_t
+			match _mp1, origin_t\#@datadef\\{
+				sizeof.#name = sizeof.\\#_mp1
+				alignof.#name = alignof.\\#_mp1
+			\\}
+		\}
+		match =1, origin#@is_struct\{
+			struct name origin
+			ends
 		\}
 	}
+	macro typedef name, origin{
+		match =1, origin#@builtin\{
+			\local align_val, alignof
+			match _mp1|_mp2, origin#@datadef|struct@aligner\\{
+				_mp2 align_val, alignof, type, 0, sizeof.\\#_mp1
+				alignof.#name = alignof
+				sizeof.#name = sizeof.\\#_mp1 + align_val
+			\\}
+			struc name val=?\\{
+			    match , @struct \\\{ 
+			    	common
+			    	field@struct equ struct@aligner, ., origin#@datadef, <val> 
+				\\\}
+			    match no, @struct \\\{
+					label . origin
+			        origin#@datadef val
+			        rb align_val
+			    \\\}
+			\\}
+			macro name val=?\\{
+			    match , @struct \\\{ 
+			    	common
+	        		\local anonymous
+			    	field@struct equ struct@aligner, anonymous, origin#@datadef, <val> 
+				\\\}
+			    match no, @struct \\\{
+					label . origin
+			        origin#@datadef val
+			        rb align_val
+			    \\\}
+			\\}
+			name#@typedef equ 1
+			name#@defined equ 1
+			as_#name equ origin
+			typedef P_#name, pointer
+		\}
+		match =1|origin_t, origin#@typedef|as_#origin\{
+			\local align_val, alignof
+			match _mp1|_mp2, origin_t\#@datadef|struct@aligner\\{
+				_mp2 align_val, alignof, type, 0, sizeof.\\#_mp1
+				alignof.#name = alignof
+				sizeof.#name = sizeof.\\#_mp1 + align_val
+			\\}
+			struc name val=?\\{
+			    match , @struct \\\{ 
+			    	common
+			    	field@struct equ struct@aligner, ., origin_t\#@datadef, <val> 
+				\\\}
+			    match no, @struct \\\{
+					label . origin_t
+			        origin_t\#@datadef val
+			        rb align_val
+			    \\\}
+			\\}
+			macro name val=?\\{
+			    match , @struct \\\{ 
+			    	common
+	        		\local anonymous
+			    	field@struct equ struct@aligner, anonymous, origin_t\#@datadef, <val> 
+				\\\}
+			    match no, @struct \\\{
+					label . origin_t
+			        origin_t\#@datadef val
+			        rb align_val
+			    \\\}
+			\\}
+			name#@typedef equ 1
+			name#@defined equ 1
+			as_#name equ origin_t
+			typedef P_#name, pointer
+		\}
+		match =1, origin#@is_struct\{
+			struct name origin
+			ends
+		\}
+	}
+	; macro typedef name, type{
+	; 	virtual at 0
+	; 		type ?
+	; 		sizeof.#name = $
+	; 	end virtual
+	; 	struc name args&\{
+	; 		match , args\\{
+	; 			. type ?
+	; 		rept 0\\{\\}rept 1\\{
+	; 			. type args
+	; 		\\}
+	; 	\}
+	; 	macro name args&\{
+	; 		match , args\\{
+	; 			type ?
+	; 		rept 0\\{\\}rept 1\\{
+	; 			type args
+	; 		\\}
+	; 	\}
+	; }
 
 ; zero-initialize allocation, initializator in Low-level
 	bss_count = 0

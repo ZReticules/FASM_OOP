@@ -34,8 +34,8 @@ macro COM.New lpDest, Type\{
 	\\}
 \}
 
-typedef LCID, dd
-typedef SCODE, dd
+typedef LCID, dword
+typedef SCODE, dword
 
 struct DECIMAL
     wReserved dw ?
@@ -240,7 +240,7 @@ CLSCTX enum \
 	ALLOW_LOWER_TRUST_REGISTRATION = 0x4000000,\
 	PS_DLL = 0x80000000
 
-typedef CLSCTX, dptr
+typedef CLSCTX, pointer
 ; @at_start $call [CoInitialize](0)
 
 ; @at_end int3 

@@ -520,6 +520,54 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], adef
 		end if
 	\}
+	macro cdecl@load_double_FPU args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+		stack_counter = stack_counter + 8
+		match =st0, adef\\{rept 0\\{\\}rept 1\\{
+			fxch adef
+		\\}
+		if ~defined current@frame & args_start eq esp
+			sub esp, 8
+			fstp qword[esp]
+		else
+			fstp qword[args_start + stack_space - stack_counter]
+		end if
+	\}
+	macro cdecl@load_float_FPU args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+		stack_counter = stack_counter + 4
+		match =st0, adef\\{rept 0\\{\\}rept 1\\{
+			fxch adef
+		\\}
+		if ~defined current@frame & args_start eq esp
+			sub esp, 4
+			fstp dword[esp]
+		else
+			fstp dword[args_start + stack_space - stack_counter]
+		end if
+	\}
+	macro cdecl@load_qword_FPU args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+		stack_counter = stack_counter + 8
+		match =st0, adef\\{rept 0\\{\\}rept 1\\{
+			fxch adef
+		\\}
+		if ~defined current@frame & args_start eq esp
+			sub esp, 8
+			fstp qword[esp]
+		else
+			fstp qword[args_start + stack_space - stack_counter]
+		end if
+	\}
+	macro cdecl@load_dword_FPU args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+		stack_counter = stack_counter + 4
+		match =st0, adef\\{rept 0\\{\\}rept 1\\{
+			fxch adef
+		\\}
+		if ~defined current@frame & args_start eq esp
+			sub esp, 4
+			fstp dword[esp]
+		else
+			fstp dword[args_start + stack_space - stack_counter]
+		end if
+	\}
 	macro cdecl@load args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, atype, adef\{
 		match _mp1 _mp2, atype\\{
 			match _mp3 _mp4, cdecl@load_\\#_mp1\\#_\\#_mp2 adef\\\{
@@ -652,13 +700,19 @@ rept 1{
 
 rept 1{
 	macro @get_std_dword_GPR dest\{
-		mov dest, eax
+		match =eax, dest\\{rept 0\\{\\}rept 1\\{
+			mov dest, eax
+		\\}
 	\}
 	macro @get_std_word_GPR dest\{
-		mov dest, ax
+		match =ax, dest\\{rept 0\\{\\}rept 1\\{
+			mov dest, ax
+		\\}
 	\}
 	macro @get_std_byte_GPR dest\{
-		mov dest, al
+		match =al, dest\\{rept 0\\{\\}rept 1\\{
+			mov dest, al
+		\\}
 	\}
 	local floatbuf
 	macro @get_std_float_GPR dest\{

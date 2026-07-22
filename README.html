@@ -1279,8 +1279,22 @@ body .markdown-body
 <li><a href="#tls">Работа с TLS(Thread Local Storage)</a></li>
 <li><a href="#at_start-at_end">Инициализация и закрытие модулей. @at_start и @at_end</a></li>
 <li><a href="#cstr">Строковые литералы в стиле Си</a></li>
-<li><a href="#with">Автоматическое освобождение ресурсов. Макрос <code>.with</code></a>
-<!-- 5. <a href="#additional-headers">Дополнительные заголовки</a> -->
+<li><a href="#with">Автоматическое освобождение ресурсов. Макрос <code>.with</code></a></li>
+<li><a href="#typedef">Алиасы типов(<code>typedef</code>)</a></li>
+</ol>
+</li>
+<li><a href="#additional-headers">Дополнительные заголовки</a><ol>
+<li><a href="#c-headers">Заголовки языка Си</a><ol>
+<li><a href="#c-assert">assert.inc</a></li>
+<li><a href="#c-ctype">ctype.inc</a></li>
+<li><a href="#c-errno">errno.inc</a></li>
+<li><a href="#c-math">math.inc</a></li>
+<li><a href="#c-stddef">stddef.inc</a></li>
+<li><a href="#c-stdint">stdint.inc</a></li>
+<li><a href="#c-stdio">stdio.inc</a></li>
+<li><a href="#c-stdlib">stdlib.inc</a></li>
+<li><a href="#c-time">time.inc</a></li>
+<li><a href="#c-others">Заголовки без изменений</a>
 <!-- 1. <a href="#try-catch">Обработка исключений</a> -->
 <!-- 2. <a href="#string">Строки</a> -->
 <!-- 3. <a href="#cstdio">Стандартный ввод-вывод Си</a> -->
@@ -1292,6 +1306,8 @@ body .markdown-body
 <!-- 9. <a href="#COM">COM-обьекты</a> -->
 <!-- 10. <a href="#includeobj">Линковка .obj</a> -->
 <!-- 11. <a href="#dialogform">Оконные приложения</a> --></li>
+</ol>
+</li>
 </ol>
 </li>
 </ol>
@@ -1428,7 +1444,7 @@ body .markdown-body
                         <span class="err">;</span> <span class="err">аналог</span> <span class="nf">pragma</span> <span class="no">packed</span>
 <span class="na">.alignmoe_restore_pack</span>  <span class="err">;</span> <span class="err">возврат</span> <span class="err">к</span> <span class="err">предыдущей</span> <span class="err">верхней</span> <span class="err">границе</span> <span class="err">выравнивания</span>
 </pre></div>
-Данные макросы управляют глобальным режимом выравнивания. Для точечного выравнивания стоит использовать макрос <code>alignas</code>. Его можно использовать при обьявлении новой структуры или для одного из полей структуры:<br />
+Данные макросы управляют глобальным режимом выравнивания. Для точечного выравнивания стоит использовать макрос <code>alignas</code>. Его можно использовать при обьявлении новой структуры, <a href="#typedef">алиаса для типа</a> или для одного из полей структуры:<br />
 <div class="highlight"><pre><span class="nf">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span> <span class="no">struct</span> <span class="no">Foo</span>  <span class="err">;</span> <span class="err">если</span> <span class="err">указать</span> <span class="err">число</span><span class="p">,</span> <span class="err">по</span> <span class="err">нему</span> <span class="err">будет</span> <span class="err">выравниваться</span> <span class="err">размер</span> <span class="err">всей</span> <span class="err">структуры</span> 
     <span class="no">a</span> <span class="no">rb</span> <span class="mi">1</span>
     <span class="nf">alignas</span><span class="p">(</span><span class="no">dq</span><span class="p">)</span> <span class="no">b</span> <span class="no">rb</span> <span class="mi">2</span>  <span class="err">;</span> <span class="err">можно</span> <span class="err">указать</span> <span class="err">для</span> <span class="err">конкретного</span> <span class="err">поля</span>
@@ -1669,4 +1685,116 @@ body .markdown-body
 <li><code>exit@with</code> - закрывает все вложенные уровни <code>.with</code></li>
 <li><code>break@with</code> - закрывает один ближайший уровень</li>
 </ul>
-<p><em><strong>Категорически не рекомендуется делать прыжок за пределы блока <code>.with</code> без вызова оного из этих макросов - это может привести к тому, что деструкторы не будут вызваны!</strong></em></p></article></body></html>
+<p><em><strong>Категорически не рекомендуется делать прыжок за пределы блока <code>.with</code> без вызова оного из этих макросов - это может привести к тому, что деструкторы не будут вызваны!</strong></em>  </p>
+<h3 id="411-typedef">4.11. Алиасы типов(<code>typedef</code>)<a name="typedef"/><a class="headerlink" href="#411-typedef" title="Permanent link"></a></h3>
+<p>Стандартные структуры FASM довольно удобны, но есть большой минус - даже если мы обьявим структуру вида<br />
+<div class="highlight"><pre><span class="nf">struct</span> <span class="no">Foo</span>
+    <span class="nf">rd</span> <span class="mi">1</span>
+<span class="nf">ends</span><span class="err">```</span>  
+<span class="err">Это</span> <span class="err">все</span> <span class="err">еще</span> <span class="err">не</span> <span class="err">создает</span> <span class="err">возможноть</span> <span class="err">использовать</span> <span class="err">переменные</span> <span class="err">данного</span> <span class="err">типа</span> <span class="err">без</span> <span class="err">спецификации</span> <span class="err">размера</span><span class="p">,</span> <span class="err">например</span>  
+<span class="err">```</span><span class="no">asm</span>
+<span class="nf">foo</span> <span class="no">Foo</span>
+<span class="err">;</span> <span class="nf">code</span>
+<span class="nf">mov</span> <span class="p">[</span><span class="no">foo</span><span class="p">],</span> <span class="mi">1</span> <span class="err">;</span> <span class="err">вызовет</span> <span class="err">ошибку</span><span class="p">,</span> <span class="err">потребует</span> <span class="err">спецификации</span> <span class="err">размера</span>
+</pre></div>
+Это же будет касаться и попытки отправить такой аргумент в функцию без спецификации размера. Для решения этой проблемы был введен макрос typedef:<br />
+<div class="highlight"><pre><span class="nf">typedef</span> <span class="no">new_type</span><span class="p">,</span> <span class="no">existed_type</span>
+</pre></div>
+Он по-разному обрабатывает различные виды исходных типов. Если исходный тип - структура, то он выполняет простое наследование. Если исходный тип - встроенный тип или ранее обьявленный алиас для встроенного типа, то будут созданы специальные макросы, позволяющие создавать экземпляры этого типа и приводить адреса к данному типу:<br />
+<div class="highlight"><pre><span class="nf">typedef</span> <span class="no">int32_t</span><span class="p">,</span> <span class="no">dword</span> <span class="err">;</span> <span class="err">создаем</span> <span class="err">алиас</span>
+<span class="nf">alignas</span><span class="p">(</span><span class="no">qword</span><span class="p">)</span> <span class="no">typedef</span> <span class="no">_int32_t</span><span class="p">,</span> <span class="no">dword</span> <span class="err">;</span> <span class="err">алиас</span> <span class="err">с</span> <span class="err">выравниванием</span><span class="p">,</span> <span class="err">заданным</span> <span class="no">alignas</span>
+
+<span class="nf">foo</span> <span class="no">int32_t</span> <span class="err">;</span> <span class="err">даже</span> <span class="err">для</span> <span class="err">базовых</span> <span class="err">типов</span> <span class="err">инициализатор</span> <span class="err">более</span> <span class="err">не</span> <span class="err">обязателен</span><span class="p">,</span> <span class="err">по</span> <span class="err">умолчанию</span> <span class="err">?</span>
+<span class="nf">bar</span> <span class="no">P_int32_t</span> <span class="err">;</span> <span class="err">автоматически</span> <span class="err">создается</span> <span class="err">тип</span> <span class="err">указателя</span>
+<span class="err">;</span> <span class="nf">code</span>
+<span class="nf">mov</span> <span class="p">[</span><span class="no">foo</span><span class="p">],</span> <span class="mi">12</span> <span class="err">;</span> <span class="err">считает</span> <span class="err">что</span> <span class="no">dword</span>
+<span class="nf">mov</span> <span class="no">as_int32_t</span><span class="p">[</span><span class="no">eax</span><span class="p">],</span> <span class="mi">12</span> <span class="err">;</span> <span class="err">приведение</span> <span class="err">к</span> <span class="err">типу</span> <span class="err">алиаса</span> 
+</pre></div>
+Для создания алиасов на стандартные типы следует использовать название типа в нижнем регистре. Допустимы следующие названия:<br />
+- <code>byte</code><br />
+- <code>word</code><br />
+- <code>dword</code><br />
+- <code>pword</code><br />
+- <code>fword</code><br />
+- <code>qword</code><br />
+- <code>tbyte</code><br />
+- <code>tword</code><br />
+Кроме того, для корректной передачи параметров в функции, можно обьявить алиасы на следующие типы<br />
+- <code>real</code><br />
+- <code>float</code><br />
+- <code>double</code><br />
+В таком случае as_new_type будет раскрываться в название одного из этих типов и не будет работать для приведения типа адреса в инструкциях. При необходимости можно использовать <code>virtual</code> или <code>virtObj</code>.
+<!-- - <code>DQWORD</code><br />- <code>XWORD</code><br />- <code>QQWORD</code><br />- <code>YWORD</code><br />- <code>DQQWORD</code><br />- <code>ZWORD</code> --></p>
+<h2 id="5">5. Заголовки язка Си<a name="c-headers"/><a class="headerlink" href="#5" title="Permanent link"></a></h2>
+<p>В пакет входит набор заголовков стандартной библиотеки Си, использующих <code>msvcrt.dll</code>. В связи с особенностями языка ассемблера, его отличающейся макросистемы и особенностей самой <code>msvcrt.dll</code> некоторые функции, макросы или глобальне переменные могут отсутствовать или работать не так, как описывает стандарт. В пунктах этой части описаны только отклонения, связанные с особенностями языка/компилятора. За основу брались заголовки отсюда: <a href="https://github.com/wine-mirror/wine/tree/master/include/msvcrt">https://github.com/wine-mirror/wine/tree/master/include/msvcrt</a>.<br />
+Все перечисленные заголовки подключаются как <code>include "FASM_OOP/c/header</code>.  </p>
+<h3 id="51-asssertinc">5.1. asssert.inc<a name="c-assert"/><a class="headerlink" href="#51-asssertinc" title="Permanent link"></a></h3>
+<p>Определяет макросы cassert и cwassert с одним аргументом - логическое выражение, которое способен разобрать макрос <code>.if</code> из стандартного пакета fasm. Примеры ипользования:<br />
+<div class="highlight"><pre><span class="nf">cassert</span> <span class="no">eax</span> <span class="err">&gt;</span> <span class="mi">5</span> <span class="err">&amp;</span> <span class="no">edx</span> <span class="err">&lt;</span> <span class="mi">10</span>  
+<span class="no">cwassert</span> <span class="no">eax</span> <span class="err">&gt;</span> <span class="mi">5</span> <span class="err">&amp;</span> <span class="no">edx</span> <span class="err">&lt;</span> <span class="mi">10</span>
+</pre></div>
+Псевдоним был введен из-за конфликта имен с директивой <code>assert</code>. В остальном функционал идентичен аналогичному макросу в язке Си.  </p>
+<h3 id="52-ctypeinc">5.2. ctype.inc<a name="c-ctype"/><a class="headerlink" href="#52-ctypeinc" title="Permanent link"></a></h3>
+<p>Вместо макроса <code>MB_CUR_MAX</code> требуется использовать функцию dll <code>mb_cur_max</code>, возвращающую значение сишного типа <code>int</code>. Взывается как <code>$call c [mb_cur_max]()</code>. Так же заголовок импортирует широкие версии функций.  </p>
+<h3 id="53-errnoinc">5.3. errno.inc<a name="c-errno"/><a class="headerlink" href="#53-errnoinc" title="Permanent link"></a></h3>
+<p>Вместо глобальной переменной errno требуется использовать функцию dll <code>_errno</code>, возвращающую значение сишного типа <code>int*</code>. Взывается как <code>$call c [_errno]()</code>.</p>
+<h3 id="54-mathinc">5.4. math.inc<a name="c-math"/><a class="headerlink" href="#54-mathinc" title="Permanent link"></a></h3>
+<p>Нет автоматического определения размера для числа с плавающей точкой, отдельно функции с суффиксом <code>-f</code>:  </p>
+<table>
+<thead>
+<tr>
+<th>double</th>
+<th>float</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>isinf</td>
+<td>isinff</td>
+</tr>
+<tr>
+<td>isnan</td>
+<td>isnanf</td>
+</tr>
+<tr>
+<td>isnormal</td>
+<td>isnormalf</td>
+</tr>
+<tr>
+<td>signbit</td>
+<td>signbitf</td>
+</tr>
+<tr>
+<td>isfinite</td>
+<td>isfinitef</td>
+</tr>
+</tbody>
+</table>
+<p>Нет функций сравнения, нет функций для long double - msvcrt считает их обычными double, а не float80.  </p>
+<h3 id="55-stddefinc">5.5. stddef.inc<a name="c-stddef"/><a class="headerlink" href="#55-stddefinc" title="Permanent link"></a></h3>
+<p>Нет определения макроса <code>offsetof</code>(не требуется).<br />
+Вместо глобальной переменной <code>_threadid</code> требуется использовать функцию dll <code>_threadid</code>, возвращающую значение сишного типа <code>unsigned int*</code>. Взывается как <code>$call c [_threadid]()</code>.  </p>
+<h3 id="56-stdintinc">5.6. stdint.inc<a name="c-stdint"/><a class="headerlink" href="#56-stdintinc" title="Permanent link"></a></h3>
+<p>Нет определения function-like макросов INT<em>_C/UINT</em>_C в силу специфики компилятора, который не разделяет типы числовых литералов таким образом.  </p>
+<h3 id="57-stdioinc">5.7. stdio.inc<a name="c-stdio"/><a class="headerlink" href="#57-stdioinc" title="Permanent link"></a></h3>
+<p>Для обращения к стандартным потокам ввода-вывода требуется дереференс - <code>mov pax, [stdin]</code>.  </p>
+<h3 id="58-stdlibinc">5.8. stdlib.inc<a name="c-stdlib"/><a class="headerlink" href="#58-stdlibinc" title="Permanent link"></a></h3>
+<p>Вместо макроса <code>MB_CUR_MAX</code> требуется использовать функцию dll <code>mb_cur_max</code>, возвращающую значение сишного типа <code>int</code>. Взывается как <code>$call c [mb_cur_max]()</code>.<br />
+Обьявлены глобальне переменные <code>_(w)argc</code>(dword), <code>_(w)argv</code>(pointer), <code>_(w)env</code>(pointer), содержащие значения, передаваемые Си в функцию <code>main</code> как аргументы. Без префикса обычные символы, с префиксом широкие.   </p>
+<h3 id="59-timeinc">5.9. time.inc<a name="c-time"/><a class="headerlink" href="#59-timeinc" title="Permanent link"></a></h3>
+<p>Только 64-битный формат времени.  </p>
+<h3 id="510">5.10. Заголовки без изменений<a name="c-others"/><a class="headerlink" href="#510" title="Permanent link"></a></h3>
+<p>Следующие заголовки портированы без изменений:  </p>
+<ul>
+<li><code>fcntl.inc</code></li>
+<li><code>fenv.inc</code></li>
+<li><code>float.inc</code></li>
+<li><code>inttypes.inc</code></li>
+<li><code>limits.inc</code></li>
+<li><code>locale.inc</code></li>
+<li><code>signal.inc</code></li>
+<li><code>string.inc</code></li>
+<li><code>wchar.inc</code></li>
+<li><code>wctype.inc</code></li>
+<li><code>conio.inc</code></li>
+</ul></article></body></html>

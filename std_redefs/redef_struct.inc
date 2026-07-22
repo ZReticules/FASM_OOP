@@ -1,96 +1,3 @@
-struc dxw [val] {
-    match , @struct \{ 
-    	common
-    	field@struct equ struct@aligner, ., dxw, <val> 
-	\}
-    match no, @struct \{ 
-		common
-		\local cntr, val_def
-		label . XWORD
-        cntr = 1
-        
-        forward
-        val_def equ val
-        match _mp1 =dup _mp2, val_def\\{
-        	cntr = _mp1
-        	match (_mp3), _mp2\\\{
-        		val_def equ _mp3
-        	rept 0\\\{\\\} rept 1\\\{
-        		val_def equ _mp2
-    		\\\}
-    	\\}
-		match high:low, val_def\\{
-			times cntr dq low, high
-		rept 0\\{\\}rept 1\\{
-			times cntr dq val_def, 0
-		\\}
-		common
-    \}
-}
-
-macro dxw [val] {
-    match , @struct \{ 
-        \local anonymous
-        define field@struct anonymous, dxw, <values> 
-    \}
-    match no, @struct \\\{
-		common
-		\local cntr, val_def
-		label . XWORD
-        cntr = 1
-        
-        forward
-        val_def equ val
-        match _mp1 =dup _mp2, val_def\\{
-        	cntr = _mp1
-        	match (_mp3), _mp2\\\{
-        		val_def equ _mp3
-        	rept 0\\\{\\\} rept 1\\\{
-        		val_def equ _mp2
-    		\\\}
-    	\\}
-		match high:low, val_def\\{
-			times cntr dq low, high
-		rept 0\\{\\}rept 1\\{
-			match =?, val_def\\\{
-				times cntr dq ?, ?
-			rept 0\\\{\\\}rept 1\\\{
-				times cntr dq val_def, 0
-			\\\}
-		\\}
-    \\\} 
-}
-
-struc rxw cntr {
-    match , @struct \{ 
-    	common
-        define field@struct ., dxw, cntr dup(?)
-    \}
-    match no, @struct \{ 
-		label . XWORD
-        rq 2 * cntr
-    \}
-}
-
-macro rxw cntr {
-    rq 2 * cntr
-}
-
-alignof.dxw = 16
-sizeof.dxw = 16
-alignof.rxw = 16
-sizeof.rxw = 16
-
-macro gen_sizeof [suff, size]{
-	sizeof.#d#suff = size
-	sizeof.#r#suff = size
-	alignof.#d#suff = 1 shl (bsr size + (1 - (1 shr (size and (1 shl bsr size - 1)))))
-	alignof.#r#suff = alignof.#d#suff
-}
-
-gen_sizeof b, 1, w, 2, u, 2, d, 4, p, 6, f, 6, q, 8, t, 10
-
-
 aligner@pack_align equ 0x7FFFFFFFFFFFFFFF
 macro c_aligner result, alignof, type, base, current{
 	; if ~definite alignof.#type
@@ -126,12 +33,14 @@ macro struct name {
 	match child parent, name \{ 
 		child\#@defined equ 1
 		child\#@parent equ parent
+		child\#@is_struct equ 1
 		restore field@struct
 		field@struct equ child
 		; field@struct equ child,fields@\#parent 
 	rept 0\{\}rept 1\{
 		name#@defined equ 1
 		name#@parent equ
+		name#@is_struct equ 1
 	\}
 	sub@struct equ
 	irp suff, b, w, u, d, p, f, q, t\{
@@ -516,6 +425,7 @@ macro alignas val&{
 		end if
     	match no, @struct \\{
     		; align
+    		\\local matched
     		match =struct _mp1 _mp2, var _any1\\\{
 				\\\local aligner
 				macro aligner any&\\\\{
@@ -525,7 +435,20 @@ macro alignas val&{
     			alignof.\\\#_mp1 = real_align
     			var
     			restore struct@aligner
-			rept 0\\\{\\\}rept 1\\\{
+    			define matched
+			\\\}
+    		match =typedef _mp1=, _mp2, var _any1\\\{
+				\\\local aligner
+				macro aligner any&\\\\{
+					alignas_aligner real_align, any
+				\\\\}
+    			struct@aligner equ aligner
+    			alignof.\\\#_mp1 = real_align
+    			var
+    			restore struct@aligner
+    			define matched
+			\\\}
+			match =matched, matched\\\{
 				align real_align
 			\\\} 
     	rept 0\\{\\}rept 1\\{

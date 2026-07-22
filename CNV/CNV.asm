@@ -18,6 +18,9 @@ importlib user32,\
 importlib gdi32,\
 	GetDIBits
 
+importlib msvcrt,\
+	setlocale
+
 define DIB_RGB_COLORS 0
 
 ; if used CNV._module

@@ -1,15 +1,3 @@
-sizeof.BYTE 	= 1
-sizeof.WORD 	= 2
-sizeof.DWORD 	= 4
-sizeof.PWORD 	= 6
-sizeof.QWORD 	= 8
-sizeof.TBYTE 	= 10
-sizeof.DQWORD 	= 16
-sizeof.QQWORD 	= 32
-sizeof.XWORD 	= 16
-sizeof.YWORD 	= 32
-sizeof.ZWORD 	= 64
-
 macro .proc_frame_mode_static{
 	prologue@.proc equ sp@prologue
 	epilogue@.proc equ sp@epilogue
@@ -60,7 +48,7 @@ rept 1 {
 			var@def equ var@def * count
 	  	\\}
 	  	match _mp1|_mp2, var@name|var@type\\{
-			match _mp3 =_mp2 _mp4, _any1 BYTE WORD DWORD PWORD QWORD TBYTE DQWORD QQWORD XWORD YWORD ZWORD _any2\\\{
+			match _mp3 =_mp2 _mp4, _any1 BYTE WORD DWORD PWORD FWORD QWORD TBYTE TWORD DQWORD XWORD QQWORD YWORD DQQWORD ZWORD _any2\\\{
 		   		label _mp1 _mp2
 		   		var@def
 			rept 0\\\{\\\} rept 1 \\\{ 

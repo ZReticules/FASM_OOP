@@ -185,7 +185,8 @@ macro specialfields_ends_default name{
 	if defined name#.VTable
 		P_#name.VTable = name#.VTable
 	end if
-	alignof.#P_#name = pointer.size
+	alignof.P_#name = pointer.size
+	as_P_#name equ pointer
 	struc P_#name args&\{
         
         match |pname, @struct|P_#name \\{ 

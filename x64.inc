@@ -2,6 +2,7 @@ __architecture fix x64
 NONE fix
 
 include "PreprocFunc.inc"
+include "Constructions/std-types-consts.inc"
 include "Constructions/High-level.inc"
 include "Constructions/Low-level.inc"
 include "ARCHITECTURE_SPECIFICS/x64/CONSTANTS.inc"
@@ -21,11 +22,13 @@ include 'macro/com64.inc'
 include 'macro/import64.inc'
 include 'macro/export.inc'
 include 'macro/resource.inc'
+include 'macro/if.inc'
 
 struc TCHAR [val] { 
 	common 
 	match any, val \{ 
-		. db val \}
+		. db val 
+	\}
    	match , val \{ 
    		. db ? 
 	\} 
