@@ -271,7 +271,6 @@
 				end if
 			\\}
 			macro @loadXMM_addr dest, size, val&\\{
-				display sizeof.\\#size
 				if val relativeto 0
 					@loadXMM_lit dest, size, val
 				else
