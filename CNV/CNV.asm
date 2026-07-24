@@ -260,7 +260,7 @@ macro CNV.fill dest*, src*, size*, flags=0{
 			virtual at _src_base
 				..src rptr 1
 			end virtual
-			if ((_src_base) relativeto 0 & ((_src_base) mod 16 = 0)) | flags and FILL_FORCEALIGN_SRC = FILL_FORCEALIGN_SRC
+			if ((..dest) relativeto 0 & ((..dest) mod 16 = 0)) | flags and FILL_FORCEALIGN_SRC = FILL_FORCEALIGN_SRC
 				src_aligned = 1
 			end if
 		end if
@@ -273,7 +273,7 @@ macro CNV.fill dest*, src*, size*, flags=0{
 			virtual at _dest_base
 				..dest rptr 1
 			end virtual
-			if ((_dest_base) relativeto 0 & ((_dest_base) mod 16 = 0)) | flags and FILL_FORCEALIGN_DST = FILL_FORCEALIGN_DST
+			if ((..dest) relativeto 0 & ((..dest) mod 16 = 0)) | flags and FILL_FORCEALIGN_DST = FILL_FORCEALIGN_DST
 				dest_aligned = 1
 			end if
 		end if
