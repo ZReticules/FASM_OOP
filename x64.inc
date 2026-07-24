@@ -1,11 +1,11 @@
 __architecture fix x64
 NONE fix
 
+include "ARCHITECTURE_SPECIFICS/x64/CONSTANTS.inc"
 include "PreprocFunc.inc"
 include "Constructions/std-types-consts.inc"
 include "Constructions/High-level.inc"
 include "Constructions/Low-level.inc"
-include "ARCHITECTURE_SPECIFICS/x64/CONSTANTS.inc"
 include "ARCHITECTURE_SPECIFICS/x64/CALLING_CONVENTIONS.inc"
 include "ARCHITECTURE_SPECIFICS/x64/MULTIARCH_MACROS.inc"
 include "ARCHITECTURE_SPECIFICS/x64/new_call64.inc"
