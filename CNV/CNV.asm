@@ -237,7 +237,7 @@ FILL_FORCEALIGN_BOTH	= FILL_FORCEALIGN_SRC or FILL_FORCEALIGN_DST
 .endp
 
 macro CNV.fill dest*, src*, size*, flags=0{
-	local repeats, rem, _src, _dest, matched, ..src, ..dest, _src_base, ..test_base
+	local repeats, rem, _src, _dest, matched, ..src, ..dest, _src_base, ..test_base_src, ..test_base_dest
 	if size eqtype 0 & size relativeto 0
 		repeats = (size) / 16
 		rem = (size) mod 16
@@ -252,9 +252,9 @@ macro CNV.fill dest*, src*, size*, flags=0{
 		inlineObj _dest_base, dest, pcx
 		_src_idx = 0
 		virtual at _src_base
-			..test_base = $
+			..test_base_src rptr 1
 		end virtual
-		if ~(..test_base relativeto 0 | ..test_base relativeto psp | ..test_base relativeto pbp)
+		if ~(..test_base_src relativeto 0 | ..test_base_src relativeto psp | ..test_base_src relativeto pbp)
 			@loadGPR pdx, src
 			virtual at pdx
 				..src rptr 1
@@ -268,9 +268,9 @@ macro CNV.fill dest*, src*, size*, flags=0{
 			end if
 		end if
 		virtual at _dest_base
-			..test_base = $
+			..test_base_dest rptr 1
 		end virtual
-		if ~(..test_base relativeto 0 | ..test_base relativeto psp | ..test_base relativeto pbp)
+		if ~(..test_base_dest relativeto 0 | ..test_base_dest relativeto psp | ..test_base_dest relativeto pbp)
 			@loadGPR pcx, dest
 			virtual at pcx
 				..dest rptr 1
