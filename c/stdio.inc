@@ -249,7 +249,7 @@ importlib msvcrt,\
 	wprintf,\
 	_wprintf_l,\
 	wprintf_s,\
-	_wprintf_s_l
+	_wprintf_s_l,\
 	vswprintf,\
 	swprintf,\
 	fwscanf,\
@@ -267,7 +267,7 @@ importlib msvcrt,\
 	_wscanf_l,\
 	wscanf_s,\
 	_wscanf_s_l
-	
+
 ; match =ucrtbase, dllname\{
 ; 	importlib ucrtbase,\
 ; 		freopen,\
