@@ -67,10 +67,14 @@
 	; movq xmm2, [high_one]
 	; psllq xmm2, xmm3
 
+	; load qword 1 constant
+	pxor xmm3, xmm3
+	pcmpeqq xmm2, xmm2
+	psubq xmm3, xmm2 
+
 	sub ecx, edx
 	movd xmm2, ecx
 	psllq xmm0, xmm2
-	movq xmm3, [.one]
 	xor edx, edx
 	inc ecx
 	@@:
@@ -117,10 +121,6 @@
 		movq [.result.result], xmm0
 		; lea eax, [.result]
 		ret
-
-	; @const_align equ 16
-	.one @const dq 1
-	; restore @const_align
 .endp
 	
 .proc cdecl CNV.ui64sqrt(.num:QWORD) 
@@ -262,7 +262,8 @@
 	ret
 .endp
 
-.proc cdecl CNV.ui64mul(.a:QWORD, .b:QWORD)
+; avx2 old version, deprecated for compatibility
+.proc cdecl CNV.ui64mul_avx2(.a:QWORD, .b:QWORD)
 	.local .buf[4]:QWORD, .dest[2]:QWORD
 	movq xmm1, [.b]
 	movq xmm0, [.a]
@@ -299,30 +300,43 @@
 	ret
 .endp
 
+.proc cdecl CNV.ui64mul(.a:QWORD, .b:QWORD)
+	mov eax, dword[.a]
+	mul dword[.b]
+	mov ecx, dword[.a + 4]
+	imul ecx, dword[.b]
+	add edx, ecx
+	mov ecx, dword[.a]
+	imul ecx, dword[.b + 4]
+	add edx, ecx
+	ret
+.endp
+
 .proc cdecl CNV.ui64pow(.num:QWORD, .exp:DWORD) uses pbx
 	; @sarg @arg1, @arg2
-	.local .result:QWORD, .xmm0_save:QWORD
-	pcmpeqq xmm0, xmm0
-	pxor xmm1, xmm1
-	psubq xmm1, xmm0
-	movq [.result], xmm1
+	; .local .result:QWORD, .xmm1_save:QWORD
+	pcmpeqq xmm1, xmm1
+	pxor xmm0, xmm0
+	psubq xmm0, xmm1
+	; movq [.result], xmm0
 
 	mov ebx, [.exp]
-	movq xmm0, [.num]
+	movq xmm1, [.num]
 	.pow_loop:
 		test ebx, 1
 		jz .no_mul
-			movq [.xmm0_save], xmm0
-			$call [.result] = CNV|ui64mul([.result], qword xmm0)
-			movq xmm0, [.xmm0_save]
+			; movq [.xmm1_save], xmm1
+			; $call [.result] = CNV|ui64mul([.result], qword xmm1)
+			; movq xmm1, [.xmm1_save]
+			$call qword xmm0 = CNV|ui64mul(qword xmm0, qword xmm1)
 		.no_mul:
-		$call qword xmm0 = CNV|ui64mul(qword xmm0, qword xmm0)
+		$call qword xmm1 = CNV|ui64mul(qword xmm1, qword xmm1)
 		shr ebx, 1
 	test ebx, ebx
 	jnz .pow_loop
-	mov eax, dword[.result]
-	mov edx, dword[.result + 4]
-	ret
+	; mov eax, dword[.result]
+	; mov edx, dword[.result + 4]
+	$return qword xmm0
 .endp
 
 if used CMV.i32ToStr

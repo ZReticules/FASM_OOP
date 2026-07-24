@@ -135,9 +135,9 @@ FILL_SAVE_DI 	= 2
 ; 	else 
 ; 		inlineObj _dest, dest, pcx
 ; 		inlineObj _src, src, pdx
-; 		local _repeats, _rem, _src_, _dest_
-; 		_src_ = 0
-; 		_src equ _src + _src_
+; 		local _repeats, _rem, _src_idx, _dest_idx
+; 		_src_idx = 0
+; 		_src equ _src + _src_idx
 ; 		_repeats = repeats
 ; 		_rem = rem
 ; 		if repeats = 1
@@ -146,7 +146,7 @@ FILL_SAVE_DI 	= 2
 ; 			else 
 ; 				vmovdqu ymm0, yword[_src]
 ; 			end if
-; 			_src_ = _src_ + 32
+; 			_src_idx = _src_idx + 32
 ; 		end if
 ; 		repeats = rem / 16
 ; 		rem = rem mod 16
@@ -156,40 +156,40 @@ FILL_SAVE_DI 	= 2
 ; 			else 
 ; 				vmovdqu xmm1, xword[_src]
 ; 			end if
-; 			_src_ = _src_ + 16
+; 			_src_idx = _src_idx + 16
 ; 		end if
 ; 		repeats = rem / 8
 ; 		rem = rem mod 8
 ; 		if repeats = 1
 ; 			movq xmm3, qword[_src]
-; 			_src_ = _src_ + 8
+; 			_src_idx = _src_idx + 8
 ; 		end if
 ; 		repeats = rem / 4
 ; 		rem = rem mod 4
 ; 		if repeats = 1
 ; 			mov eax, dword[_src]
-; 			_src_ = _src_ + 4
+; 			_src_idx = _src_idx + 4
 ; 		end if
 ; 		repeats = rem / 2
 ; 		rem = rem mod 2
 ; 		if repeats = 1
 ; 			movzx ecx, word[_src]
-; 			_src_ = _src_ + 2
+; 			_src_idx = _src_idx + 2
 ; 		end if
 ; 		if rem = 1
 ; 			movzx edx, byte[_src]
 ; 		end if 
 ; 		repeats = _repeats
 ; 		rem = _rem
-; 		_dest_ = 0
-; 		_dest equ _dest + _dest_
+; 		_dest_idx = 0
+; 		_dest equ _dest + _dest_idx
 ; 		if repeats = 1
 ; 			if (_dest) relativeto 0 & ((_dest) mod 32 = 0)
 ; 				vmovdqa yword[_dest], ymm0
 ; 			else 
 ; 				vmovdqu yword[_dest], ymm0
 ; 			end if
-; 			_dest_ = _dest_ + 32
+; 			_dest_idx = _dest_idx + 32
 ; 		end if
 ; 		repeats = rem / 16
 ; 		rem = rem mod 16
@@ -199,25 +199,25 @@ FILL_SAVE_DI 	= 2
 ; 			else 
 ; 				vmovdqu xword[_dest], xmm1
 ; 			end if
-; 			_dest_ = _dest_+16
+; 			_dest_idx = _dest_idx+16
 ; 		end if
 ; 		repeats = rem / 8
 ; 		rem = rem mod 8
 ; 		if repeats = 1
 ; 			movq qword[_dest], xmm3
-; 			_dest_ = _dest_+8
+; 			_dest_idx = _dest_idx+8
 ; 		end if
 ; 		repeats = rem / 4
 ; 		rem = rem mod 4
 ; 		if repeats = 1
 ; 			mov dword[_dest], eax
-; 			_dest_ = _dest_+4
+; 			_dest_idx = _dest_idx+4
 ; 		end if
 ; 		repeats = rem / 2
 ; 		rem = rem mod 2
 ; 		if repeats = 1
 ; 			mov word[_dest], cx
-; 			_dest_ = _dest_+2
+; 			_dest_idx = _dest_idx+2
 ; 		end if
 ; 		if rem = 1
 ; 			mov byte[_dest], dl
@@ -237,81 +237,148 @@ FILL_FORCEALIGN_BOTH	= FILL_FORCEALIGN_SRC or FILL_FORCEALIGN_DST
 .endp
 
 macro CNV.fill dest*, src*, size*, flags=0{
-	local repeats, rem, _src, _dest, matched, ..src, ..dest
+	local repeats, rem, _src, _dest, matched, ..src, ..dest, _src_base
 	if size eqtype 0 & size relativeto 0
-		repeats = (size) / 32
-		rem = (size) mod 32
+		repeats = (size) / 16
+		rem = (size) mod 16
 	else
 		repeats = 1000
 	end if
-	if repeats < 4
-		inlineObj _src, src, pdx
-		virtual at _src
-			..src dptr ?
-		end virtual
-		inlineObj _dest, dest, pcx
-		virtual at _dest
-			..dest dptr ?
-		end virtual
-		local _repeats, _rem, _src_, _dest_
-		_src_ = 0
-		_src equ (..src + _src_)
-		_dest_ = 0
-		_dest equ (..dest + _dest_)
-		repeat repeats
-			if ((_src) relativeto 0 & ((_src) mod 32 = 0)) | flags and FILL_FORCEALIGN_SRC = FILL_FORCEALIGN_SRC
-				vmovdqa ymm0, yword[_src]
-			else 
-				vmovdqu ymm0, yword[_src]
+	if repeats <= 128
+		local _repeats, _rem, _src_idx, _dest_idx, src_aligned, dest_aligned
+		src_aligned 	= 0
+		dest_aligned 	= 0
+		inlineObj _src_base, src, pdx
+		inlineObj _dest_base, dest, pcx
+		_src_idx = 0
+		if ~(_src_base relativeto 0 | _src_base relativeto psp | _src_base relativeto pbp)
+			@loadGPR pdx, src
+			virtual at pdx
+				..src rptr 1
+			end virtual
+		else
+			virtual at _src_base
+				..src rptr 1
+			end virtual
+			if ((_src_base) relativeto 0 & ((_src_base) mod 16 = 0)) | flags and FILL_FORCEALIGN_SRC = FILL_FORCEALIGN_SRC
+				src_aligned = 1
 			end if
-			_src_ = _src_ + 32
-			if ((_dest) relativeto 0 & ((_dest) mod 32 = 0)) | flags and FILL_FORCEALIGN_DST = FILL_FORCEALIGN_DST
-				vmovdqa yword[_dest], ymm0
-			else 
-				vmovdqu yword[_dest], ymm0
-			end if
-			_dest_ = _dest_ + 32
-		end repeat
-		_rem = rem
-		repeats = rem / 16
-		rem = rem mod 16
-		if repeats = 1
-			if (_src) relativeto 0 & ((_src) mod 16 = 0)
-				vmovdqa xmm1, xword[_src]
-			else 
-				vmovdqu xmm1, xword[_src]
-			end if
-			_src_ = _src_ + 16
-			if (_dest) relativeto 0 & ((_dest) mod 16 = 0)
-				vmovdqa xword[_dest], xmm1
-			else 
-				vmovdqu xword[_dest], xmm1
-			end if
-			_dest_ = _dest_ + 16
 		end if
+		if ~(_dest_base relativeto 0 | _dest_base relativeto psp | _dest_base relativeto pbp)
+			@loadGPR pcx, dest
+			virtual at pcx
+				..dest rptr 1
+			end virtual
+		else
+			virtual at _dest_base
+				..dest rptr 1
+			end virtual
+			if ((_dest_base) relativeto 0 & ((_dest_base) mod 16 = 0)) | flags and FILL_FORCEALIGN_DST = FILL_FORCEALIGN_DST
+				dest_aligned = 1
+			end if
+		end if
+		_src equ (..src + _src_idx)
+		_dest_idx = 0
+		_dest equ (..dest + _dest_idx)
+		local ..loop
+		if repeats / 6
+			if repeats / 6 > 1
+				mov eax, (repeats / 6) * 96
+				..loop:
+					rept 6 cntr:0\{
+						if src_aligned
+							movaps xmm\#cntr, xword[_src + (pax - 96) + cntr * 16]
+						else 
+							movups xmm\#cntr, xword[_src + (pax - 96) + cntr * 16]
+						end if
+						; _src_idx = _src_idx + 16
+					\}
+					rept 6 cntr:0\{
+						if dest_aligned
+							movaps xword[_dest + (pax - 96) + cntr * 16], xmm\#cntr
+						else 
+							movups xword[_dest + (pax - 96) + cntr * 16], xmm\#cntr
+						end if
+						; _dest_idx = _dest_idx + 16
+					\}
+				sub eax, 96
+				jnz ..loop
+			else
+				rept 6 cntr:0\{
+					if src_aligned
+						movaps xmm\#cntr, xword[_src + cntr * 16]
+					else 
+						movups xmm\#cntr, xword[_src + cntr * 16]
+					end if
+					; _src_idx = _src_idx + 16
+				\}
+				rept 6 cntr:0\{
+					if dest_aligned
+						movaps xword[_dest + cntr * 16], xmm\#cntr
+					else 
+						movups xword[_dest + cntr * 16], xmm\#cntr
+					end if
+					; _dest_idx = _dest_idx + 16
+				\}
+			end if
+			_dest_idx = _dest_idx + (repeats / 6) * 96
+			_src_idx = _src_idx + (repeats / 6) * 96
+			display (repeats / 6)
+		end if
+		; end repeat
+		repeats = repeats mod 6
+		if repeats
+			repeat 1
+				rept 6 cntr:0\{
+					if cntr = repeats
+						break
+					end if
+					if dest_aligned
+						movaps xmm\#cntr, xword[_src]
+					else 
+						movups xmm\#cntr, xword[_src]
+					end if
+					_src_idx = _src_idx + 16
+				\}
+			end repeat
+			repeat 1
+				rept 6 cntr:0\{
+					if cntr = repeats
+						break
+					end if
+					if dest_aligned
+						movaps xword[_dest], xmm\#cntr
+					else 
+						movups xword[_dest], xmm\#cntr
+					end if
+					_dest_idx = _dest_idx + 16
+				\}
+			end repeat
+		end if
+		_rem = rem
 		repeats = rem / 8
 		rem = rem mod 8
 		if repeats = 1
-			movq xmm3, qword[_src]
-			_src_ = _src_ + 8
-			movq qword[_dest], xmm3
-			_dest_ = _dest_ + 8
+			movq xmm0, qword[_src]
+			_src_idx = _src_idx + 8
+			movq qword[_dest], xmm0
+			_dest_idx = _dest_idx + 8
 		end if
 		repeats = rem / 4
 		rem = rem mod 4
 		if repeats = 1
 			mov eax, dword[_src]
-			_src_ = _src_ + 4
+			_src_idx = _src_idx + 4
 			mov dword[_dest], eax
-			_dest_ = _dest_ + 4
+			_dest_idx = _dest_idx + 4
 		end if
 		repeats = rem / 2
 		rem = rem mod 2
 		if repeats = 1
 			movzx eax, word[_src]
-			_src_ = _src_ + 2
+			_src_idx = _src_idx + 2
 			mov word[_dest], ax
-			_dest_ = _dest_ + 2
+			_dest_idx = _dest_idx + 2
 		end if
 		if rem = 1
 			movzx eax, byte[_src]

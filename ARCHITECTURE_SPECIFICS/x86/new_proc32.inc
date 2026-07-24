@@ -179,12 +179,14 @@ rept 1{
 		procbuf_free floatbuf
 	\}
 	macro @set_std_qword_SSE src\{
+		; movd eax, src
+		; match =xmm0, src\\{rept 0\\{\\}rept 1\\{
+		; 	movq xmm0, src
+		; \\}
+		; psrlq xmm0, 32
+		; movd edx, xmm0
+		pextrd edx, src, 1
 		movd eax, src
-		match =xmm0, src\\{rept 0\\{\\}rept 1\\{
-			movq xmm0, src
-		\\}
-		psrlq xmm0, 32
-		movd edx, xmm0
 	\}
 	macro @set_std_dword_SSE src\{
 		movd eax, src
@@ -261,13 +263,17 @@ rept 1{
 			fldz
 		else if litval = 1.0
 			fld1
+		else if litval = -1.0
+			fld1
+			fchs
 		else
 			..lits @const dq litval
 			fld qword[..lits]
 		end if
 	\}
-	local fcmplit1
+	local fcmplit1, fcmplitn1
 	fcmplit1 = dword 1.0
+	fcmplit1 = dword -1.0
 	macro @set_std_float_lit src\{
 		\local ..lits
 		litval = dword src
@@ -275,6 +281,9 @@ rept 1{
 			fldz
 		else if litval = fcmplit1
 			fld1
+		else if litval = fcmplitn1
+			fld1
+			fchs
 		else
 			..lits @const dd litval
 			fld dword[..lits]

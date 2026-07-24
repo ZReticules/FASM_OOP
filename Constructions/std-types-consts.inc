@@ -58,6 +58,78 @@ alignof.yword 	= 32
 alignof.dqqword = 64
 alignof.zword 	= 64
 
+sizeof.rax	= 8
+sizeof.rbx	= 8
+sizeof.rcx	= 8
+sizeof.rdx	= 8
+sizeof.rsi	= 8
+sizeof.rdi	= 8
+sizeof.rsp	= 8
+sizeof.rbp	= 8
+sizeof.r8	= 8
+sizeof.r9	= 8
+sizeof.r10	= 8
+sizeof.r11	= 8
+sizeof.r12	= 8
+sizeof.r13	= 8
+sizeof.r14	= 8
+sizeof.r15	= 8
+
+sizeof.eax	= 4
+sizeof.ebx	= 4
+sizeof.ecx	= 4
+sizeof.edx	= 4
+sizeof.esi	= 4
+sizeof.edi	= 4
+sizeof.esp	= 4
+sizeof.ebp	= 4
+sizeof.r8d	= 4
+sizeof.r9d	= 4
+sizeof.r10d	= 4
+sizeof.r11d	= 4
+sizeof.r12d	= 4
+sizeof.r13d	= 4
+sizeof.r14d	= 4
+sizeof.r15d	= 4
+
+sizeof.ax	= 2
+sizeof.bx	= 2
+sizeof.cx	= 2
+sizeof.dx	= 2
+sizeof.si	= 2
+sizeof.di	= 2
+sizeof.sp	= 2
+sizeof.bp	= 2
+sizeof.r8w	= 2
+sizeof.r9w	= 2
+sizeof.r10w	= 2
+sizeof.r11w	= 2
+sizeof.r12w	= 2
+sizeof.r13w	= 2
+sizeof.r14w	= 2
+sizeof.r15w	= 2
+
+sizeof.al	= 1
+sizeof.ah	= 1
+sizeof.bl	= 1
+sizeof.bh	= 1
+sizeof.cl	= 1
+sizeof.ch	= 1
+sizeof.dl	= 1
+sizeof.dh	= 1
+sizeof.sil	= 1
+sizeof.dil	= 1
+sizeof.spl	= 1
+sizeof.bpl	= 1
+sizeof.r8l	= 1
+sizeof.r9l	= 1
+sizeof.r10l	= 1
+sizeof.r11l	= 1
+sizeof.r12l	= 1
+sizeof.r13l	= 1
+sizeof.r14l	= 1
+sizeof.r15l	= 1
+
 ; BYTE@builtin 	equ 1
 ; BYTE@datadef 	equ db
 ; WORD@builtin 	equ 1

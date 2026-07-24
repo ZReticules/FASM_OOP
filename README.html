@@ -1710,21 +1710,31 @@ body .markdown-body
 <span class="nf">mov</span> <span class="p">[</span><span class="no">foo</span><span class="p">],</span> <span class="mi">12</span> <span class="err">;</span> <span class="err">считает</span> <span class="err">что</span> <span class="no">dword</span>
 <span class="nf">mov</span> <span class="no">as_int32_t</span><span class="p">[</span><span class="no">eax</span><span class="p">],</span> <span class="mi">12</span> <span class="err">;</span> <span class="err">приведение</span> <span class="err">к</span> <span class="err">типу</span> <span class="err">алиаса</span> 
 </pre></div>
-Для создания алиасов на стандартные типы следует использовать название типа в нижнем регистре. Допустимы следующие названия:<br />
-- <code>byte</code><br />
-- <code>word</code><br />
-- <code>dword</code><br />
-- <code>pword</code><br />
-- <code>fword</code><br />
-- <code>qword</code><br />
-- <code>tbyte</code><br />
-- <code>tword</code><br />
-Кроме того, для корректной передачи параметров в функции, можно обьявить алиасы на следующие типы<br />
-- <code>real</code><br />
-- <code>float</code><br />
-- <code>double</code><br />
-В таком случае as_new_type будет раскрываться в название одного из этих типов и не будет работать для приведения типа адреса в инструкциях. При необходимости можно использовать <code>virtual</code> или <code>virtObj</code>.
-<!-- - <code>DQWORD</code><br />- <code>XWORD</code><br />- <code>QQWORD</code><br />- <code>YWORD</code><br />- <code>DQQWORD</code><br />- <code>ZWORD</code> --></p>
+Для создания алиасов на стандартные типы следует использовать название типа в нижнем регистре. Допустимы следующие названия:  </p>
+<ul>
+<li><code>byte</code>  </li>
+<li><code>word</code>  </li>
+<li><code>dword</code>  </li>
+<li><code>pword</code>  </li>
+<li><code>fword</code>  </li>
+<li><code>qword</code>  </li>
+<li><code>tbyte</code>  </li>
+<li><code>tword</code>  </li>
+</ul>
+<p>Кроме того, для корректной передачи параметров в функции, можно обьявить алиасы на следующие типы  </p>
+<ul>
+<li><code>real</code>  </li>
+<li><code>float</code>  </li>
+<li><code>double</code>  </li>
+</ul>
+<!-- - `dqword`  
+- `xword`  
+- `qqword`  
+- `yword`  
+- `dqqword`  
+- `zword` -->
+
+<p>В таком случае as_new_type будет раскрываться в название одного из этих типов и не будет работать для приведения типа адреса в инструкциях. При необходимости можно использовать <code>virtual</code> или <code>virtObj</code>.</p>
 <h2 id="5">5. Заголовки язка Си<a name="c-headers"/><a class="headerlink" href="#5" title="Permanent link"></a></h2>
 <p>В пакет входит набор заголовков стандартной библиотеки Си, использующих <code>msvcrt.dll</code>. В связи с особенностями языка ассемблера, его отличающейся макросистемы и особенностей самой <code>msvcrt.dll</code> некоторые функции, макросы или глобальне переменные могут отсутствовать или работать не так, как описывает стандарт. В пунктах этой части описаны только отклонения, связанные с особенностями языка/компилятора. За основу брались заголовки отсюда: <a href="https://github.com/wine-mirror/wine/tree/master/include/msvcrt">https://github.com/wine-mirror/wine/tree/master/include/msvcrt</a>.<br />
 Все перечисленные заголовки подключаются как <code>include "FASM_OOP/c/header</code>.  </p>

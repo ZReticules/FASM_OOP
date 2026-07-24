@@ -115,15 +115,15 @@
 .endp
 
 macro CNV.ui64mul a, b{
-	@fillGPR pdx, b
-	@fillGPR pax, a
+	@loadGPR pdx, b
+	@loadGPR pax, a
 	mul pdx
 }
 
 macro CNV.ui64div result, dividend, divisor{
-	@fillGPR r8, divisor
-	@fillGPR rdx, dividend
-	@fillGPR rcx, result
+	@loadGPR r8, divisor
+	@loadGPR rdx, dividend
+	@loadGPR rcx, result
 	xor rax, rax
 	xchg rax, rdx
 	div r8

@@ -50,7 +50,7 @@ macro api [name] {
 }
 
 include "std_redefs/redef_proc.inc"
-include "std_redefs/new_proc.inc"
+include "new_proc.inc"
 
 include "FASM_OOP/FASM_OOP.inc"
 include "importlib.inc"

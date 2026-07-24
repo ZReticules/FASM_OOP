@@ -59,7 +59,7 @@
 	    	fromInt64 	dm this
 	    	addInt64 	dm this
     	\}
-	    slice       	dm this			;(indexFrom,indexTo) 
+	    slice       	dm this			;(src,indexFrom,indexTo) 
 	    vsprintf 		dm this			;(fstr, va_list)
 	    sprintf     	dm this			;(fstr, ...)
 	    streamRead		dm this			;(fp, delimiter, delimiter_callback, eof_callback, lParam)
@@ -120,7 +120,7 @@
 	    	addInt64 	dm this
     	\}
 	    
-	    slice       	dm this			;(indexFrom,indexTo) 
+	    slice       	dm this			;(src,indexFrom,indexTo) 
 	    vsprintf 		dm this			;(fstr, va_list)
 	    sprintf     	dm this			;(fstr, ...)
 	    

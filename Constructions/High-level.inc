@@ -420,7 +420,9 @@
 			name#@typedef equ 1
 			name#@defined equ 1
 			as_#name equ origin
+			.alignmode_cdecl
 			typedef P_#name, pointer
+			.alignmode_previous
 		\}
 		match =1|origin_t, origin#@typedef|as_#origin\{
 			\local align_val, alignof
@@ -455,7 +457,9 @@
 			name#@typedef equ 1
 			name#@defined equ 1
 			as_#name equ origin_t
+			.alignmode_cdecl
 			typedef P_#name, pointer
+			.alignmode_previous
 		\}
 		match =1, origin#@is_struct\{
 			struct name origin

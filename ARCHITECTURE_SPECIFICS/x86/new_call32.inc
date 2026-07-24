@@ -322,8 +322,13 @@ rept 1{
 		if ~defined current@frame & args_start eq esp
 			push dword adef
 		else
-			movd xmm5, dword adef
-			movd dword[args_start + stack_space - stack_counter], xmm5
+			if ax_need_save
+				movd xmm5, dword adef
+				movd dword[args_start + stack_space - stack_counter], xmm5
+			else
+				mov eax, dword adef
+				mov dword[args_start + stack_space - stack_counter], eax
+			end if
 		end if
 	\}
 	macro cdecl@load_word_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
@@ -392,8 +397,13 @@ rept 1{
 		if ~defined current@frame & args_start eq esp
 			push dword adef
 		else
-			movd xmm5, dword adef
-			movd dword[args_start + stack_space - stack_counter], xmm5
+			if ax_need_save
+				movd xmm5, dword adef
+				movd dword[args_start + stack_space - stack_counter], xmm5
+			else
+				mov eax, dword adef
+				mov dword[args_start + stack_space - stack_counter], eax
+			end if
 		end if
 	\}
 	macro cdecl@load_real_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
@@ -734,17 +744,8 @@ rept 1{
 		procbuf_free floatbuf
 	\}
 	macro @get_std_qword_SSE dest\{
-		match =xmm1, dest\\{
-			movd xmm0, edx
-			movd dest, eax
-			psllq xmm0, 32
-			por dest, xmm0
-		rept 0\\{\\}rept 1\\{
-			movd xmm1, edx
-			movd dest, eax
-			psllq xmm1, 32
-			por dest, xmm1
-		\\}
+		movd dest, eax
+		pinsrd dest, edx, 1
 	\}
 	macro @get_std_dword_SSE dest\{
 		movd dest, eax
