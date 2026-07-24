@@ -166,7 +166,108 @@ importlib msvcrt,\
 	sprintf,\
 	_sprintf_l,\
 	_iob
-; \}
+
+match =FILE_t#@defined, FILE_t#@defined\{
+	.alignmode_cdecl
+	struct FILE_t
+		_ptr		rptr 1;
+		_cnt		rd 1;
+		_base		rptr 1;
+		_flag		rd 1;
+		_file		rd 1;
+		_charbuf	rd 1;
+		_bufsiz		rd 1;
+		_tmpfname	rptr 1;
+	ends
+	.alignmode_previous
+\}
+
+define WEOF        0xFFFF
+
+importlib msvcrt,\
+	_fgetwc_nolock,\
+	_fgetwchar,\
+	_fputwc_nolock,\
+	_fputwchar,\
+	_getwc_nolock,\
+	_getws,\
+	_putwc_nolock,\
+	_putws,\
+	_ungetwc_nolock,\
+	_wfdopen,\
+	_wfopen,\
+	_wfopen_s,\
+	_wfreopen,\
+	_wfsopen,\
+	_wperror,\
+	_wpopen,\
+	_wremove,\
+	_wtempnam,\
+	_wtmpnam,\
+	fgetwc,\
+	fgetws,\
+	fputwc,\
+	fputws,\
+	fputws,\
+	getwc,\
+	getwchar,\
+	getws,\
+	putwc,\
+	putwchar,\
+	putws,\
+	ungetwc,\
+	_scwprintf,\
+	_scwprintf_l,\
+	_snwprintf,\
+	_snwprintf_l,\
+	_snwprintf_s,\
+	_snwprintf_s_l,\
+	_vscwprintf,\
+	_vscwprintf_l,\
+	_vscwprintf_p_l,\
+	_vsnwprintf,\
+	_vsnwprintf_l,\
+	_vsnwprintf_s,\
+	_vsnwprintf_s_l,\
+	_vswprintf_p_l,\
+	fwprintf,\
+	_fwprintf_l,\
+	fwprintf_s,\
+	_fwprintf_s_l,\
+	swprintf_s,\
+	_swprintf_s_l,\
+	vfwprintf,\
+	_vfwprintf_l,\
+	vfwprintf_s,\
+	_vfwprintf_s_l,\
+	vswprintf_s,\
+	_vswprintf_s_l,\
+	vwprintf,\
+	_vwprintf_l,\
+	vwprintf_s,\
+	_vwprintf_s_l,\
+	wprintf,\
+	_wprintf_l,\
+	wprintf_s,\
+	_wprintf_s_l
+	vswprintf,\
+	swprintf,\
+	fwscanf,\
+	_fwscanf_l,\
+	fwscanf_s,\
+	_fwscanf_s_l,\
+	swscanf,\
+	_swscanf_l,\
+	swscanf_s,\
+	_swscanf_s_l,\
+	vfwscanf,\
+	vswscanf,\
+	vwscanf,\
+	wscanf,\
+	_wscanf_l,\
+	wscanf_s,\
+	_wscanf_s_l
+	
 ; match =ucrtbase, dllname\{
 ; 	importlib ucrtbase,\
 ; 		freopen,\
