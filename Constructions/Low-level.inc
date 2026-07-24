@@ -176,6 +176,9 @@
 				\\\}
 			\\}
 		\}
+		macro @loadGPR_mem dest, size, val&\{
+			mov dest, pointer[val]
+		\}
 		macro @loadGPR dest, val\{
 			_parse@arg src_type, src_def, val
 			match size type, src_type\\{
