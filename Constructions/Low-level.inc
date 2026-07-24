@@ -75,7 +75,7 @@
 	rept 1{
 		local membuf
 		local src_type, src_def
-		local @32bit
+		local @32bit, @64bit
 		rax#@32bit	equ eax
 		rbx#@32bit	equ ebx
 		rcx#@32bit	equ ecx
@@ -155,15 +155,25 @@
 				end if
 			\\}
 		\}
-		macro @loadGPR_qword dest, size, val&\{
-			match high:low, val\\{
-				if low eqtype 0
+		match =x64, __architecture\{
+			macro @loadGPR_qword dest, size, val&\\{
+				match high:low, val\\\{
+					if low eqtype 0 & high eqtype 0
+						mov dest, low + (high shl 32)
+					else
+						mov r15d, high
+						shl r15, 32
+						mov dest\\#@32bit, low
+						or dest, r15
+					end if
+				\\\}
+			\\}
+		\}
+		match =x86, __architecture\{
+			macro @loadGPR_qword dest, size, val&\\{
+				match high:low, val\\\{
 					mov dest, low
-				else if sizeof.\#dest = sizeof.\#low
-					mov dest, low
-				else
-					mov dest\#@32bit, low
-				end if
+				\\\}
 			\\}
 		\}
 		macro @loadGPR dest, val\{
