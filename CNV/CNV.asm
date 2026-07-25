@@ -329,7 +329,6 @@ macro CNV.fill dest*, src*, size*, flags=0{
 			end if
 			_dest_idx = _dest_idx + (repeats / 6) * 96
 			_src_idx = _src_idx + (repeats / 6) * 96
-			display (repeats / 6)
 		end if
 		; end repeat
 		repeats = repeats mod 6
