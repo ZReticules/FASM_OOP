@@ -431,9 +431,10 @@ rept 1 {
 	\}
 }
 
-@$AX_SAVED		= 1
-@$AX_DESTROYED	= 10b
-@$AX_NEED_SAVE	= 100b
+@$AX_SAVED			= 1
+@$AX_DESTROYED		= 10b
+@$AX_NEED_SAVE		= 100b
+@$AX_CAN_BE_DEST	= 1000b
 
 rept 1{
 	local origin, mode_rm, sib, offset

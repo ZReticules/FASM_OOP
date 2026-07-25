@@ -35,15 +35,15 @@ rept 1{
 	local _argN
 	local checkAx
 
-	macro cdecl@va_load args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, atype, adef\{
+	macro cdecl@va_load args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, atype, adef\{
 		; display adef
 		match _mp1 _mp2, atype\\{
 			match _mp3, cdecl@load_\\#_mp1\\#_\\#_mp2\\\{
-				_mp3 args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef
+				_mp3 args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef
 			\\\}
 		\\}
 	\}
-	macro cdecl@load_va_list args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, [adef]\{
+	macro cdecl@load_va_list args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, [adef]\{
 		\common
 		\local _stack_space 
 		stack_counter = stack_counter + 4
@@ -62,7 +62,7 @@ rept 1{
 		\\}
 		rept 1 _argN:arg_cnt - cntr + 1\\{
 			_parse@arg arg_type, arg_def, adef
-			cdecl@va_load va@list, _stack_space, _stack_counter, ax_state, ax_need_save, ax_place, _argN, arg_type, arg_def
+			cdecl@va_load va@list, _stack_space, _stack_counter, ax_state, ax_final_flags, ax_place, _argN, arg_type, arg_def
 		\\}
 		\common
 		_stack_space = _stack_counter
@@ -76,21 +76,27 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], eax
 		end if
 	\}
-	macro cdecl@load_sep_qword args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_sep_qword args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 8
 		match _mp1:_mp2, adef\\{
-			if _mp2 eq eax & ax_state and @$AX_DESTROYED
-				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
-				mov eax, dword[ax_place]
+			if _mp2 eq eax 
+				ax_state = ax_state or @$AX_CAN_BE_DEST
+				if ax_state and @$AX_DESTROYED
+					ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
+					mov eax, dword[ax_place]
+				end if
 			end if
 			if ~defined current@frame & args_start eq esp
 				push _mp2
 			else
 				mov dword[args_start + stack_space - stack_counter], _mp2
 			end if
-			if _mp1 eq eax & ax_state and @$AX_DESTROYED
-				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
-				mov eax, dword[ax_place]
+			if _mp1 eq eax 
+				ax_state = ax_state or @$AX_CAN_BE_DEST
+				if ax_state and @$AX_DESTROYED
+					ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
+					mov eax, dword[ax_place]
+				end if
 			end if
 			if ~defined current@frame & args_start eq esp
 				push _mp1
@@ -99,7 +105,7 @@ rept 1{
 			end if
 		\\}
 	\}
-	macro cdecl@load_addr args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_addr args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
 		if adef relativeto 0
 			if ~defined current@frame & args_start eq esp
@@ -108,6 +114,7 @@ rept 1{
 				mov dword[args_start + stack_space - stack_counter], adef
 			end if
 		else if adef relativeto eax
+			ax_state = ax_state or @$AX_CAN_BE_DEST
 			if ax_state and @$AX_DESTROYED
 				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
 				mov eax, dword[ax_place]
@@ -139,9 +146,12 @@ rept 1{
 		\\}
 		else
 			has@reg_in_addr checkAx, [adef], ax
-			if checkAx & ax_state and @$AX_DESTROYED
-				ax_state = ax_state or @$AX_NEED_SAVE
-				mov eax, dword[ax_place]
+			if checkAx
+				ax_state = ax_state or @$AX_CAN_BE_DEST
+				if ax_state and @$AX_DESTROYED
+					ax_state = ax_state or @$AX_NEED_SAVE
+					mov eax, dword[ax_place]
+				end if
 			end if
 			ax_state = ax_state or @$AX_DESTROYED
 			lea eax, [adef]
@@ -152,7 +162,7 @@ rept 1{
 			end if
 		end if
 	\}
-	macro cdecl@load_qword_addr args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_qword_addr args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 8
 		if adef relativeto 0
 			if ~defined current@frame & args_start eq esp
@@ -163,6 +173,7 @@ rept 1{
 				mov dword[args_start + stack_space - stack_counter + 4], 0
 			end if
 		else if adef relativeto eax
+			ax_state = ax_state or @$AX_CAN_BE_DEST
 			if ax_state and @$AX_DESTROYED
 				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
 				mov eax, dword[ax_place]
@@ -198,9 +209,12 @@ rept 1{
 		\\}
 		else
 			has@reg_in_addr checkAx, [adef], ax
-			if checkAx & ax_state and @$AX_DESTROYED
-				ax_state = ax_state or @$AX_NEED_SAVE
-				mov eax, dword[ax_place]
+			if checkAx
+				ax_state = ax_state or @$AX_CAN_BE_DEST
+				if ax_state and @$AX_DESTROYED
+					ax_state = ax_state or @$AX_NEED_SAVE
+					mov eax, dword[ax_place]
+				end if
 			end if
 			ax_state = ax_state or @$AX_DESTROYED
 			lea eax, [adef]
@@ -215,7 +229,7 @@ rept 1{
 	\}
 	macro cdecl@load_dword_addr args&\{cdecl@load_addr args\}
 	local litval
-	macro cdecl@load_lit args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_lit args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		litval = dword adef
 		stack_counter = stack_counter + 4
 		if ~defined current@frame & args_start eq esp
@@ -224,7 +238,7 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], litval
 		end if
 	\}
-	macro cdecl@load_qword_lit args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_qword_lit args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		litval = qword adef
 		stack_counter = stack_counter + 8
 		if ~defined current@frame & args_start eq esp
@@ -235,7 +249,7 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter + 4], litval shr 32
 		end if
 	\}
-	macro cdecl@load_dword_lit args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_dword_lit args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
 		litval = dword adef
 		if ~defined current@frame & args_start eq esp
@@ -244,7 +258,7 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], litval
 		end if
 	\}
-	macro cdecl@load_word_lit args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_word_lit args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		litval = word adef
 		stack_counter = stack_counter + 4
 		if ~defined current@frame & args_start eq esp
@@ -253,7 +267,7 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], litval
 		end if
 	\}
-	macro cdecl@load_byte_lit args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_byte_lit args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		litval = byte adef
 		stack_counter = stack_counter + 4
 		if ~defined current@frame & args_start eq esp
@@ -262,7 +276,7 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], litval
 		end if
 	\}
-	macro cdecl@load_double_lit args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_double_lit args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		litval = qword adef
 		stack_counter = stack_counter + 8
 		if ~defined current@frame & args_start eq esp
@@ -273,7 +287,7 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter + 4], litval shr 32
 		end if
 	\}
-	macro cdecl@load_float_lit args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_float_lit args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		litval = dword adef
 		stack_counter = stack_counter + 4
 		if ~defined current@frame & args_start eq esp
@@ -282,7 +296,7 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], litval
 		end if
 	\}
-	macro cdecl@load_real_lit args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_real_lit args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		litval = word adef
 		stack_counter = stack_counter + 4
 		if ~defined current@frame & args_start eq esp
@@ -291,11 +305,12 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], litval
 		end if
 	\}
-	macro cdecl@load_qword_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_qword_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 8
-		if ax_state and @$AX_DESTROYED
-			has@reg_in_addr checkAx, adef, ax
-			if checkAx
+		has@reg_in_addr checkAx, adef, ax
+		if checkAx
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
 				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
 				mov eax, dword[ax_place]
 			end if
@@ -310,11 +325,12 @@ rept 1{
 			movq qword[args_start + stack_space - stack_counter], xmm5
 		end if
 	\}
-	macro cdecl@load_dword_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_dword_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
-		if ax_state and @$AX_DESTROYED
-			has@reg_in_addr checkAx, adef, ax
-			if checkAx
+		has@reg_in_addr checkAx, adef, ax
+		if checkAx
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
 				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
 				mov eax, dword[ax_place]
 			end if
@@ -322,20 +338,22 @@ rept 1{
 		if ~defined current@frame & args_start eq esp
 			push dword adef
 		else
-			if ax_need_save
+			if ax_final_flags and @$AX_CAN_BE_DEST
 				movd xmm5, dword adef
 				movd dword[args_start + stack_space - stack_counter], xmm5
 			else
 				mov eax, dword adef
 				mov dword[args_start + stack_space - stack_counter], eax
 			end if
+				; ax_state = ax_state or @$AX_DESTROYED
 		end if
 	\}
-	macro cdecl@load_word_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_word_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
-		if ax_state and @$AX_DESTROYED
-			has@reg_in_addr checkAx, adef, ax
-			if checkAx
+		has@reg_in_addr checkAx, adef, ax
+		if checkAx
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
 				ax_state = ax_state or @$AX_NEED_SAVE
 				mov eax, dword[ax_place]
 			end if
@@ -349,11 +367,12 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], eax
 		end if
 	\}
-	macro cdecl@load_byte_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_byte_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
-		if ax_state and @$AX_DESTROYED
-			has@reg_in_addr checkAx, adef, ax
-			if checkAx
+		has@reg_in_addr checkAx, adef, ax
+		if checkAx
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
 				ax_state = ax_state or @$AX_NEED_SAVE
 				mov eax, dword[ax_place]
 			end if
@@ -366,11 +385,12 @@ rept 1{
 			mov [args_start + stack_space - stack_counter], eax
 		end if
 	\}
-	macro cdecl@load_double_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_double_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 8
-		if ax_state and @$AX_DESTROYED
-			has@reg_in_addr checkAx, adef, ax
-			if checkAx
+		has@reg_in_addr checkAx, adef, ax
+		if checkAx
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
 				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
 				mov eax, dword[ax_place]
 			end if
@@ -385,11 +405,12 @@ rept 1{
 			movq qword[args_start + stack_space - stack_counter], xmm5
 		end if
 	\}
-	macro cdecl@load_float_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_float_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
-		if ax_state and @$AX_DESTROYED
-			has@reg_in_addr checkAx, adef, ax
-			if checkAx
+		has@reg_in_addr checkAx, adef, ax
+		if checkAx
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
 				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
 				mov eax, dword[ax_place]
 			end if
@@ -397,20 +418,22 @@ rept 1{
 		if ~defined current@frame & args_start eq esp
 			push dword adef
 		else
-			if ax_need_save
+			if ax_final_flags and @$AX_CAN_BE_DEST
 				movd xmm5, dword adef
 				movd dword[args_start + stack_space - stack_counter], xmm5
 			else
 				mov eax, dword adef
 				mov dword[args_start + stack_space - stack_counter], eax
+				ax_state = ax_state or @$AX_DESTROYED
 			end if
 		end if
 	\}
-	macro cdecl@load_real_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_real_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
-		if ax_state and @$AX_DESTROYED
-			has@reg_in_addr checkAx, adef, ax
-			if checkAx
+		has@reg_in_addr checkAx, adef, ax
+		if checkAx
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
 				ax_state = ax_state or @$AX_NEED_SAVE
 				mov eax, dword[ax_place]
 			end if
@@ -425,26 +448,27 @@ rept 1{
 		end if
 	\}
 	local origin, opcode, mem_size
-	macro cdecl@load_unk_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_unk_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		sizeof@addr mem_size, adef
-		if ax_state and @$AX_DESTROYED
-			has@reg_in_addr checkAx, adef, ax
-			if checkAx
+		has@reg_in_addr checkAx, adef, ax
+		if checkAx
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
 				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
 				mov eax, dword[ax_place]
 			end if
 		end if
 		if mem_size = 8
-			cdecl@load_qword_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef
+			cdecl@load_qword_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef
 		else if mem_size = 4
-			cdecl@load_dword_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef
+			cdecl@load_dword_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef
 		else if mem_size = 2
-			cdecl@load_word_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef
+			cdecl@load_word_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef
 		else
-			cdecl@load_byte_mem args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef
+			cdecl@load_byte_mem args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef
 		end if
 	\}
-	macro cdecl@load_qword_SSE args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_qword_SSE args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 8
 		if ~defined current@frame & args_start eq esp
 			sub esp, 8
@@ -453,7 +477,7 @@ rept 1{
 			movq qword[args_start + stack_space - stack_counter], adef
 		end if
 	\}
-	macro cdecl@load_dword_SSE args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_dword_SSE args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
 		if ~defined current@frame & args_start eq esp
 			sub esp, 8
@@ -462,7 +486,7 @@ rept 1{
 			movd dword[args_start + stack_space - stack_counter], adef
 		end if
 	\}
-	macro cdecl@load_double_SSE args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_double_SSE args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 8
 		if ~defined current@frame & args_start eq esp
 			sub esp, 8
@@ -471,7 +495,7 @@ rept 1{
 			movq qword[args_start + stack_space - stack_counter], adef
 		end if
 	\}
-	macro cdecl@load_float_SSE args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_float_SSE args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
 		if ~defined current@frame & args_start eq esp
 			sub esp, 8
@@ -480,11 +504,14 @@ rept 1{
 			movd dword[args_start + stack_space - stack_counter], adef
 		end if
 	\}
-	macro cdecl@load_dword_GPR args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_dword_GPR args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
-		if adef eq eax & ax_state and @$AX_DESTROYED
-			ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
-			mov eax, dword[ax_place]
+		if adef eq eax 
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
+				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
+				mov eax, dword[ax_place]
+			end if
 		end if
 		if ~defined current@frame & args_start eq esp
 			push adef
@@ -492,11 +519,14 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], adef
 		end if
 	\}
-	macro cdecl@load_word_GPR args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_word_GPR args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
-		if adef eq ax & ax_state and @$AX_DESTROYED
-			ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
-			mov eax, dword[ax_place]
+		if adef eq ax 
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
+				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
+				mov eax, dword[ax_place]
+			end if
 		end if
 		if ~defined current@frame & args_start eq esp
 			push word 0
@@ -505,11 +535,14 @@ rept 1{
 			mov word[args_start + stack_space - stack_counter], adef
 		end if
 	\}
-	macro cdecl@load_byte_GPR args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_byte_GPR args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
-		if (adef eq al | adef eq ah) & ax_state and @$AX_DESTROYED
-			ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
-			mov eax, dword[ax_place]
+		if (adef eq al | adef eq ah) 
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
+				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
+				mov eax, dword[ax_place]
+			end if
 		end if
 		if ~defined current@frame & args_start eq esp
 			sub esp, 4
@@ -518,11 +551,14 @@ rept 1{
 			mov byte[args_start + stack_space - stack_counter], adef
 		end if
 	\}
-	macro cdecl@load_float_GPR args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_float_GPR args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
-		if adef eq eax & ax_state and @$AX_DESTROYED
-			ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
-			mov eax, dword[ax_place]
+		if adef eq eax 
+			ax_state = ax_state or @$AX_CAN_BE_DEST
+			if ax_state and @$AX_DESTROYED
+				ax_state = (ax_state or @$AX_NEED_SAVE) xor @$AX_DESTROYED
+				mov eax, dword[ax_place]
+			end if
 		end if
 		if ~defined current@frame & args_start eq esp
 			push adef
@@ -530,7 +566,7 @@ rept 1{
 			mov dword[args_start + stack_space - stack_counter], adef
 		end if
 	\}
-	macro cdecl@load_double_FPU args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_double_FPU args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 8
 		match =st0, adef\\{rept 0\\{\\}rept 1\\{
 			fxch adef
@@ -542,7 +578,7 @@ rept 1{
 			fstp qword[args_start + stack_space - stack_counter]
 		end if
 	\}
-	macro cdecl@load_float_FPU args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_float_FPU args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
 		match =st0, adef\\{rept 0\\{\\}rept 1\\{
 			fxch adef
@@ -554,7 +590,7 @@ rept 1{
 			fstp dword[args_start + stack_space - stack_counter]
 		end if
 	\}
-	macro cdecl@load_qword_FPU args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_qword_FPU args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 8
 		match =st0, adef\\{rept 0\\{\\}rept 1\\{
 			fxch adef
@@ -566,7 +602,7 @@ rept 1{
 			fstp qword[args_start + stack_space - stack_counter]
 		end if
 	\}
-	macro cdecl@load_dword_FPU args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, adef\{
+	macro cdecl@load_dword_FPU args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, adef\{
 		stack_counter = stack_counter + 4
 		match =st0, adef\\{rept 0\\{\\}rept 1\\{
 			fxch adef
@@ -578,10 +614,10 @@ rept 1{
 			fstp dword[args_start + stack_space - stack_counter]
 		end if
 	\}
-	macro cdecl@load args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, atype, adef\{
+	macro cdecl@load args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, atype, adef\{
 		match _mp1 _mp2, atype\\{
 			match _mp3 _mp4, cdecl@load_\\#_mp1\\#_\\#_mp2 adef\\\{
-				_mp3 args_start, stack_space, stack_counter, ax_state, ax_need_save, ax_place, argn, _mp4
+				_mp3 args_start, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, argn, _mp4
 			\\\}
 		\\}
 	\}
@@ -596,8 +632,8 @@ rept 1{
 		match , args\\{
 			call proc
 		rept 0\\{\\} rept 1\\{
-			\\local ax_need_save, stack_space
-			if ax_need_save
+			\\local ax_final_flags, stack_space
+			if ax_final_flags and @$AX_NEED_SAVE
 				procbuf_alloc ax_place, 4
 				mov dword[ax_place], eax
 			end if
@@ -625,10 +661,10 @@ rept 1{
 			\\\}
 			rept 1 _argN:arg_cnt - cntr + 1\\\{
 				_parse@arg arg_type, arg_def, <args>
-				cdecl@load esp, stack_space, stack_counter, ax_state, ax_need_save, ax_place, _argN, arg_type, arg_def
+				cdecl@load esp, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, _argN, arg_type, arg_def
 			\\\}
 			\common
-			if ax_need_save
+			if ax_final_flags and @$AX_NEED_SAVE
 				procbuf_free ax_place
 			end if
 			stack_space = stack_counter
@@ -636,11 +672,12 @@ rept 1{
 			if stack_space & ~defined current@frame
 				lea esp, [esp + stack_size]
 			end if 
-			if ax_state and @$AX_NEED_SAVE
-				ax_need_save = 1
-			else
-				ax_need_save = 0
-			end if
+			ax_final_flags = ax_state and (@$AX_NEED_SAVE or @$AX_CAN_BE_DEST)
+			; if ax_state and @$AX_NEED_SAVE
+			; 	ax_final_flags = 1
+			; else
+			; 	ax_final_flags = 0
+			; end if
 		\\}
 	\}
 	macro @stdcall proc, [args]\{
@@ -648,8 +685,8 @@ rept 1{
 		match , args\\{
 			call proc
 		rept 0\\{\\} rept 1\\{
-			\\local ax_need_save, stack_space
-			if ax_need_save
+			\\local ax_final_flags, stack_space
+			if ax_final_flags and @$AX_NEED_SAVE
 				procbuf_alloc ax_place, 4
 				mov [ax_place], eax
 			end if
@@ -677,10 +714,10 @@ rept 1{
 			\\\}
 			rept 1 _argN:arg_cnt - cntr + 1\\\{
 				_parse@arg arg_type, arg_def, <args>
-				cdecl@load esp, stack_space, stack_counter, ax_state, ax_need_save, ax_place, _argN, arg_type, arg_def
+				cdecl@load esp, stack_space, stack_counter, ax_state, ax_final_flags, ax_place, _argN, arg_type, arg_def
 			\\\}
 			\common
-			if ax_need_save
+			if ax_final_flags and @$AX_NEED_SAVE
 				procbuf_free ax_place
 			end if
 			stack_space = stack_counter
@@ -688,11 +725,12 @@ rept 1{
 			if stack_space & defined current@frame
 				lea esp, [esp - stack_size]
 			end if 
-			if ax_state and @$AX_NEED_SAVE
-				ax_need_save = 1
-			else
-				ax_need_save = 0
-			end if
+			ax_final_flags = ax_state and (@$AX_NEED_SAVE or @$AX_CAN_BE_DEST)
+			; if ax_state and @$AX_NEED_SAVE
+			; 	ax_final_flags = 1
+			; else
+			; 	ax_final_flags = 0
+			; end if
 		\\}
 	\}
 	macro @ccall args&\{ @cdeclcall args \}
