@@ -182,7 +182,7 @@ macro DIALOGFORM.close this, result=NULL{
 ; .endp
 
 .proc stdcall DIALOGFORM.ScaleChildsEnumProc(.hWnd, .lParam) uses pbx psi
-	@sarg @arg1, @arg2
+	@sarg @arg1
 	@larg pbx, @arg2
 
 	virtual at pbx
@@ -291,7 +291,7 @@ macro DIALOGFORM.close this, result=NULL{
 		imul eax, [.new + pcx]
 		xor edx, edx
 		div dword[.def + pcx]
-		jmp [.retFromScale]
+		; jmp [.retFromScale]
 
 	.saveStartPos:
 		jmp [.retFromScale]
@@ -372,10 +372,26 @@ macro DIALOGFORM.close this, result=NULL{
 	.local .sizesRect:RECT, .defaultSize:SIZE
 	$call [GetClientRect]([.this.hWnd], &.sizesRect)
 	$call CNV|fill(&.sizesRect.left, &.this.sData.baseRect.right, sizeof.POINT)
-	$call CNV|fill(&.defaultSize, &.this.sData.defaultSize, sizeof.POINT)
+	$call CNV|fill(&.defaultSize, &.this.sData.defaultSize, sizeof.SIZE)
 	$call [EnumChildWindows]([.this.hWnd], DIALOGFORM.ScaleChildsEnumProc, &.sizesRect)
 	ret
 .endp
+
+macro DIALOGFORM.getBaseRect this, dest{
+	local _this, _dest
+	inlineObj _dest, dest, pdx
+	inlineObj _this, this, pcx
+	movups xmm0, xword[_this + DIALOGFORM.sData.baseRect]
+	movups xword[_dest], xmm0
+}
+
+macro DIALOGFORM.setBaseRect this, src{
+	local _this, _src
+	inlineObj _src, src, pdx
+	inlineObj _this, this, pcx
+	movups xmm0, xword[_src]
+	movups xword[_this + DIALOGFORM.sData.baseRect], xmm0
+}
 
 ; .proc DIALOGFORM.__ScaleChildRectsEnumProc uses pbx psi, hWnd, .lParam
 ; 	@sarg @arg1, @arg2

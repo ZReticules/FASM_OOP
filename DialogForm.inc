@@ -98,13 +98,13 @@ struct DIALOGFORM WINAPI_WINDOW
 	const _charset			= DEFAULT_CHARSET
 	const _font 			equ "Segoe UI Variable"
 
-	idCount 				dd ?
+	idCount 				rd 1
 	sData 					DLG_SERVICE_DATA
 	; bgColorBrush 			dptr ?
-	hDialogTemplate 		dptr ?
+	hDialogTemplate 		rptr 1
 	; lpDialogFunc 			dptr ?
 	; hTheme 					dptr ?
-	__close 				dptr ?
+	__close 				rptr 1
 
 	; setBgColor				dm this
 	; unsetBgColor			dm this
@@ -120,6 +120,8 @@ struct DIALOGFORM WINAPI_WINDOW
 	start 					dm this:inline
 	close 					dm this:inline
 	setIcon 				dm this:inline
+	getBaseRect				dm this:inline
+	setBaseRect				dm this:inline
 
 	; getClientSize			dm this:inline
 	; getWindowSize 			dm this:inline

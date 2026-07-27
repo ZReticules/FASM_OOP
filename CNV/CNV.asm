@@ -887,15 +887,17 @@ macro CNV.uintToWStr lpBuf, num, radix{
     }
     match =x86, __architecture{
         movd xmm0, eax
-        movd xmm1, edx
-        psllq xmm1, 32
-        paddq xmm0, xmm1
+        pinsrd xmm0, edx, 1
+        ; movd xmm1, edx
+        ; psllq xmm1, 32
+        ; paddq xmm0, xmm1
         pcmpeqq xmm1, xmm1      ; xmm1 = -1
         pxor xmm0, xmm1
         psubq xmm0, xmm1
         movd eax, xmm0
-        psrlq xmm0, 32
-        movd edx, xmm0
+        pextrd edx, xmm0, 1
+        ; psrlq xmm0, 32
+        ; movd edx, xmm0
     }
     .return: ret
 

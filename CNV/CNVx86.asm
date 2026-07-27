@@ -68,9 +68,8 @@
 	; psllq xmm2, xmm3
 
 	; load qword 1 constant
-	pxor xmm3, xmm3
-	pcmpeqq xmm2, xmm2
-	psubq xmm3, xmm2 
+	pcmpeqq xmm3, xmm3
+	psrlq xmm3, 63
 
 	sub ecx, edx
 	movd xmm2, ecx

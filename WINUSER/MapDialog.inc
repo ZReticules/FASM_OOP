@@ -65,8 +65,8 @@ macro MapDialog.mapPoint this, lpPoint{
     pmulld xmm0, xmm1
     paddd xmm0, [MapDialog.addMap]
     movq qword[_point], xmm0
-    shr [_point + POINT.x], 1
-    shr [_point + POINT.y], 2
+    shr [_point + POINT.x], 2
+    shr [_point + POINT.y], 3
 }
 
 .proc_frame_mode_previous

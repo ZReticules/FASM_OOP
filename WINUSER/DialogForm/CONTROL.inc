@@ -30,13 +30,11 @@ struct CONTROL WINAPI_WINDOW
 	setTheme 		dm this:inline
 	getClientSize	dm this:inline
 	getWindowSize 	dm this:inline
+	getBaseRect		dm this:inline
+	setBaseRect		dm this:inline
 ends
 
 include "CONTROL.asm"
-
-struct BUTTON CONTROL
-	const CType equ "Button"
-ends
 
 struct TABCONTROL CONTROL
 	const CType equ "SysTabControl32"
@@ -64,6 +62,7 @@ HDS_NONEFIXEDWIDTH	= 0x0010  ; Все колонки нефиксированн�
 HDS_THICKPAD      	= 0x10000 ; Толстые отступы в XP/Vista
 
 include "STATIC.inc"
+include "BUTTON.inc"
 include "EDIT.inc"
 include "LISTBOX.inc"
 include "COMBOBOX.inc"

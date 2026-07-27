@@ -233,7 +233,7 @@ macro define@struct name, [aligner, field, type, def]{
         struc name value \\{ 
             \\local \\..base
             match , @struct \\\{ 
-                define field@struct struct@aligner, ., name, <values> 
+                field@struct equ struct@aligner, ., name, <values> 
             \\\}
             match no, @struct \\\{ 
                 label \\..base
@@ -263,7 +263,7 @@ macro define@struct name, [aligner, field, type, def]{
         macro name value \\{
             match , @struct \\\{ 
                 \\\local anonymous
-                define field@struct struct@aligner, anonymous, name, <values> 
+                field@struct equ struct@aligner, anonymous, name, <values> 
             \\\}
             match no, @struct \\\{
                 forward
