@@ -61,6 +61,13 @@ struct EDIT CONTROL
 	addText					dm this
 	addTextW				dm this
 
+	getLineLength			dm this
+	getLineLengthW			dm this
+	getLine					dm this
+	getLineW				dm this
+	getLineString			dm this
+	getLineWString			dm this
+
 	const CType equ "Edit"
 ends
 
@@ -423,7 +430,7 @@ macro EDIT.undo this{
 ; cBytes includes NULL-terminator
 .proc cdecl EDIT.getLine(.pthis:P_EDIT, .idx:DWORD, .cBytes:WORD, .p_buf:POINTER) uses pbx
 	virtObj .this EDIT at pbx from @arg1
-	@sarg @arg2, @arg3
+	@sarg @arg2, @arg4
 	@larg pdx, @arg3, pax, @arg4
 	dec edx
 	mov word[pax], dx
@@ -436,7 +443,7 @@ macro EDIT.undo this{
 ; cWords includes NULL-terminator
 .proc cdecl EDIT.getLineW(.pthis:P_EDIT, .idx:DWORD, .cWords:WORD, .p_buf:POINTER) uses pbx
 	virtObj .this EDIT at pbx from @arg1
-	@sarg @arg2, @arg3
+	@sarg @arg2, @arg4
 	@larg pdx, @arg3, pax, @arg4
 	dec edx
 	mov word[pax], dx
@@ -449,7 +456,7 @@ macro EDIT.undo this{
 .proc cdecl EDIT.getLineString(.pthis:P_EDIT, .idx:DWORD, .p_dest:P_String) uses pbx pdi
 	@sarg @arg2
 	virtObj .this EDIT at pbx from @arg1
-	virtObj .dest String at pdi from @arg1
+	virtObj .dest String at pdi from @arg3
 	.local .lineLen:DWORD
 	$call .this::charIdxFromLineIdx(@arg2)
 	$call [.lineLen] = .this::lineLengthFromCharIdx(pax)
@@ -462,7 +469,7 @@ macro EDIT.undo this{
 .proc cdecl EDIT.getLineWString(.pthis:P_EDIT, .idx:DWORD, .p_dest:P_WString) uses pbx pdi
 	@sarg @arg2
 	virtObj .this EDIT at pbx from @arg1
-	virtObj .dest WString at pdi from @arg1
+	virtObj .dest WString at pdi from @arg3
 	.local .lineLen:DWORD
 	$call .this::charIdxFromLineIdxW(@arg2)
 	$call [.lineLen] = .this::lineLengthFromCharIdxW(pax)

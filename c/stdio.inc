@@ -208,13 +208,10 @@ importlib msvcrt,\
 	fgetws,\
 	fputwc,\
 	fputws,\
-	fputws,\
 	getwc,\
 	getwchar,\
-	getws,\
 	putwc,\
 	putwchar,\
-	putws,\
 	ungetwc,\
 	_scwprintf,\
 	_scwprintf_l,\
@@ -332,6 +329,8 @@ define getw 		_getw
 define putw 		_putw
 define wpopen 		_wpopen
 define unlink 		_unlink
+define getws		_getws
+define putws		_putws
 
 if used cstdio_iob
 	cstdio_iob dptr 3 dup(?)
