@@ -192,7 +192,7 @@ macro DLG.useMainHooks{
 
 		.local .sizesRect:RECT
 		$call [GetClientRect]([.form.hWnd], &.sizesRect)
-		$call CNV|fill(&.form.sData.defaultSize, &.sizesRect.right, sizeof.POINT)
+		$call CNV|fill(&.form.sData.defaultSize, &.sizesRect.right, sizeof.SIZE)
 		$call .form::scaleChilds()
 	.no_childs:
 
@@ -216,10 +216,16 @@ macro DLG.useMainHooks{
 	xor eax, eax
 	mov pdx, [.uMsg]
 	mov ecx, dword[.wParam]
+
+	if used DLG.hasControls
+	
 	cmp edx, WM_COMMAND
 		je .commandEventsChecker
 	cmp edx, WM_NOTIFY
 		je .notificationsChecker
+	
+	end if
+
 
 	; find form event
 	mov pdi, [.form.sData.lpEvents]
@@ -250,6 +256,8 @@ macro DLG.useMainHooks{
 		$call c DLG.initEvent([.hwndDlg], [.lParam])
 		jmp .after_init
 
+	if used DLG.hasControls
+
 	.commandEventsChecker:
 		cmp cx, word[.form.idCount]
 			ja .return
@@ -259,6 +267,8 @@ macro DLG.useMainHooks{
 	.notificationsChecker:
 		$call c DLG.controlNotifyChecker(&.form, [.lParam])
 		jmp .return
+
+	end if
 		
 	.close_event:
 		cmp pax, NULL

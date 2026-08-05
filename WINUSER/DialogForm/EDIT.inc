@@ -1,6 +1,13 @@
-define EM_SETCUEBANNER 0x1501
+ECM_FIRST			= 0x1500
 
-define EM_GETCUEBANNER 0x1502
+EM_SETCUEBANNER 	= ECM_FIRST + 1
+EM_GETCUEBANNER 	= ECM_FIRST + 2
+EM_SHOWBALLOONTIP	= ECM_FIRST + 3
+EM_HIDEBALLOONTIP   = ECM_FIRST + 4
+EM_SETHILITE        = ECM_FIRST + 5
+EM_GETHILITE        = ECM_FIRST + 6
+EM_NOSETFOCUS       = ECM_FIRST + 7
+EM_TAKEFOCUS        = ECM_FIRST + 8
 
 struct EDIT CONTROL
 	const LIMIT_TEXT = 65535
@@ -53,7 +60,7 @@ struct EDIT CONTROL
 	setPasswordChar 		dm this:inline
 	setTextRect 			dm this:inline
 	setTextRectNP 			dm this:inline
-	setTabstops 			dm this:inline
+	setTabStops 			dm this:inline
 	setWordBreakProc 		dm this:inline
 	showBalloonTip 			dm this:inline
 	undo 					dm this:inline
@@ -96,16 +103,16 @@ macro EDIT.setLimitText this, charCount{
 	$call [SendMessageA]([_this + EDIT.hWnd], EM_SETLIMITTEXT, charCount, NULL)
 }
 
-macro EDIT.getPlaceholder this, p_cstr, bufSize{
+macro EDIT.getPlaceholder this, p_cwstr, bufSize{
 	local _this
 	inlineObj _this, this, pcx
-	$call [SendMessageA]([_this + EDIT.hWnd], EM_GETCUEBANNER, p_cstr, bufSize)
+	$call [SendMessageW]([_this + EDIT.hWnd], EM_GETCUEBANNER, p_cwstr, bufSize)
 }
 
 macro EDIT.setPlaceholder this, showFocus, p_cwstr{
 	local _this
 	inlineObj _this, this, pcx
-	$call [SendMessageA]([_this + EDIT.hWnd], EM_SETCUEBANNER, showFocus, p_cwstr)
+	$call [SendMessageW]([_this + EDIT.hWnd], EM_SETCUEBANNER, showFocus, p_cwstr)
 }
 
 macro EDIT.getSelected this, p_start, p_end{
@@ -361,7 +368,7 @@ macro EDIT.setTextRectNP this, isRel, p_rect{
 	$call [SendMessageA]([_this + EDIT.hWnd], EM_SETRECTNP, isRel, p_rect)
 }
 
-macro EDIT.setTabstops this, nStops=0, p_tabPositions=NULL{
+macro EDIT.setTabStops this, nStops=0, p_tabPositions=NULL{
 	local _this
 	inlineObj _this, this, pcx
 	$call [SendMessageA]([_this + EDIT.hWnd], EM_SETTABSTOPS, nStops, p_tabPositions)

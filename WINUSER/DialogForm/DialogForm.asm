@@ -173,63 +173,60 @@ macro DIALOGFORM.close this, result=NULL{
 	.return: ret
 .endp
 
-; .proc cdecl DIALOGFORM.unsetBgColor c, this
-; 	virtObj .this DIALOGFORM at pcx from @arg1
-; 	xor eax, eax
-; 	xchg pax, [.this.bgColorBrush]
-; 	$call [DeleteObject](pax)
-; 	ret
-; .endp
+struct DIALOGFORM.ScaleContext
+	base	RECT 
+	union
+		client RECT
+		struct
+			offset	POINT
+			new		SIZE
+		ends
+	ends
+	union
+		defaultGeometry RECT
+		struct
+			defaultPos 	POINT
+			defaultSize	SIZE
+		ends
+	ends
+ends
 
-.proc stdcall DIALOGFORM.ScaleChildsEnumProc(.hWnd, .lParam) uses pbx psi
-	@sarg @arg1
-	@larg pbx, @arg2
-
-	virtual at pbx
-		.old POINT
-		.new POINT
-		.def POINT
-	end virtual
+.proc cdecl DIALOGFORM.ScaleChildsEnumProc(.p_cntrl, .lParam) uses pbx psi pdi
+	virtObj .cntrl CONTROL at psi from @arg1
+	virtObj .ctx DIALOGFORM.ScaleContext at pbx from @arg2
 	
-	.local .retFromScale:POINTER, .preparedRect:RECT
+	.local .preparedRect:RECT
+	lea pdi, [.preparedRect]
 
-	; $call [GetWindowPtrA]([.hWnd], GWL_USERDATA)
-	$call DLG|getPtr([.hWnd])
-	test eax, eax
-		jz .return
-	
-	virtObj .cntr CONTROL at psi from pax
-
-
-	cmp [.cntr.ID], 0
+	cmp [.cntrl.ID], 0
 		jz .return
 
-	mov ecx, POINT.x
-	mov eax, [.cntr.sData.baseRect.left]
-	imul eax, [.def + pcx]
+	mov eax, [.cntrl.sData.baseRect.left]
+	imul eax, [.ctx.defaultSize.cx]
 	xor edx, edx
-	div dword[.old + pcx]
+	div dword[.ctx.base.right]
+	sub eax, [.ctx.defaultGeometry.left]
 	mov [.preparedRect.left], eax
 	
-	; mov ecx, POINT.x
-	mov eax, [.cntr.sData.baseRect.right]
-	imul eax, [.def + pcx]
+	mov eax, [.cntrl.sData.baseRect.right]
+	imul eax, [.ctx.defaultSize.cx]
 	xor edx, edx
-	div dword[.old + pcx]
+	div dword[.ctx.base.right]
+	sub eax, [.ctx.defaultGeometry.left]
 	mov [.preparedRect.right], eax
 
-	mov ecx, POINT.y
-	mov eax, [.cntr.sData.baseRect.top]
-	imul eax, [.def + pcx]
+	mov eax, [.cntrl.sData.baseRect.top]
+	imul eax, [.ctx.defaultSize.cy]
 	xor edx, edx
-	div dword[.old + pcx]
+	div dword[.ctx.base.bottom]
+	sub eax, [.ctx.defaultGeometry.top]
 	mov [.preparedRect.top], eax
 
-	; mov ecx, POINT.y
-	mov eax, [.cntr.sData.baseRect.bottom]
-	imul eax, [.def + pcx]
+	mov eax, [.cntrl.sData.baseRect.bottom]
+	imul eax, [.ctx.defaultSize.cy]
 	xor edx, edx
-	div dword[.old + pcx]
+	div dword[.ctx.base.bottom]
+	sub eax, [.ctx.defaultGeometry.top]
 	mov [.preparedRect.bottom], eax
 
 
@@ -242,105 +239,112 @@ macro DIALOGFORM.close this, result=NULL{
 		.centerScale		; _c[x/y]_sticker only
 							; only if _[x/y]_sticker = 0
 							; align control at center in autoscale
-	cmp [.cntr.ID], 0
+	cmp [.cntrl.ID], 0
 		jz .return
-	cmp dword[.cntr.sData.scaleMode], -1
+	cmp dword[.cntrl.sData.scaleMode], -1
 		je .return
 
-	mov ecx, POINT.x
+	mov ecx, SIZE.cx
 	mov eax, [.preparedRect.left]
-	mov [.retFromScale], @f
-	movzx edx, [.cntr.sData.scaleMode.x]
-	jmp pointer[.scaleMthods + pdx * pointer.size]
-	@@:
-	movd xmm0, eax
+	movzx edx, [.cntrl.sData.scaleMode.x]
+	$call dword xmm0 = c pointer[.scaleMthods + pdx * pointer.size]()
 	
-	; mov ecx, POINT.x
+	; mov ecx, SIZE.cx
 	mov eax, [.preparedRect.right]
-	mov [.retFromScale], @f
-	movzx edx, [.cntr.sData.scaleMode.rx]
-	jmp pointer[.scaleMthods + pdx * pointer.size]
-	@@:
-	movd xmm2, eax
+	movzx edx, [.cntrl.sData.scaleMode.rx]
+	$call dword xmm2 = c pointer[.scaleMthods + pdx * pointer.size]()
 
-	mov ecx, POINT.y
+	mov ecx, SIZE.cy
 	mov eax, [.preparedRect.top]
-	mov [.retFromScale], @f
-	movzx edx, [.cntr.sData.scaleMode.y]
-	jmp pointer[.scaleMthods + pdx * pointer.size]
-	@@:
-	movd xmm1, eax
+	movzx edx, [.cntrl.sData.scaleMode.y]
+	$call dword xmm1 = c pointer[.scaleMthods + pdx * pointer.size]()
 
-	; mov ecx, POINT.y
+	; mov ecx, SIZE.cy
 	mov eax, [.preparedRect.bottom]
-	mov [.retFromScale], @f
-	movzx edx, [.cntr.sData.scaleMode.ry]
-	jmp pointer[.scaleMthods + pdx * pointer.size]
-	@@:
-	movd xmm3, eax
+	movzx edx, [.cntrl.sData.scaleMode.ry]
+	$call dword xmm3 = c pointer[.scaleMthods + pdx * pointer.size]()
 
 	psubd xmm2, xmm0
 	psubd xmm3, xmm1
-	$call [MoveWindow]([.hWnd], dword xmm0, dword xmm1, dword xmm2, dword xmm3, 1)
+	
+	movq xmm4, qword[.ctx.offset]
+	paddd xmm0, xmm4
+	psrldq xmm4, 4
+	paddd xmm1, xmm4
+
+	cmp [.cntrl.sData.defaultGeometry.left], -1
+	jne @f
+		movd [.cntrl.sData.defaultPos.x], xmm0
+		movd [.cntrl.sData.defaultPos.y], xmm1
+		movd [.cntrl.sData.defaultSize.cx], xmm2
+		movd [.cntrl.sData.defaultSize.cy], xmm3
+	@@:
+	$call [MoveWindow]([.cntrl.hWnd], dword xmm0, dword xmm1, dword xmm2, dword xmm3, 1)
 	; $call c [printf]("%x\n", dword[.cntr.sData.scaleMode])
-	.return: 
-	mov eax, 1
-	ret
+	.return: $return esp
 
-	.justScale:
-		imul eax, [.new + pcx]
+	.proc cdecl .justScale
+		virtObj .ctx DIALOGFORM.ScaleContext at pbx
+		imul eax, [.ctx.new + pcx]
 		xor edx, edx
-		div dword[.def + pcx]
-		; jmp [.retFromScale]
+		div dword[.ctx.defaultSize + pcx]
+		ret
+	.endp
 
-	.saveStartPos:
-		jmp [.retFromScale]
+	.proc cdecl .saveStartPos
+		ret
+	.endp
 
-	.saveEndDist:
-		sub eax, [.def + pcx]
-		add eax, [.new + pcx]
-		jmp [.retFromScale]
+	.proc cdecl .saveEndDist
+		virtObj .ctx DIALOGFORM.ScaleContext at pbx
+		sub eax, [.ctx.defaultSize + pcx]
+		add eax, [.ctx.new + pcx]
+		ret
+	.endp
 
-	.saveCenterDist:
-		mov edx, [.def + pcx]
+	.proc cdecl .saveCenterDist
+		virtObj .ctx DIALOGFORM.ScaleContext at pbx
+		mov edx, [.ctx.defaultSize + pcx]
 		shr edx, 1
 		sub eax, edx
-		mov edx, [.new + pcx]
+		mov edx, [.ctx.new + pcx]
 		shr edx, 1
 		add eax, edx
-		jmp [.retFromScale]
+		ret
+	.endp
 
-	.saveSizeAtLeft:
+	.proc cdecl .saveSizeAtLeft
+		virtObj .preparedRect RECT at pdi
 		sub eax, [.preparedRect.left + pcx]
 		movd edx, xmm0
 		jecxz @f
 			movd edx, xmm1
 		@@:
 		add eax, edx
-		jmp [.retFromScale]
+		ret
+	.endp
 
-	.saveSizeAtRight:
-		movptr xmm3, [.retFromScale]
+	.proc cdecl .saveSizeAtRight
+		virtObj .cntr CONTROL at psi
+		virtObj .preparedRect RECT at pdi
 		mov eax, [.preparedRect.right + pcx]
-		mov [.retFromScale], @f
-		shr ecx, 2
 		movzx edx, [.cntr.sData.scaleMode.rx + pcx]
-		shl ecx, 2
-		jmp pointer[.scaleMthods + pdx * pointer.size]
-		@@:
-		movptr [.retFromScale], xmm3
+		$call c pointer[DIALOGFORM.ScaleChildsEnumProc.scaleMthods + pdx * pointer.size]()
 		sub eax, [.preparedRect.right + pcx]
 		add eax, [.preparedRect.left + pcx]
-		jmp [.retFromScale]
+		ret
+	.endp
 
-	.centerScale:
+	.proc cdecl .centerScale
+		virtObj .ctx DIALOGFORM.ScaleContext at pbx
+		virtObj .preparedRect RECT at pdi
 		mov edx, [.preparedRect.left + pcx]
 		sub edx, eax
 		movd xmm3, edx
 
-		imul eax, [.new + pcx]
+		imul eax, [.ctx.new + pcx]
 		xor edx, edx
-		div dword[.def + pcx]
+		div dword[.ctx.defaultSize + pcx]
 
 		movd edx, xmm0
 		jecxz @f
@@ -364,17 +368,102 @@ macro DIALOGFORM.close this, result=NULL{
 		; sar edx, 1
 		; sub eax, edx
 		; lea eax, [eax + edx * 2]
-		jmp [.retFromScale]
+		ret
+	.endp
 .endp
 
-.proc cdecl DIALOGFORM.scaleChilds(.pthis) uses pbx
+; .proc DIALOGFORM.scaleToRect(.hWndParent:HWND, .p_rect:POINTER, .idStart:DWORD, .idEnd:DWORD) uses pbx pdi
+; 	xor edi, edi
+; 	@block
+; 		$call [GetDlgItem]([.this.hWnd], addr pdi + 1)
+; 		test eax, eax
+; 			jz @fb
+
+; 		$call DLG|getPtr(pax)
+; 		test pax, pax
+; 			jz @fb
+
+; 		virtObj .cntrl CONTROL at pbx from pax
+
+; 		$call std DIALOGFORM.ScaleChildsEnumProc([.cntrl.hWnd], &.sizesRect)
+; 	@endb 	< inc edi >,\
+; 			< cmp edi, [.this.idCount] >,\
+; 			< jb @sb >
+; 	ret
+; .endp
+
+.proc cdecl DIALOGFORM.scaleChilds(.pthis) uses pbx pdi ;psi
 	virtObj .this DIALOGFORM at pbx from @arg1
-	.local .sizesRect:RECT, .defaultSize:SIZE
-	$call [GetClientRect]([.this.hWnd], &.sizesRect)
-	$call CNV|fill(&.sizesRect.left, &.this.sData.baseRect.right, sizeof.POINT)
-	$call CNV|fill(&.defaultSize, &.this.sData.defaultSize, sizeof.SIZE)
-	$call [EnumChildWindows]([.this.hWnd], DIALOGFORM.ScaleChildsEnumProc, &.sizesRect)
+	.local .scaleContext:DIALOGFORM.ScaleContext
+	; .local .sizesRect:RECT, .defaultSize:SIZE
+	$call [GetClientRect]([.this.hWnd], &.scaleContext.client)
+	movups xmm0, xword[.this.sData.baseRect]
+	movups xmm1, xword[.scaleContext.client]
+	movq xmm2, qword[.this.sData.defaultSize]
+	
+	movups xmm3, xmm0
+	pslldq xmm3, 8
+	psubd xmm0, xmm3
+
+	movups xmm3, xmm1
+	pslldq xmm3, 8
+	psubd xmm1, xmm3
+
+	pslldq xmm2, 8
+
+	movups xword[.scaleContext.base], xmm0
+	movups xword[.scaleContext.client], xmm1
+	movups xword[.scaleContext.defaultGeometry], xmm2
+	
+	xor edi, edi
+	@@:
+		$call [GetDlgItem]([.this.hWnd], addr pdi + 1)
+		$call DLG|getPtr(pax)
+		add edi, [pax + CONTROL.sData.childrenCount]
+		$call c DIALOGFORM.ScaleChildsEnumProc(pax, &.scaleContext)
+		inc edi
+	cmp edi, [.this.idCount]
+	jb @b
+	; $call [EnumChildWindows]([.this.hWnd], DIALOGFORM.ScaleChildsEnumProc, &.sizesRect)
 	ret
+.endp
+
+.proc stdcall DIALOGFORM.layoutPosChanged(.p_form, .p_params, .p_control, .p_eventData) uses pbx pdi psi pbp
+	@larg pcx, @arg1, pdx, @arg2
+	mov pbp, [pcx + DIALOGFORM.hWnd]
+	virtObj .winPos WINDOWPOS at pdx from [pdx + Params.lParam]
+
+	virtObj .cntrl CONTROL at pbx from @arg3
+
+	.local .scaleContext:DIALOGFORM.ScaleContext
+	; $call CNV|fill(&.scaleContext.clientRect, [.params.lParam], sizeof.RECT)
+	movups xmm0, xword[.winPos.x]
+	movups xmm1, xword[.cntrl.sData.baseRect]
+	movups xmm2, xword[.cntrl.sData.defaultGeometry]
+	
+	movaps xmm4, xmm1
+	pslldq xmm4, 8
+	psubd xmm1, xmm4
+
+	movups xword[.scaleContext.client], xmm0
+	movups xword[.scaleContext.base], xmm1
+	movups xword[.scaleContext.defaultGeometry], xmm2
+
+	mov edi, [.cntrl.ID]
+	mov esi, [.cntrl.sData.childrenCount]
+	test esi, esi
+		jz .return
+
+	add esi, edi
+	@@:
+		$call [GetDlgItem](pbp, addr pdi + 1)
+		$call DLG|getPtr(pax)
+		add edi, [pax + CONTROL.sData.childrenCount]
+		$call c DIALOGFORM.ScaleChildsEnumProc(pax, &.scaleContext)
+		inc edi
+	cmp edi, esi
+	jb @b
+	.return: ret
 .endp
 
 macro DIALOGFORM.getBaseRect this, dest{

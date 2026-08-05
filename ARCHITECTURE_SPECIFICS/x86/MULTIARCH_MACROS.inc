@@ -91,7 +91,7 @@ macro @larg [dest, arg]{
 			movq dest, arg
 		end if
 	else if arg in < eax, ebx, ecx, edx, esi, edi, esp, ebp > | dest in < eax, ebx, ecx, edx, esi, edi, esp, ebp >
-		if arg eq arg\#mem
+		if arg eq arg#mem
 			mov dest, dword arg
 		else if ~dest eq arg
 			mov dest, arg

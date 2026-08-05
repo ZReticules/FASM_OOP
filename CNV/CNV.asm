@@ -254,7 +254,7 @@ macro CNV.fill dest*, src*, size*, flags=0{
 		virtual at _src_base
 			..test_base_src rptr 1
 		end virtual
-		if ~(..test_base_src relativeto 0 | ..test_base_src relativeto psp | ..test_base_src relativeto pbp)
+		if ~(..test_base_src relativeto 0 | ..test_base_src relativeto psp | ..test_base_src relativeto pbp | ..test_base_src relativeto pdx)
 			@loadGPR pdx, src
 			virtual at pdx
 				..src rptr 1
@@ -270,7 +270,7 @@ macro CNV.fill dest*, src*, size*, flags=0{
 		virtual at _dest_base
 			..test_base_dest rptr 1
 		end virtual
-		if ~(..test_base_dest relativeto 0 | ..test_base_dest relativeto psp | ..test_base_dest relativeto pbp)
+		if ~(..test_base_dest relativeto 0 | ..test_base_dest relativeto psp | ..test_base_dest relativeto pbp | ..test_base_dest relativeto pcx)
 			@loadGPR pcx, dest
 			virtual at pcx
 				..dest rptr 1

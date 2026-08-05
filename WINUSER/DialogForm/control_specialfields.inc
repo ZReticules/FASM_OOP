@@ -38,18 +38,29 @@ macro @control _control*, [argums]{
 	\}
 }
 
+control@scaler_id equ 0
+control@childs_count equ 0
+control@last_name equ
+
+macro control@unzip_scale_flags name, cname, x, y, rx, ry{
+	name#.#cname#._x_sticker 	= x
+	name#.#cname#._y_sticker 	= y
+	name#.#cname#._cx_sticker 	= rx
+	name#.#cname#._cy_sticker 	= ry
+}
+
 macro specialfields_define_control name{
 	macro control@create cname, ctype, _x, _y, _cx, _cy, _style, _style_ex, _text, scale_flags, flags, initvals&\{
 		match any, initvals\\{
 			cname ctype NONE, NONE, \
 				<<name#.\#cname\#._x, name#.\#cname\#._y, name#.\#cname\#._rx, name#.\#cname\#._ry>,\
 				ctype\#.events, ctype\#.notifications, ctype\#.hooks,\
-				<scale_flags>, flags>, any
+				<scale_flags>, flags, <-1, -1, -1, -1>, control@scaler_id, control@childs_count>, any
 		rept 0\\{\\} rept 1\\{
 			cname ctype NONE, NONE, \
 				<<name#.\#cname\#._x, name#.\#cname\#._y, name#.\#cname\#._rx, name#.\#cname\#._ry>,\
 				ctype\#.events, ctype\#.notifications, ctype\#.hooks,\
-				<scale_flags>, flags>
+				<scale_flags>, flags, <-1, -1, -1, -1>, control@scaler_id, control@childs_count>
 		\\}
 		name#@ControlStack equ cname
 		name#.\#cname\#._x = _x
@@ -60,7 +71,16 @@ macro specialfields_define_control name{
 		name#.\#cname\#._ry = (_y) + (_cy)
 		name#.\#cname\#._style = _style
 		name#.\#cname\#._styleEx = _style_ex
+
+		control@unzip_scale_flags name, cname, scale_flags
+		; match _x=,_y=,
+			; _name_\#_x_sticker 	= _x_sticker#sufx
+			; _name_\#_y_sticker 	= _y_sticker#sufx
+			; _name_\#_cx_sticker = _cx_sticker#sufx
+			; _name_\#_cy_sticker = _cy_sticker#sufx
 		name#.\#cname\#._Text equ _text
+		restore control@last_name
+		control@last_name equ cname
 	\}
 }
 

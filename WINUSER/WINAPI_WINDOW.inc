@@ -12,7 +12,7 @@ importlib user32,\
 
 
 struct WINAPI_WINDOW
-	hWnd dptr ?
+	hWnd HWND
 
 	setText 	dm this:inline
 	getTextLen 	dm this:inline

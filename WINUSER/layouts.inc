@@ -327,13 +327,14 @@ macro $control _type*, [argums]{
 
 macro $layout [args] {
 	common
-	local sufx, name
+	local sufx, name, fullname
 	_name#sufx 				equ name
 	_x#sufx					equ 0
 	_y#sufx					equ 0
 	; % в процентах от родителя, иначе в пунктах, не указывать для авто
 	_cx#sufx 				equ parent
 	_cy#sufx 				equ parent
+	
 	_orientation#sufx 		equ vertical
 	_align#sufx				equ start
 	_position#sufx			equ
@@ -345,6 +346,8 @@ macro $layout [args] {
 	_padding_bottom#sufx	equ 0
 
 	_space_between#sufx 	equ 0
+	
+	_runtime#sufx 			equ false
 	
 	match any, last@sufx\{
 		_x_sticker#sufx 		equ _x_sticker\#any
@@ -363,9 +366,9 @@ macro $layout [args] {
 	\}
 	common
 	match _name_|struct_name, _name#sufx|struct@lastname \{
-		_name#sufx equ struct_name\#.\#_name_
+		fullname equ struct_name\#.\#_name_
 	\}
-	match _name_, _name#sufx \{
+	match _name_, fullname \{
 		\local _val
 		_val equ 0
 		match val =%, _padding#sufx\\{
@@ -405,25 +408,56 @@ macro $layout [args] {
 		_name_\#._elems_coord_maxer = 0
 		_name_\#._elems_counter = 0
 		_name_\#._elems_nosize_counter = 0
+		\local false_name
 		match =absolute|_alignment, _position#sufx|_align#sufx \\{
-			_name_\#._x = _x#sufx
-			_name_\#._y = _y#sufx
+			false_name\#._x = _x#sufx
+			false_name\#._y = _y#sufx
 			match macro_alignment, $align_init_\\#_alignment\\\{
 				macro_alignment _name_, sufx
 			\\\}
 		rept 0\\{\\} match name_parent|sufx_parent|_alignment, last@layout|last@sufx|_align#sufx \\{
-			$calculate_position last@layout, sufx_parent, _name_, sufx
+			$calculate_position last@layout, sufx_parent, false_name, sufx
 			match macro_alignment, $align_init_\\#_alignment\\\{
 				macro_alignment _name_, sufx
 			\\\}
 		\\}
+		match =true|basename, _runtime#sufx|_name#sufx\\{
+			control@childs_count equ _name_\#._full_elems_count
+			control@create basename, __LAYOUT_CONTROL,\
+				false_name\#._x, false_name\#._y,\
+				false_name\#._cx, false_name\#._cy,\
+				0, 0, "",\
+				<_x_sticker#sufx, _y_sticker#sufx, _cx_sticker#sufx, _cy_sticker#sufx>,\
+				CONTROL.UNVALIDATABLE,\
+				DIALOGFORM.layoutPosChanged
+			restore control@childs_count
+			control@scaler_id equ _name_\\#.\\#_id
+		rept 0\\{\\}rept 1\\{
+			_name_\#._x 			= false_name\#._x
+			_name_\#._y 			= false_name\#._y
+			_name_\#._cx 			= false_name\#._cx
+			_name_\#._cy 			= false_name\#._cy
+
+			_name_\#._rx 			= false_name\#._x + false_name\#._cx
+			_name_\#._ry 			= false_name\#._y + false_name\#._cy
+
+			_name_\#._x_sticker 	= _x_sticker#sufx
+			_name_\#._y_sticker 	= _y_sticker#sufx
+			_name_\#._cx_sticker 	= _cx_sticker#sufx
+			_name_\#._cy_sticker 	= _cy_sticker#sufx
+		\\}
 		last@sufx equ sufx
 		last@layout equ _name_
+		last@false_name equ false_name
 	\}
 }
 
 macro $endl {
-	match sufx|name, last@sufx|last@layout\{
+	match sufx|name|false_name, last@sufx|last@layout|last@false_name\{
+		match =true|last_cntrl|last_struct, _runtime\#sufx|control@last_name|struct@lastname\\{
+			name\#._full_elems_count = last_struct\\#.\\#last_cntrl\\#.\\#_id - name\#._id
+			restore control@scaler_id
+		\\}
 		name\#._elems_count = name\#._elems_counter
 		name\#._elems_coord_count = name\#._elems_coord_counter
 		name\#._elems_coord_max = name\#._elems_coord_maxer
@@ -437,7 +471,7 @@ macro $endl {
 		match =content, _cx\#sufx\\{
 			_cx\#sufx equ __cx
 		\\}
-		name\#._cx = _cx\#sufx
+		false_name\#._cx = _cx\#sufx
 
 		match =vertical, _orientation\#sufx \\{
 			__cy = name\#._elems_coord_counter + (_padding\#sufx) * 2 + (_padding_top\#sufx) + (_padding_bottom\#sufx)
@@ -446,10 +480,10 @@ macro $endl {
 		match =content, _cy\#sufx\\{
 			_cy\#sufx equ __cy
 		\\}
-		name\#._cy = _cy\#sufx
+		false_name\#._cy = _cy\#sufx
 
-		name\#._rx = name\#._x + name\#._cx
-		name\#._ry = name\#._y + name\#._cy
+		; false_name\#._rx = false_name\#._x + false_name\#._cx
+		; false_name\#._ry = false_name\#._y + false_name\#._cy
 	\}
-	restore last@layout, last@sufx
+	restore last@layout, last@sufx, last@false_name
 }

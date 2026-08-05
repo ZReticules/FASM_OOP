@@ -74,7 +74,7 @@ define SYMBOL_CHARSET 		2
 define TURKISH_CHARSET 		162
 define VIETNAMESE_CHARSET 	163
 
-struct DLG_SERVICE_DATA
+struct DLG.SERVICE_DATA
 	baseRect			RECT ?, ?, ?, ?
 	lpEvents 			dptr ?
 	lpClOffsets			dptr ?
@@ -99,7 +99,7 @@ struct DIALOGFORM WINAPI_WINDOW
 	const _font 			equ "Segoe UI Variable"
 
 	idCount 				rd 1
-	sData 					DLG_SERVICE_DATA
+	sData 					DLG.SERVICE_DATA
 	; bgColorBrush 			dptr ?
 	hDialogTemplate 		rptr 1
 	; lpDialogFunc 			dptr ?

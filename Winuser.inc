@@ -2,30 +2,11 @@
 	
 include "String.inc"
 
-
-; NM_OUTOFMEMORY     	= (NM_FIRST-1)
-; NM_CLICK           	= (NM_FIRST-2)     
-; NM_DBLCLK          	= (NM_FIRST-3)
-; NM_RETURN          	= (NM_FIRST-4)
-; NM_RCLICK          	= (NM_FIRST-5)     
-; NM_RDBLCLK         	= (NM_FIRST-6)
-; NM_SETFOCUS        	= (NM_FIRST-7)
-; NM_KILLFOCUS       	= (NM_FIRST-8)
-; NM_CUSTOMDRAW      	= (NM_FIRST-12)
-; NM_HOVER           	= (NM_FIRST-13)
-; NM_NCHITTEST       	= (NM_FIRST-14)    
-; NM_KEYDOWN         	= (NM_FIRST-15)    
-; NM_RELEASEDCAPTURE 	= (NM_FIRST-16)
-; NM_SETCURSOR       	= (NM_FIRST-17)    
-; NM_CHAR            	= (NM_FIRST-18)    
-; NM_TOOLTIPSCREATED 	= (NM_FIRST-19)    
-; NM_LDOWN           	= (NM_FIRST-20)
-; NM_RDOWN           	= (NM_FIRST-21)
-; NM_THEMECHANGED    	= (NM_FIRST-22)
-
-; define NM_FONTCHANGED          (NM_FIRST-23)
-; define NM_CUSTOMTEXT           (NM_FIRST-24)    
-; define NM_TVSTATEIMAGECHANGING (NM_FIRST-24)    
+typedef HWND, pointer
+typedef HDC, pointer
+typedef HTREEITEM, pointer
+typedef COLORREF, dword
+typedef HRESULT, dword
 
 importlib user32,\
 	MessageBoxA,\
@@ -250,6 +231,153 @@ struct MENUBARINFO
 ends
 
 WM_APP = 0x8000
+
+struct COMPAREITEMSTRUCT
+	CtlType		rd 1
+	CtlID		rd 1
+	hwndItem 	HWND
+	itemID1		rd 1
+	itemData1 	rptr 1
+	itemID2		rd 1
+	itemData2 	rptr 1
+	dwLocaleId	rd 1
+ends
+
+; struct DRAWITEMSTRUCT
+; 	CtlType		rd 1
+; 	CtlID		rd 1
+; 	itemID		rd 1
+; 	itemAction	rd 1
+; 	itemState	rd 1
+; 	hwndItem	HWND
+; 	hDC 		HDC
+; 	rcItem 		RECT
+; 	itemData 	rptr 1
+; ends
+
+struct DELETEITEMSTRUCT
+	CtlType		rd 1
+	CtlID		rd 1
+	itemID		rd 1
+	hwndItem	HWND
+	itemData 	rptr 1
+ends
+
+struct DRAGLISTINFO
+	uNotification 	rd 1
+	hWnd 			HWND
+	ptCursor 		POINT
+ends
+
+NM_FIRST = 0
+NM_LAST = -99
+
+NM_OUTOFMEMORY          = NM_FIRST - 1
+NM_CLICK                = NM_FIRST - 2    ; uses NMCLICK struct
+NM_DBLCLK               = NM_FIRST - 3
+NM_RETURN               = NM_FIRST - 4
+NM_RCLICK               = NM_FIRST - 5    ; uses NMCLICK struct
+NM_RDBLCLK              = NM_FIRST - 6
+NM_SETFOCUS             = NM_FIRST - 7
+NM_KILLFOCUS            = NM_FIRST - 8
+NM_CUSTOMDRAW           = NM_FIRST - 12
+NM_HOVER                = NM_FIRST - 13
+NM_NCHITTEST            = NM_FIRST - 14   ; uses NMMOUSE struct
+NM_KEYDOWN              = NM_FIRST - 15   ; uses NMKEY struct
+NM_RELEASEDCAPTURE      = NM_FIRST - 16
+NM_SETCURSOR            = NM_FIRST - 17   ; uses NMMOUSE struct
+NM_CHAR                 = NM_FIRST - 18   ; uses NMCHAR struct
+NM_TOOLTIPSCREATED      = NM_FIRST - 19   ; notify of when the tooltips window is create
+NM_LDOWN                = NM_FIRST - 20
+NM_RDOWN                = NM_FIRST - 21
+NM_THEMECHANGED         = NM_FIRST - 22
+
+
+NM_FONTCHANGED          = NM_FIRST - 23
+NM_CUSTOMTEXT           = NM_FIRST - 24   ; uses NMCUSTOMTEXT struct
+NM_TVSTATEIMAGECHANGING = NM_FIRST - 24   ; uses NMTVSTATEIMAGECHANGING struct, defined after HTREEITEM
+
+struct NMCHAR
+	hdr			NMHDR
+	ch			rd 1
+	dwItemPrev	rd 1
+	dwItemNext	rd 1
+ends
+
+struct NMCUSTOMTEXT
+	hdr			NMHDR
+	hDC			HDC
+	lpString	rptr 1
+	nCount		rd 1
+	lpRect		rptr 1
+	uFormat		rd 1
+	fLink		rb 1
+ends
+
+struct NMKEY
+	hdr		NMHDR
+	nVKey	rd 1
+	uFlags	rd 1
+ends
+
+struct NMMOUSE
+	hdr			NMHDR
+	dwItemSpec	rptr 1
+	dwItemData	rptr 1
+	pt			POINT
+	dwHitInfo	rptr 1
+ends
+
+struct NMTOOLTIPSCREATED
+	hdr				NMHDR
+	hwndToolTips	HWND
+ends
+
+struct NMTVSTATEIMAGECHANGING
+	hdr					NMHDR
+	hti					HTREEITEM
+	iOldStateImageIndex	rd 1
+	iNewStateImageIndex	rd 1
+ends
+
+struct COLORSCHEME
+	dwSize			rd 1
+	clrBtnHighlight	COLORREF
+	clrBtnShadow	COLORREF
+ends
+
+struct DPASTREAMINFO
+	iPos 	rd 1
+	pvItem	rptr 1
+ends
+
+struct NMOBJECTNOTIFY
+	hdr 	NMHDR
+	iItem 	rd 1
+	piid 	rptr 1
+	pObject rptr 1
+	hResult HRESULT
+	dwFlags	rd 1
+ends
+
+CCM_FIRST           	= 0x2000
+CCM_LAST            	= CCM_FIRST + 0x200
+
+
+CCM_SETBKCOLOR      	= CCM_FIRST + 1
+
+CCM_SETCOLORSCHEME  	= CCM_FIRST + 2
+CCM_GETCOLORSCHEME  	= CCM_FIRST + 3
+CCM_GETDROPTARGET   	= CCM_FIRST + 4
+CCM_SETUNICODEFORMAT	= CCM_FIRST + 5
+CCM_GETUNICODEFORMAT	= CCM_FIRST + 6
+
+CCM_SETVERSION      	= CCM_FIRST + 0x7
+CCM_GETVERSION      	= CCM_FIRST + 0x8
+CCM_SETNOTIFYWINDOW 	= CCM_FIRST + 0x9
+
+CCM_SETWINDOWTHEME  	= CCM_FIRST + 0xb
+CCM_DPISCALE        	= CCM_FIRST + 0xc
 
 .alignmode_previous
 
