@@ -40,6 +40,11 @@
 		8. [stdlib.inc](#c-stdlib)
 		9. [time.inc](#c-time)
 		10. [Заголовки без изменений](#c-others)
+6. [Оконные приложения(WinAPI)](#winapi-forms)
+	1. [Диалоговые окна задач](#taskdialog)
+		1. [Шаблон окна задач](#taskdialog-template)
+		2. [Константы шаблона окна задач](#taskdialog-template-consts)
+		3. [Макросы шаблона окна задач](#taskdialog-template-macros)
 <!-- 1. [Обработка исключений](#try-catch) -->
 <!-- 2. [Строки](#string) -->
 <!-- 3. [Стандартный ввод-вывод Си](#cstdio) -->
@@ -526,7 +531,7 @@ cwassert eax > 5 & edx < 10
 ### 5.4. math.inc<a name="c-math"/>
 Нет автоматического определения размера для числа с плавающей точкой, отдельно функции с суффиксом `-f`:  
 
-| double | float | 
+| double | float |
 | - | - |
 | isinf | isinff |
 | isnan | isnanf |
@@ -562,3 +567,341 @@ cwassert eax > 5 & edx < 10
 - `wctype.inc`
 - `conio.inc`
 
+## 6. Оконные приложения(WinAPI)<a name="winapi-forms"/>
+`FASM_OOP` так же включает в себя инструментарий для разработки оконных приложений под Windows используя WinAPI. На данный момент документированы диалоговые окна задач(TaskDialog), в будущем планируется описание полноценного языка разметки для диалоговых окон.  
+### 6.1. Диалоговые окна задач<a name="taskdialog"/>
+Диалоговое окно задачи - ограниченно конфигурируемое окно, предназначенное для каких-то задач стандартного ввода пользователем - выбрать один вариант из набора, отобразить справку, подтвердить какое-то действие с различными вариациями исхода и т.д. Для него нельзя полноценно задать разметку, только выбрать отдельный набор компонентов, расположение которых окно определяет уже самостоятельно.  
+#### 6.1.1. Шаблон окна задач<a name="taskdialog-template"/>
+Для создания окна задачи необходимо задать шаблон, по которому будут созданы элементы управления и будут обрабатываться события компонента. Пример такого шаблона:  
+```asm
+struct Task2Template TASKDIALOG_TEMPLATE
+
+	; набор флагов окна - все флаги описаны в документации к АПИ
+	const TFLAGS = TDF_CAN_BE_MINIMIZED \
+		or TDF_ALLOW_DIALOG_CANCELLATION
+
+	; задаем главную иконку
+	const TICON = TDI.INFORMATION
+
+	; выбираем набор стандартных кнопок
+	const TCOMMON_BUTTONS = TDCBF_OK_BUTTON or TDCBF_CLOSE_BUTTON
+	
+	; прочие параметры окна
+	@TTitle "Заголовок окна"
+	@THeader "Текста"
+	@TContent "Содержимое"
+	
+	; пользовательская кнопка - их может быть сколько угодно
+	@TPushButton btn1, "Кнопка"
+	
+	; задаем колбек для обработки уведомления. Названия уведомления и сообщений принадлежат перечислениям TDN и TDM соответственно
+	TDN.BUTTON_CLICKED tevent Task2_pushClicked
+ends
+``` 
+
+Сама исходная структура TASKDIALOG_TEMPLATE выглядит так:
+```asm
+struct TASKDIALOG_TEMPLATE
+	__sData 	TASK_SERVICEDATA
+	p_config 	P_TASKDIALOGCONFIG
+ends
+```  
+
+Где первое поле является приватным, а второе - указателем на экземпляр структуры конфигурации.  
+
+#### 6.1.2. Константы шаблона задач<a name="taskdialog-template-consts"/>
+Стандартные константы  
+
+- Флаги(`const TFLAGS = val`) - идентично оригинальной документации на MSDN  
+- Главная иконка(`const ICON = val`) - одно из значений перечисления TDI  
+- Иконка примечания снизу(`const TICON_FOOTER = val`) - аналогично предыдущему  
+- Кнопка по умолчанию(`const TDEF_PUSH_BUTTON = id`) - id кнопки по умолчанию. Либо id заданной пользователем кнопки, либо одну из стандартных(IDOK, IDCANCEL и т.д.)  
+- Радио-кнопка по умолчанию(`const TDEF_RADIO_BUTTON = id`) - id радио-кнопки по умолчанию. Аналогично предыдущему, кроме кнопок по умолчанию - их нет.  
+- Ширина окна(`const TWIDTH = val`) - ширина окна. По умолчанию - 0, что устанавливает ширину автоматически.  
+- Стандартные кнопки(`const TCOMMON_BUTTONS = val`) - задается сочетанием флагов, определяющих стандартные кнопки, которые используются окном. Значением может быть один или несколько флагов из набора `TDCBF_*`  
+
+Служебные константы. Предполагается, что данные константы будут задаваться через специализированные макросы текстовыми значениями. Однако, при желании, их можно задать и напрямую - указателем на нуль-терминированную строку широких символов. Обнулив их вы удаляете соответствующий элемент.  
+
+- Заголовок окна(`const TTITLE_PTR = val`) - задает текст заголовка окна  
+- Заголовок текста в окне(`const THEADER_PTR = val`) - задает заголовок для текста в окне  
+- Содержимое окна(`const TCONTENT_PTR = val`) - основное содержимое, окновной текст окна  
+- Текст для чекбокса(`const TCHECKBOX_PTR = val`) - задает текст для чекбока. Если константа не задана - чекбокс не будет отображаться
+- Раскрытый текст(`const TEXPANDED_CONTROL_PTR = val`) - текст для элемента управления, управляющего свернутым текстом, в развернутом состоянии. Если текст для свернутого состояния не задан - используется и для свернутого тоже  
+- Скрытый текст(`const TCOLLAPSED_CONTROL_PTR = val`) - текст, отображаемый для элемента управления раскрытием, в свернутом виде  
+- Скрываемый текст(`const TEXPANDED_PTR = val`) - текст, видимый пользователю при раскрытии  
+- Нижняя заметка(`const TFOOTER_PTR = val`) - текст для заметки снизу(нижний колонтитул/футер)  
+
+#### 6.1.3. Макросы шаблона задач<a name="taskdialog-template-macros"/>
+Макросы, определяющие текстовые параметры окна:  
+
+- Заголовок окна: `@TTitle "Text"`  
+- Заголовок текста в окне: `@THeader "Text"`   
+- Содержимое окна: `@TContent "Text"`   
+- Текст для чекбокса: `@TCheckBox "Text"`   
+- Раскрытый текст: `@TExpandedControlText "Text"`   
+- Скрытый текст: `@TCollapsedControlText "Text"`  
+- Скрываемый текст: `@TExpandedText "Text"`  
+- Нижняя заметка: `@TFooter "Text"`  
+
+Макросы, задающие набор пользовательских элементов управления окна:  
+
+- Кнопки: `@TPushButton name, "Text"` - кнопка, определяемая пользователем. Получить id можно как `TemplateStruct.name.id`  
+- Радиокнопки: `@TRadioButton name, "Text"` - кнопка, определяемая пользователем. Получить id можно как `TemplateStruct.name.id`  
+
+#### 6.1.4. События и хуки<a name="taskdialog-template-macros"/>
+Обработка событий осуществляется через колбеки, определить которые можно через макросы tevent и hook внутри шаблона. При переключении шаблонов меняются не только набор элементов управления, но и обработчики событий. События делятся на две главные категории: стандартные события задач и общие события окон. Обработчик события и того, и другого типа обьявляется почти одинаково:  
+
+- Обработчик события окна задачи: `TDN.EVENT tevent proc_event_handler`  
+- Обработчик общего события окна Windows: `WM_EVENT hook proc_event_handler`  
+
+Обработка общего события осуществляется сабклассированием внутри самой обертки.  
+Сигнатура обработчика и в первом, и во втором случае одинакова:  
+`.proc proc_event_handler(.p_task, .p_params, .p_eventData)`  
+Параметры:  
+
+- `.p_task` - указатель на обьект окна  
+- `.p_params` - указатель на экземпляр структуры параметров события
+```asm
+struct Params
+	hWnd 	dptr ?
+	uMsg 	dptr ?
+	wParam 	dptr ?
+	lParam 	dptr ?
+ends
+```
+- `.p_eventData` - указатель на данные события - на область памяти сразу после колбека внутри структурыы шаблона. Так можно делать универсальные обработчики, не привязанные к определенному типу шаблона, сохраняя данные между вызовами в специализированной области памяти.  
+Интерпретация возвращаемого значения зависит от конкретного вида события.  
+Колбек записывается в поле структуры шаблона с именем, идентичным наименованию события. При необходимости его можно подменить в рантайме.  
+
+#### 6.1.5. Активация шаблона<a name="taskdialog-template-config"/>
+Для того, чтобы шаблон можно бло использовать, для него после обьявления структуры должен быть создан экземплятор конфигурации. Это делается таким макросом:  
+`@MakeTaskConfig Template`  
+Конфигурация создается в пуле констант в виде экземпляра структуры TASKDIALOG_CONFIG.  
+
+#### 6.1.6. Создание экземпляра шаблона<a name="taskdialog-template-create"/>
+Экзмплеря шаблона рекомендуется создавать так же через дополнительный макрос - `tasktempl`. Он обеспечит правильную инициализацию созданного экземпляра данными, порождаемыми `@MakeTaskConfig`. Если шаблон необходимо оздать в динамической памяти или в локальной переменной, нужно сначала создать шаблон как константу/статический обьект, а затем перенести данные с помощью memset, rep movsb или иным способом, доступным и удобным пользователю. Пример:  
+`mytmpl template TemplateStruct`
+
+#### 6.1.7. Методы диалогового окна задач<a name="taskdialog-methods"/>
+Управлять состоянием окна задач можно как напрямую через отправку сообщений через SendMessageA, так и методами(инлайн методами по большей части), вызываемыми для экземпляра структуры TASKDIALOG. Список методов с сигнатурами и соответстующих им сообщений:  
+
+| сообщение | метод | 
+| - | - |
+| - | TASKDIALOG\|run(.pthis, .p_template:P_TASKDIALOG_TEMPLATE, .parent) |
+| TDM.NAVIGATE_PAGE | TASKDIALOG\|navigate(.p_task, .p_template:P_TASKDIALOG_TEMPLATE) |
+| TDM.CLICK_BUTTON | TASKDIALOG\|clickPushButton(this, btId) |  
+| TDM.CLICK_RADIO_BUTTON | TASKDIALOG\|clickRadioButton(this, btId) |  
+| TDM.ENABLE_BUTTON | TASKDIALOG\|enablePushButton(this, btId, isEnabled) |  
+| TDM.ENABLE_RADIO_BUTTON | TASKDIALOG\|enableRadioButton(this, btId, isEnabled) |  
+| TDM.CLICK_VERIFICATION | TASKDIALOG\|setCheckBoxState(this, isChecked, takeFocus) |  
+| TDM.SET_BUTTON_ELEVATION_REQUIRED_STATE | TASKDIALOG\|setAdminShieldButton(this, btId, needShield) |  
+| TDM.SET_ELEMENT_TEXT | TASKDIALOG\|setContent(this, contentId, p_cwstr) |  
+| TDM.UPDATE_ELEMENT_TEXT | TASKDIALOG\|updateContent(this, contentId, p_cwstr) |  
+| TDM.SET_MARQUEE_PROGRESS_BAR | TASKDIALOG\|setIsBarMarquee(this, isMarquee) |  
+| TDM.SET_PROGRESS_BAR_MARQUEE | TASKDIALOG\|configureMarqueeBar(this, isRunning, uElapse=0) |  
+| TDM.SET_PROGRESS_BAR_POS | TASKDIALOG\|setBarPos(this, uPos) |  
+| TDM.SET_PROGRESS_BAR_RANGE | TASKDIALOG\|setBarRange(this, uLMinHMax) |  
+| TDM.SET_PROGRESS_BAR_STATE | TASKDIALOG\|setBarState(this, state) |  
+| TDM.UPDATE_ICON | TASKDIALOG\|updateIcon(this, iIcon, hIcon=NULL) |  
+  
+Использовать прямую отправку сообщения для навигации крайне нежелательно. Обертка в виде метода использует указаный шаблон, в то время как сообщение потребует от вас вручную заполненного экземпляра структуры конфигурации.  
+#### 6.1.8. Полный пример<a name="taskdialog-template-example"/>
+```asm
+define PROGRAM_TYPE GUI 6.0
+
+; заменить при компиляции исходного кода в другой кодировке
+include "encoding/utf8.inc"
+include "FASM_OOP/x64.inc"
+include "FASM_OOP/TASKDIALOG.inc"
+
+entry main
+
+importlib kernel32, \
+	ExitProcess
+
+importlib dwmapi,\
+	DwmSetWindowAttribute
+
+struct Task1Template TASKDIALOG_TEMPLATE
+
+	; общие флаги
+	const TFLAGS = TDF_CAN_BE_MINIMIZED \
+		or TDF_ALLOW_DIALOG_CANCELLATION \
+		or TDF_ENABLE_HYPERLINKS \
+		or TDF_SIZE_TO_CONTENT \
+		or TDF_EXPAND_FOOTER_AREA \
+		or TDF_NO_DEFAULT_RADIO_BUTTON \ 
+		or TDF_SHOW_PROGRESS_BAR \
+		or TDF_USE_COMMAND_LINKS_NO_ICON
+
+	; Набор стандартных кнопок
+	const TCOMMON_BUTTONS = TDCBF_CANCEL_BUTTON
+
+	; Выбираем иконки
+	const TICON 		= TDI.INFORMATION
+	const TICON_FOOTER 	= TDI.INFORMATION
+
+	; выбранные контролы по умолчанию
+	const TDEF_PUSH_BUTTON 	= Task1Template.btn1.id
+	const TDEF_RADIO_BUTTON = Task1Template.radioWarning.id
+
+	; явно указанная ширина
+	const TWIDTH = 300
+
+	; текстовые параметры формы
+	@TTitle "Заголовок формы"
+	@THeader "Заголовок текста"
+	@TContent "Тестируем TaskDialog\n\n"#\
+							'А вот и ссылочка: <A HREF="https://google.com">ссылка</A>'
+	@TCheckBox "Чекбокс"
+	@TExpandedControlText "Скрыть"
+	@TCollapsedControlText "Открыть"
+	@TExpandedText 'Скрытый текст\n\n'#\
+		'Здесь сcылочка тоже: <A HREF="https://yandex.ru">ссылка</A>'
+	@TFooter "Я внизу"
+	
+	; Пользовательские кнопки и радиокнопки
+	@TPushButton btn1, "Кнопка 1"
+	@TPushButton btn2, "Кнопка 2"
+
+	@TRadioButton radioError, "Error"
+	@TRadioButton radioWarning, "Warning"
+	@TRadioButton radioInfo, "Info"
+
+	; Активация автоматической обработки нажатия ссылок
+	@TASKDIALOG.enable_links
+
+	; Колбеки для обработки событий
+	TDN.CREATED 				tevent Task1_created
+	TDN.BUTTON_CLICKED 			tevent Task1_pushClicked
+	TDN.RADIO_BUTTON_CLICKED	tevent Task1_radioClicked
+	TDN.NAVIGATED				tevent Task1_navigated
+ends
+
+; Активация шаблона
+@MakeTaskConfig Task1Template
+
+;Второй шаблон
+struct Task2Template TASKDIALOG_TEMPLATE
+
+	const TFLAGS = TDF_CAN_BE_MINIMIZED \
+		or TDF_ALLOW_DIALOG_CANCELLATION \
+		or TDF_USE_COMMAND_LINKS_NO_ICON
+
+	const TICON = TDI.INFORMATION
+
+	const TCOMMON_BUTTONS = TDCBF_OK_BUTTON or TDCBF_CLOSE_BUTTON
+	
+	@TTitle "Второй"
+	@THeader "Заголовок"
+	@TContent "Здесь ничего нет"
+	
+	@TPushButton btn1, "Назад"
+
+	TDN.BUTTON_CLICKED tevent Task2_pushClicked
+ends
+
+@MakeTaskConfig Task2Template
+
+.proc_frame_mode_static
+
+.proc Task1_created(.p_task, .p_params, .p_eventData) uses pbx
+	virtObj .task TASKDIALOG at pbx from @arg1
+	$call .task::setBarRange(30 shl 16 + 0)
+	$call .task::setBarPos(10)
+	; Делаем края квадратными
+	.local .cornerType:POINTER
+	mov [.cornerType], DWMWCP.DONOTROUND
+	$call [DwmSetWindowAttribute]([.task.hWnd], DWMWA.WINDOW_CORNER_PREFERENCE, &.cornerType, 4)
+	ret
+.endp
+
+.proc Task1_navigated(.p_task, .p_params, .p_eventData) uses pbx
+	virtObj .task TASKDIALOG at pbx from @arg1
+	$call .task::setBarRange(30 shl 16 + 0)
+	$call .task::setBarPos(10)
+	$return esp
+.endp
+
+.proc Task1_pushClicked(.p_task, .p_params, .p_eventData) uses pbx pdi
+	virtObj .task TASKDIALOG at pbx from @arg1
+	virtObj .params Params at pdi from @arg2
+
+	.local .cornerType:POINTER, .colorref:POINTER
+	
+	.clickConst @const db "Button clicked, id: "
+	.local .finalString[.clickConst.len + 11]:BYTE
+	
+	$call CNV|fill(&.finalString, &.clickConst, .clickConst.len)
+
+	switch [.params.wParam]
+		case IDCANCEL
+			$return NULL
+
+		case Task1Template.btn1.id
+			; навигация - переключение на другой шаблон
+			$call .task::navigate(const tasktempl Task2Template)
+			; возврат ненулевого значения предотвращает закрытие окна по нажатию кнопки
+			$return esp
+
+		case_default
+			$call CNV|intToStr(addr .finalString + .clickConst.len, [.params.wParam], 10)
+			$call [MessageBoxA]([.task.hWnd], &.finalString, "", MB_OK)
+	end_switch
+	$return esp
+.endp
+
+.proc Task1_radioClicked(.p_task, .p_params, .p_eventData) uses pbx pdi
+	virtObj .task TASKDIALOG at pbx from @arg1
+	virtObj .params Params at pdi from @arg2
+	switch [.params.wParam]
+		case Task1Template.radioInfo.id
+			$call .task::updateIcon(TDIE.ICON_MAIN, TDI.INFORMATION)
+			$call .task::setBarState(PBST.NORMAL)
+			$call .task::setBarPos(10)
+			$return esp
+
+		case Task1Template.radioWarning.id
+			$call .task::updateIcon(TDIE.ICON_MAIN, TDI.WARNING)
+			$call .task::setBarState(PBST.NORMAL)
+			$call .task::setBarPos(20)
+			$call .task::setBarState(PBST.PAUSED)
+			$return esp
+
+		case Task1Template.radioError.id
+			$call .task::updateIcon(TDIE.ICON_MAIN, TDI.ERROR)
+			$call .task::setBarState(PBST.NORMAL)
+			$call .task::setBarPos(30)
+			$call .task::setBarState(PBST.ERROR)
+	end_switch
+	$return esp
+.endp
+
+.proc Task2_pushClicked(.p_task, .p_params, .p_eventData)
+	virtObj .task TASKDIALOG at pcx from @arg1
+	; навигация - переключение на исходный шаблон
+	$call .task::navigate(const tasktempl Task1Template)
+	$return esp
+.endp
+
+.proc main
+	.local .myTask:TASKDIALOG
+	; запуск с указанием начального шаблона
+	$call .myTask::run(const tasktempl Task1Template, NULL)
+	$call [ExitProcess](0)
+.endp
+
+; указываем манифест - иначе апи будут недоступны.
+data resource
+
+directory RT_MANIFEST, manifests
+
+resource manifests,\ 
+	1, LANG_ENGLISH or SUBLANG_DEFAULT, manifest
+
+resdata manifest
+	file "FASM_OOP\manifest.xml"
+endres
+
+end data
+```

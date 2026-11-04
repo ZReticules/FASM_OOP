@@ -1,0 +1,295 @@
+importlib Comctl32,\
+	TaskDialogIndirect
+
+importlib user32,\
+	BeginPaint,\
+	EndPaint,\
+	GetParent
+
+importlib shell32,\
+	ShellExecuteW
+
+TASKDIALOG.hasEvents = 0
+TASKDIALOG.usedEvents = 0
+
+macro TASKDIALOG.useEvents{
+	TASKDIALOG.usedEvents = TASKDIALOG.hasEvents
+}
+
+TASKDIALOG.hasHooks = 0
+TASKDIALOG.usedHooks = 0
+
+macro TASKDIALOG.useHooks{
+	TASKDIALOG.usedHooks = TASKDIALOG.hasHooks
+}
+
+; macro TBArrayMacro [id, text]{
+; 	TASKDIALOG_BUTTON id, text
+; }
+
+; struc ConstTCList [TBInfo]{
+; 	common
+; 	local _id, buttonList, _count
+; 	_count = 0
+; 	_id equ 12
+; 	forward
+; 	match id:text, TBInfo\{
+; 		\local ..textconst
+; 		..textconst @const cwstr text
+; 		buttonList equ id, ..textconst
+; 		rept 1 cntr:id + 1\\{
+; 			restore _id
+; 			_id equ cntr
+; 		\\}
+; 	rept 0\{\}rept 1\{
+; 		\local ..textconst
+; 		..textconst @const cwstr TBInfo
+; 		buttonList equ _id, ..textconst
+; 		rept 1 cntr:_id + 1\\{
+; 			restore _id
+; 			_id equ cntr
+; 		\\}
+; 	\}
+; 	_count = _count + 1
+; 	common
+; 	.count = _count
+; 	irpv TBData, buttonList\{
+; 		\common
+; 		. @const TBArrayMacro TBData
+; 	\}
+; }
+
+macro @TASKDIALOG.enable_links {
+	TDN.HYPERLINK_CLICKED tevent TASKDIALOG_linkClicked
+} 
+
+macro TASKDIALOG.clickPushButton this, btId{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.CLICK_BUTTON, btId, NULL)
+}
+
+macro TASKDIALOG.clickRadioButton this, btId{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.CLICK_RADIO_BUTTON, btId, NULL)
+}
+
+macro TASKDIALOG.enablePushButton this, btId, isEnabled{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.ENABLE_BUTTON, btId, isEnabled)
+}
+
+macro TASKDIALOG.enableRadioButton this, btId, isEnabled{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.ENABLE_RADIO_BUTTON, btId, isEnabled)
+}
+
+macro TASKDIALOG.setCheckBoxState this, isChecked, takeFocus{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.CLICK_VERIFICATION, isChecked, takeFocus)
+}
+
+macro TASKDIALOG.setAdminShieldButton this, btId, needShield{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.SET_BUTTON_ELEVATION_REQUIRED_STATE, btId, needShield)
+}
+
+macro TASKDIALOG.setContent this, contentId, p_cwstr{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.SET_ELEMENT_TEXT, contentId, p_cwstr)
+}
+
+macro TASKDIALOG.updateContent this, contentId, p_cwstr{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.UPDATE_ELEMENT_TEXT, contentId, p_cwstr)
+}
+
+macro TASKDIALOG.setIsBarMarquee this, isMarquee{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.SET_MARQUEE_PROGRESS_BAR, isMarquee, NULL)
+}
+
+macro TASKDIALOG.configureMarqueeBar this, isRunning, uElapse=0{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.SET_PROGRESS_BAR_MARQUEE, isRunning, uElapse)
+}
+
+macro TASKDIALOG.setBarPos this, uPos{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.SET_PROGRESS_BAR_POS, uPos, NULL)
+}
+
+macro TASKDIALOG.setBarRange this, uLMinHMax{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.SET_PROGRESS_BAR_RANGE, NULL, uLMinHMax)
+}
+
+macro TASKDIALOG.setBarState this, state{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.SET_PROGRESS_BAR_STATE, state, NULL)
+}
+
+macro TASKDIALOG.updateIcon this, iIcon, hIcon=NULL{
+	local _this
+	inlineObj _this, this, pcx
+	$call [SendMessageA]([_this + TASKDIALOG.hWnd], TDM.UPDATE_ICON, iIcon, hIcon)
+}
+
+.proc_frame_mode_static
+
+.proc TD.TASKDIALOGHooksChecker(.hWnd, .uMsg, .wParam, .lParam, .uIdSubclass, .dwRefData) uses psi pdi pbx
+	@sarg @arg1, @arg2, @arg3, @arg4
+	virtObj .task TASKDIALOG at psi from [.dwRefData]
+	virtObj .template TASKDIALOG_TEMPLATE at pbx from [.task.p_template]
+	xor eax, eax
+	mov pdi, [.task.__sData.lpHooks]
+	cmp pdi, NULL
+		jz .default
+
+	movzx ecx, word[pdi]
+		jecxz .default
+	
+	add pdi, 2
+	movzx edx, word[.uMsg]
+	.find_event:
+		cmp dx, word[pdi + (pcx - 1) * 4]
+		jne .not_my_event
+			movzx pdi, word[pdi + (pcx - 1) * 4 + 2]
+			cmp pointer[.template + pdi], 0
+				jz .default
+
+			$call std pointer[.template + pdi]([.dwRefData], &.hWnd, addr .task + pdi + pointer.size)
+			jmp .return
+
+		.not_my_event:
+	loop .find_event
+
+	.default:
+		$call [DefSubclassProc]([.hWnd], [.uMsg], [.wParam], [.lParam])
+	.return: ret
+.endp
+
+.proc TD.TASKDIALOGCallback(.hwnd, .msg, .wParam, .lParam, .p_refData) uses pdi pbx psi
+	@sarg @arg1, @arg2, @arg3, @arg4
+	@larg pdx, @arg2
+	virtObj .task TASKDIALOG at pbx from [.p_refData]
+	virtObj .template TASKDIALOG_TEMPLATE at psi from [.task.p_template]
+	xor eax, eax
+	switch @arg2
+		case TDN.DIALOG_CONSTRUCTED
+			@larg pax, @arg1
+			mov [.task.hWnd], pax
+			$call WIN|setPtr([.task.hWnd], addr .task)
+			xor eax, eax
+
+			if used TASKDIALOG.hasHooks
+
+			$call [SetWindowSubclass]([.task.hWnd], TD.TASKDIALOGHooksChecker, -1, &.task)
+
+			end if
+
+		case_default
+
+		if used TASKDIALOG.hasEvents
+			pxor xmm0, xmm0
+			@block
+				virtObj .tevents __TEventsHeader at pdi from [.template.__sData.p_tevents]
+				test pdi, pdi
+					jz @fb
+
+				movzx ecx, [.tevents.count_]
+					jecxz @fb
+
+				movzx eax, [.tevents.first]
+				cmp edx, eax
+					jb @fb
+
+				add ecx, eax
+				cmp edx, ecx
+					jae @fb
+
+				sub edx, eax
+
+				movzx edi, [.tevents.events_ + pdx * 2]
+				test edi, edi
+					jz @fb
+
+				cmp pointer[.template + pdi], NULL
+					jz @fb
+
+				$call std pointer[.template + pdi](&.task, &.hwnd, addr .task + pdi + pointer.size)
+				movptr xmm0, pax
+			@endb
+			movptr pax, xmm0
+			cmp [.msg], TDN.DESTROYED
+			jne @f
+				mov [.task.hWnd], NULL
+			@@:
+
+		end if
+
+	end_switch
+	ret
+.endp
+
+.proc cdecl TASKDIALOG.run(.pthis, .p_template:P_TASKDIALOG_TEMPLATE, .parent) uses pbx
+	@sarg @arg1, @arg3
+	virtObj .template TASKDIALOG_TEMPLATE at pbx from @arg2
+	.local .taskConf:TASKDIALOGCONFIG
+	$call CNV|fill(&.taskConf, [.template.p_config], sizeof.TASKDIALOGCONFIG)
+	
+	mov pax, [.parent]
+	mov [.taskConf.hwndParent], pax
+	mov pax, [WND.hModule]
+	mov [.taskConf.hInstance], pax
+	mov pcx, [.pthis]
+	
+	virtObj .this TASKDIALOG at pcx from [.pthis]
+	mov [.this.p_template], pbx
+
+	mov [.taskConf.lpCallbackData], pcx
+	mov [.taskConf.pfCallback], TD.TASKDIALOGCallback
+	$call [TaskDialogIndirect](&.taskConf, &.this.result.lastBtn,\
+		&.this.result.lastRad, &.this.result.isChecked)
+	ret
+.endp
+
+.proc cdecl TASKDIALOG.navigate(.p_task, .p_template:P_TASKDIALOG_TEMPLATE) uses pbx psi
+	virtObj .this TASKDIALOG at psi from @arg1
+	virtObj .template TASKDIALOG_TEMPLATE at pbx from @arg2
+	.local .taskConf:TASKDIALOGCONFIG
+	$call CNV|fill(&.taskConf, [.template.p_config], sizeof.TASKDIALOGCONFIG)
+
+	$call [.taskConf.hwndParent] = [GetParent]([.this.hWnd])
+	mov pax, [WND.hModule]
+	mov [.taskConf.hInstance], pax
+	mov [.this.p_template], pbx
+	mov [.taskConf.lpCallbackData], psi
+
+	mov [.taskConf.pfCallback], TD.TASKDIALOGCallback
+	$call [SendMessageA]([.this.hWnd], TDM.NAVIGATE_PAGE, NULL, &.taskConf)
+	; $call [TaskDialogIndirect](&.taskConf, &.this.result.lastBtn,\
+	; 	&.this.result.lastRad, &.this.result.isChecked)
+	ret
+.endp
+
+.proc TASKDIALOG_linkClicked(.p_task, .p_param, .p_eventData) uses pbx psi
+	virtObj .this:arg TASKDIALOG at pbx from @arg1
+	virtObj .params Params at psi from @arg2
+	$call [ShellExecuteW](0, L 'open', [.params.lParam], 0, 0, SW_SHOW or SW_MAXIMIZE)
+	$return esp
+.endp
+
+.proc_frame_mode_previous

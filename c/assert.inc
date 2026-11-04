@@ -1,7 +1,7 @@
 @module cassert
 
 importlib msvcrt,\
-	_assert, _wassert
+	_assert, _wassert, exit
 
 ; CHANGED: assert->cassert, no $call, just `assert exp`
 
@@ -23,6 +23,7 @@ match =NDEBUG, NDEBUG\{
 		to_text text_expr, _expr
 		.if ~(_expr)
 			$call c [_assert](<db text_expr, 0>, <db __FILE__, 0>, __LINE__)
+			$call c [exit](-1)
 		.endif
 	\\}
 	macro cwassert _expr&\\{
@@ -30,6 +31,7 @@ match =NDEBUG, NDEBUG\{
 		to_text text_expr, _expr
 		.if ~(_expr)
 			$call c [_wassert](<du text_expr, 0>, <du __FILE__, 0>, __LINE__)
+			$call c [exit](-1)
 		.endif
 	\\}
 rept 0\{\}rept 1\{

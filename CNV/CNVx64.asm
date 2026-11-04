@@ -135,9 +135,24 @@ if used CNV.ui64ToStrVarchar
 	CNV.ui64ToStrVarchar = CNV.uintToStrVarchar
 end if
 
-if used CNV.i64ToStrVarchar
-	CNV.i64ToStrVarchar = CNV.intToStrVarchar
-end if
+.proc cdecl CNV.i64ToStrVarchar(.p_str, .num, .radix, .charSize)
+	@sarg @arg2
+	.local .sign:DWORD
+	mov [.sign], 0
+	cmp @arg2, 0
+	jns .positive
+		@larg pcx, @arg1, pax, @arg4
+		mov [.sign], 1
+		mov word[pcx], '-'
+		neg @arg2
+		add @arg1, pax
+	.positive:
+	$call c CNV.uintToStrVarchar(@arg1, @arg2, @arg3, @arg4)
+	lea edx, [eax + 1]
+	cmp [.sign], 0
+		cmovne eax, edx
+	ret
+.endp
 
 if used CNV.ui64sqrt
 	CNV.ui64sqrt = CNV.ui32sqrt

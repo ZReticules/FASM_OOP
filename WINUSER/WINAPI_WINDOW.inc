@@ -1,3 +1,7 @@
+@module WINAPI_WINDOW
+
+include "WIN.inc"
+
 importlib user32,\
 	GetWindowTextLengthA,\
 	GetWindowTextA,\
@@ -10,6 +14,12 @@ importlib user32,\
 	ShowWindow,\
 	SetFocus
 
+struct Params
+	hWnd 	dptr ?
+	uMsg 	dptr ?
+	wParam 	dptr ?
+	lParam 	dptr ?
+ends
 
 struct WINAPI_WINDOW
 	hWnd HWND
@@ -32,71 +42,71 @@ struct WINAPI_WINDOW
 	setWString 	dm this
 ends
 
-macro WINAPI_WINDOW.invalidate this, lpRect=NULL, bErase=0{
+macro WINAPI_WINDOW.invalidate this, lpRect=NULL, bErase=0\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [InvalidateRect]([_this + WINAPI_WINDOW.hWnd], lpRect, bErase)
-}
+\}
 
-macro WINAPI_WINDOW.getTextLen this{
+macro WINAPI_WINDOW.getTextLen this\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [GetWindowTextLengthA]([_this + WINAPI_WINDOW.hWnd])
-}
+\}
 
-macro WINAPI_WINDOW.getText this, lpCstr, nMaxCount{
+macro WINAPI_WINDOW.getText this, lpCstr, nMaxCount\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [GetWindowTextA]([_this + WINAPI_WINDOW.hWnd], lpCstr, nMaxCount)
-}
+\}
 
-macro WINAPI_WINDOW.setText this, lpCstr{
+macro WINAPI_WINDOW.setText this, lpCstr\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [SetWindowTextA]([_this + WINAPI_WINDOW.hWnd], lpCstr)
-}
+\}
 
-macro WINAPI_WINDOW.getTextLenW this{
+macro WINAPI_WINDOW.getTextLenW this\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [GetWindowTextLengthW]([_this + WINAPI_WINDOW.hWnd])
-}
+\}
 
-macro WINAPI_WINDOW.getTextW this, lpWstr, nMaxCount{
+macro WINAPI_WINDOW.getTextW this, lpWstr, nMaxCount\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [GetWindowTextW]([_this + WINAPI_WINDOW.hWnd], lpWstr, nMaxCount)
-}
+\}
 
-macro WINAPI_WINDOW.setTextW this, lpWstr{
+macro WINAPI_WINDOW.setTextW this, lpWstr\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [SetWindowTextW]([_this + WINAPI_WINDOW.hWnd], lpWstr)
-}
+\}
 
-macro WINAPI_WINDOW.setVisible this, bState{
+macro WINAPI_WINDOW.setVisible this, bState\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [ShowWindow]([_this + WINAPI_WINDOW.hWnd], bState)
-}
+\}
 
-macro WINAPI_WINDOW.setEnabled this, bState{
+macro WINAPI_WINDOW.setEnabled this, bState\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [EnableWindow]([_this + WINAPI_WINDOW.hWnd], bState)
-}
+\}
 
-macro WINAPI_WINDOW.setFocus this{
+macro WINAPI_WINDOW.setFocus this\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [SetFocus]([_this + WINAPI_WINDOW.hWnd])
-}
+\}
 
-macro WINAPI_WINDOW.setRedraw this, needRedraw{
+macro WINAPI_WINDOW.setRedraw this, needRedraw\{
 	local _this
 	inlineObj _this, this, pcx
 	$call [SendMessageA]([_this + WINAPI_WINDOW.hWnd], WM_SETREDRAW, needRedraw, NULL)
-}
+\}
 
 .proc_frame_mode_static
 
@@ -143,3 +153,5 @@ macro WINAPI_WINDOW.setRedraw this, needRedraw{
 .endp
 
 .proc_frame_mode_previous
+
+@endm

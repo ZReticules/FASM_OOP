@@ -201,32 +201,49 @@ ends
 	cmp [.cntrl.ID], 0
 		jz .return
 
-	mov eax, [.cntrl.sData.baseRect.left]
-	imul eax, [.ctx.defaultSize.cx]
+	movups xmm0, xword[.cntrl.sData.baseRect]
+	cmp [.cntrl.sData.defaultPos.x], -1
+	jne @f
+		movq qword[.cntrl.sData.defaultPos], xmm0
+	@@:
+
+	movups xmm1, xword[.ctx.defaultGeometry]
+	pshufd xmm2, xmm1, 11101110b
+	pshufd xmm1, xmm1, 01000100b
+
+	psubd xmm0, xmm1
+	pmulld xmm0, xmm2
+
+	; mov eax, [.cntrl.sData.baseRect.left]
+	; sub eax, [.ctx.defaultPos.x]
+	; imul eax, [.ctx.defaultSize.cx]
+	pextrd eax, xmm0, 0
 	xor edx, edx
 	div dword[.ctx.base.right]
-	sub eax, [.ctx.defaultGeometry.left]
 	mov [.preparedRect.left], eax
+
+	; mov eax, [.cntrl.sData.baseRect.top]
+	; sub eax, [.ctx.defaultPos.y]
+	; imul eax, [.ctx.defaultSize.cy]
+	pextrd eax, xmm0, 1
+	xor edx, edx
+	div dword[.ctx.base.bottom]
+	mov [.preparedRect.top], eax
 	
-	mov eax, [.cntrl.sData.baseRect.right]
-	imul eax, [.ctx.defaultSize.cx]
+	; mov eax, [.cntrl.sData.baseRect.right]
+	; sub eax, [.ctx.defaultPos.x]
+	; imul eax, [.ctx.defaultSize.cx]
+	pextrd eax, xmm0, 2
 	xor edx, edx
 	div dword[.ctx.base.right]
-	sub eax, [.ctx.defaultGeometry.left]
 	mov [.preparedRect.right], eax
 
-	mov eax, [.cntrl.sData.baseRect.top]
-	imul eax, [.ctx.defaultSize.cy]
+	; mov eax, [.cntrl.sData.baseRect.bottom]
+	; sub eax, [.ctx.defaultPos.y]
+	; imul eax, [.ctx.defaultSize.cy]
+	pextrd eax, xmm0, 3
 	xor edx, edx
 	div dword[.ctx.base.bottom]
-	sub eax, [.ctx.defaultGeometry.top]
-	mov [.preparedRect.top], eax
-
-	mov eax, [.cntrl.sData.baseRect.bottom]
-	imul eax, [.ctx.defaultSize.cy]
-	xor edx, edx
-	div dword[.ctx.base.bottom]
-	sub eax, [.ctx.defaultGeometry.top]
 	mov [.preparedRect.bottom], eax
 
 
@@ -272,10 +289,8 @@ ends
 	psrldq xmm4, 4
 	paddd xmm1, xmm4
 
-	cmp [.cntrl.sData.defaultGeometry.left], -1
+	cmp [.cntrl.sData.defaultSize.cx], -1
 	jne @f
-		movd [.cntrl.sData.defaultPos.x], xmm0
-		movd [.cntrl.sData.defaultPos.y], xmm1
 		movd [.cntrl.sData.defaultSize.cx], xmm2
 		movd [.cntrl.sData.defaultSize.cy], xmm3
 	@@:
@@ -379,7 +394,7 @@ ends
 ; 		test eax, eax
 ; 			jz @fb
 
-; 		$call DLG|getPtr(pax)
+; 		$call WIN|getPtr(pax)
 ; 		test pax, pax
 ; 			jz @fb
 
@@ -418,7 +433,7 @@ ends
 	xor edi, edi
 	@@:
 		$call [GetDlgItem]([.this.hWnd], addr pdi + 1)
-		$call DLG|getPtr(pax)
+		$call WIN|getPtr(pax)
 		add edi, [pax + CONTROL.sData.childrenCount]
 		$call c DIALOGFORM.ScaleChildsEnumProc(pax, &.scaleContext)
 		inc edi
@@ -457,8 +472,9 @@ ends
 	add esi, edi
 	@@:
 		$call [GetDlgItem](pbp, addr pdi + 1)
-		$call DLG|getPtr(pax)
+		$call WIN|getPtr(pax)
 		add edi, [pax + CONTROL.sData.childrenCount]
+			
 		$call c DIALOGFORM.ScaleChildsEnumProc(pax, &.scaleContext)
 		inc edi
 	cmp edi, esi

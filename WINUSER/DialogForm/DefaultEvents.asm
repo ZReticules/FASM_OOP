@@ -85,7 +85,7 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 
 	.proc stdcall .invalidate_childs(.hWnd, .lParam)
 		@sarg @arg1
-		$call DLG|getPtr(@arg1)
+		$call WIN|getPtr(@arg1)
 		test eax, eax
 			jz .return
 		test [pax + CONTROL.sData.flags], CONTROL.UNVALIDATABLE
@@ -107,7 +107,7 @@ macro @set_min_max_sizes x=0, y=0, cx=0x7FFFFFFF, cy=0x7FFFFFFF{
 ; 	ret
 ; 	.proc .invalidate_childs, hWnd, lParam
 ; 		@sarg @arg1
-; 		$call DLG|getPtr(@arg1)
+; 		$call WIN|getPtr(@arg1)
 ; 		test eax, eax
 ; 			jz .return
 ; 		test [pax + CONTROL.sData.flags], CONTROL.UNVALIDATABLE

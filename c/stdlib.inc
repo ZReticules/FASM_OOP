@@ -138,6 +138,63 @@ importlib msvcrt,\
 	__p_winmajor="_winmajor",\
 	__p_winminor="_winminor"
 
+importlib msvcrt,\
+	_itow,\
+	_itow_s,\
+	_i64tow,\
+	_i64tow_s,\
+	_ltow,\
+	_ltow_s,\
+	_ui64tow,\
+	_ui64tow_s,\
+	_ultow,\
+	_ultow_s,\
+	_wdupenv_s,\
+	_wfullpath,\
+	_wgetenv,\
+	_wgetenv_s,\
+	_wmakepath,\
+	_wmakepath_s,\
+	_wperror,\
+	_wputenv,\
+	_wputenv_s,\
+	_wsearchenv,\
+	_wsplitpath,\
+	_wsplitpath_s,\
+	_wsystem,\
+	_wtof,\
+	_wtoi,\
+	_wtoi64,\
+	_wtol,\
+	mbstowcs,\
+	_mbstowcs_l,\
+	mbstowcs_s,\
+	_mbstowcs_s_l,\
+	mbtowc,\
+	_mbtowc_l,\
+	wcstod,\
+	_wcstod_l,\
+	wcstof,\
+	_wcstof_l,\
+	wcstol,\
+	_wcstol_l,\
+	wcstombs,\
+	_wcstombs_l,\
+	wcstombs_s,\
+	_wcstombs_s_l,\
+	wcstoul,\
+	_wcstoul_l,\
+	wctomb,\
+	_wctomb_l,\
+	_wcstoi64,\
+	_wcstoi64_l,\
+	_wcstoui64,\
+	_wcstoui64_l,\
+	wcstoll,\
+	_wcstoll_l,\
+	wcstoull,\
+	_wcstoull_l
+
 define ecvt 	_ecvt
 define fcvt 	_fcvt
 define gcvt 	_gcvt

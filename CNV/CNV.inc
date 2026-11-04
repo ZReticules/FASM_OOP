@@ -49,20 +49,20 @@
 		ui64pow				dm this			; (base64, exp) -> num
 		
 		ui64ToStrVarchar	dm this			; (lpStr, num64, radix, charSize) -> len
-		i64ToStrVarchar		dm this			; (lpStr, num64, radix, charSize) -> len
+		i64ToStrVarchar		dm this
 		ui64ToStr			dm this:inline	; (lpStr, num64, radix) -> len
-		i64ToStr			dm this:inline	; (lpStr, num64, radix) -> len
-		ui64ToWStr			dm this:inline	; (lpStr, num64, radix) -> len
-		i64ToWStr			dm this:inline	; (lpStr, num64, radix) -> len
+		i64ToStr			dm this:inline
+		ui64ToWStr			dm this:inline
+		i64ToWStr			dm this:inline
 
-		strVarcharToI64		dm this
+		strVarcharToI64		dm this			; (.p_str, .len, .radix) -> len
 		strVarcharToI32		dm this
 		strToI64			dm this
 		strToI32			dm this
 		wstrToI64			dm this
 		wstrToI32			dm this
 
-		consoleToWin1251	dm this:inline
+		consoleToWin1251	dm this:inline	; ()
 		consoleToUtf16		dm this:inline
 		consoleToUtf8		dm this:inline
 		db ?

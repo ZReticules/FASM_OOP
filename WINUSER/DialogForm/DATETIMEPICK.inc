@@ -133,7 +133,7 @@ struct DATETIMEPICK CONTROL
 	const CType equ "SysDateTimePick32"
 
 	closeMonthCal 		dm this:inline
-	closeMonthCal 		dm this:inline
+	getInfo 			dm this:inline
 	getIdealSize 		dm this:inline
 	getMonthCalColor 	dm this:inline
 	getMonthCalFont 	dm this:inline
@@ -156,7 +156,7 @@ macro DATETIMEPICK.closeMonthCal this{
 	$call [SendMessageA]([_this + DATETIMEPICK.hWnd], DTM_CLOSEMONTHCAL, NULL, NULL)
 }
 
-macro DATETIMEPICK.closeMonthCal this, p_info{
+macro DATETIMEPICK.getInfo this, p_info{
 	local _this
 	inlineObj _this, this, pcx
 	$call [SendMessageA]([_this + DATETIMEPICK.hWnd], DTM_GETDATETIMEPICKERINFO, NULL, p_info)

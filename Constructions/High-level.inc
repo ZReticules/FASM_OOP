@@ -198,12 +198,16 @@
 	; 	virtual switch_megalabel@last
 	; 		..ins_label:
 	; }
-
-	macro case_default {
+	
+	macro case_default dest{
 		restore case@default
-		local ..ins_label
-		case@default equ ..ins_label
-		..ins_label:
+		match , dest\{
+			local ..ins_label
+			case@default equ ..ins_label
+			..ins_label:
+		rept 0\{\} match (_dest), dest\{
+			case@default equ _dest
+		\}
 	}
 
 	macro end_switch {

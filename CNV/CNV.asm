@@ -1,3 +1,5 @@
+include "../c/locale.inc" 
+
 importlib kernel32,\
 	GetCommandLineA,\
 	GetProcessHeap,\
@@ -19,7 +21,8 @@ importlib gdi32,\
 	GetDIBits
 
 importlib msvcrt,\
-	setlocale
+	setlocale,\
+	setmode="_setmode"
 
 define DIB_RGB_COLORS 0
 
@@ -782,6 +785,9 @@ macro CNV.ui64ToWStr lpBuf, num, radix{
 .proc cdecl CNV.intToStrVarchar(.p_str, .num, .radix, .charSize)
 	@sarg @arg2
 	.local .sign:DWORD
+	match =x64, __architecture{
+		movsxd rdx, edx
+	}
 	mov [.sign], 0
 	cmp @arg2, 0
 	jns .positive
@@ -936,7 +942,7 @@ macro CNV.uintToWStr lpBuf, num, radix{
 .endp
 
 ; len CAN`T be -1 
-.proc cdecl CNV.strVarcharToI32(.p_str, .len:DWORD, .radix, .charSize) uses pbx psi pdi pbp
+.proc cdecl CNV.strVarcharToI32(.p_str, .len:DWORD, .radix:DWORD, .charSize) uses pbx psi pdi pbp
     @sarg @arg1, @arg2, @arg3, @arg4
     @larg pax, @arg3
 

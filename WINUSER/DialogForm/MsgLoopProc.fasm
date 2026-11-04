@@ -25,7 +25,7 @@ macro DLG.useMainHooks{
 
 .proc stdcall DLG.hookEventsChecker(.hWnd, .uMsg, .wParam, .lParam, .uIdSubclass, .dwRefData) uses psi pdi
 	@sarg @arg1, @arg2, @arg3, @arg4
-	$call DLG|getPtr(@arg1)
+	$call WIN|getPtr(@arg1)
 	; $call [GetWindowPtrA](@arg1, GWL_USERDATA)
 	test eax, eax
 		jz .return
@@ -60,7 +60,7 @@ macro DLG.useMainHooks{
 	mov eax, dword[.nmhdr.idFrom]
 	cmp eax, [.form.idCount]
 		ja .return
-	$call DLG|getPtr([.nmhdr.hwndFrom])
+	$call WIN|getPtr([.nmhdr.hwndFrom])
 	; $call [GetWindowPtrA]([.nmhdr.hwndFrom], GWL_USERDATA)
 	test eax, eax
 		jz .return
@@ -95,7 +95,7 @@ macro DLG.useMainHooks{
 	movzx pdx, word[.wParam]
 	; int3
 	$call [GetDlgItem]([.form.hWnd], pdx)
-	$call DLG|getPtr(pax)
+	$call WIN|getPtr(pax)
 	; $call [GetWindowPtrA](pax, GWL_USERDATA)
 	test eax, eax
 		jz .return
@@ -153,7 +153,7 @@ macro DLG.useMainHooks{
 	virtObj .form DIALOGFORM at pbx from @arg2
 	mov [.form.hWnd], pcx
 	mov pbp, [.form.sData.lpClOffsets]
-	$call DLG|setPtr([.hwndDlg], &.form)
+	$call WIN|setPtr([.hwndDlg], &.form)
     ; $call [OpenThemeData]([.form.hWnd], L "Menu;Button")
     ; mov [.form.hTheme], pax
 
@@ -181,7 +181,7 @@ macro DLG.useMainHooks{
 			mov [.cntrl.ID], edi
 			$call [GetDlgItem]([.form.hWnd], edi)
 			mov [.cntrl.hWnd], pax
-			$call DLG|setPtr([.cntrl.hWnd], &.cntrl)
+			$call WIN|setPtr([.cntrl.hWnd], &.cntrl)
 			$call .form.sData.mapDialog::mapRect(&.cntrl.sData.baseRect)
 			cmp [.cntrl.sData.lpHooks], NULL
 			je .no_hook
@@ -193,6 +193,10 @@ macro DLG.useMainHooks{
 		.local .sizesRect:RECT
 		$call [GetClientRect]([.form.hWnd], &.sizesRect)
 		$call CNV|fill(&.form.sData.defaultSize, &.sizesRect.right, sizeof.SIZE)
+	
+		; $call [MoveWindow]([.form.hWnd],\ 
+		; 	[.form.sData.baseRect.left], [.form.sData.baseRect.top], [.form.sData.baseRect.right], [.form.sData.baseRect.bottom],\
+		; 	1)
 		$call .form::scaleChilds()
 	.no_childs:
 
@@ -207,7 +211,7 @@ macro DLG.useMainHooks{
 	mov eax, dword[.uMsg]
 	cmp @arg2, WM_INITDIALOG
 	je .init_event
-		$call DLG|getPtr([.hwndDlg])
+		$call WIN|getPtr([.hwndDlg])
 		; $call [GetWindowPtrA]([.hwndDlg], GWL_USERDATA)
 		test pax, pax
 			jz .return
@@ -278,11 +282,11 @@ macro DLG.useMainHooks{
 		
 	; .destroy_event:
 	; 	$call [EnumChildWindows]([.form.hWnd], .ptr_remove_callback, NULL)
-	; 	$call DLG|removePtr([.form.hWnd])
+	; 	$call WIN|removePtr([.form.hWnd])
 	; 	$return 0
 
 	; .proc stdcall .ptr_remove_callback(.hWnd, .lParam)
-	; 	$call DLG|removePtr(@arg1)
+	; 	$call WIN|removePtr(@arg1)
 	; 	$return esp
 	; .endp
 .endp

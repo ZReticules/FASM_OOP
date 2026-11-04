@@ -2,42 +2,27 @@
 
 include "Winuser.inc"
 
+DWL_MSGRESULT 	= 0
+DWL_DLGPROC 	= DWL_MSGRESULT + pointer.size
+DWL_USER 		= DWL_DLGPROC + pointer.size
+
 .alignmode_cdecl
 
-struct DLG
-	setPtr 		dm this:inline	; (handle, value) -> void
-	getPtr 		dm this:inline	; (handle) -> ptr
-	removePtr 	dm this:inline	; (handle) -> void
-	db ?
-ends
-
-include "WINUSER\DIALOGFORM\DLG.asm"
-
-include "WINUSER\DialogForm\dialogform_specialfields.inc"
+match =DIALOGFORM_SPECIALFIELDS, DIALOGFORM_SPECIALFIELDS\{
+	include "WINUSER/DialogForm/dialogform_specialfields.inc"
+\}
 
 match =x64, __architecture\{
-	importlib user32, \
-		SetWindowPtrA="SetWindowLongPtrA",\
-		GetWindowPtrA="GetWindowLongPtrA"
-
-	; SetWindowPtrA fix SetWindowLongPtrA
-	; GetWindowPtrA fix GetWindowLongPtrA
 	base_layout_cx equ 1
 	base_layout_cy equ 12
 \}
 
 match =x86, __architecture\{
-	importlib user32, \
-		SetWindowPtrA="SetWindowLongA",\
-		GetWindowPtrA="GetWindowLongA"
-
-	; SetWindowPtrA fix SetWindowLongA
-	; GetWindowPtrA fix GetWindowLongA
 	base_layout_cx equ 1
 	base_layout_cy equ 12
 \}
 
-include "WINUSER\layouts.inc"
+include "WINUSER/layouts.inc"
 
 importlib uxtheme,\
     OpenThemeData
@@ -85,7 +70,7 @@ struct DLG.SERVICE_DATA
 	defaultSize			SIZE
 ends
 
-include "WINUSER\WINAPI_WINDOW.inc"
+include "WINUSER/WINAPI_WINDOW.inc"
 
 struct DIALOGFORM WINAPI_WINDOW
 	const _x 				= 0
@@ -125,13 +110,6 @@ struct DIALOGFORM WINAPI_WINDOW
 
 	; getClientSize			dm this:inline
 	; getWindowSize 			dm this:inline
-ends
-
-struct Params
-	hWnd 	dptr ?
-	uMsg 	dptr ?
-	wParam 	dptr ?
-	lParam 	dptr ?
 ends
 
 macro dForm formInfo&\{
@@ -180,10 +158,10 @@ EScaleMode enum \
 				\	; align control at center in autoscale
 	ignore=255
 
-include "WINUSER\DIALOGFORM\CONTROL.inc"
-include "WINUSER\DIALOGFORM\DialogForm.asm"
-include "WINUSER\DIALOGFORM\DefaultEvents.asm"
-include "WINUSER\DIALOGFORM\MsgLoopProc.fasm"
+include "WINUSER/DIALOGFORM/CONTROL.inc"
+include "WINUSER/DIALOGFORM/DialogForm.asm"
+include "WINUSER/DIALOGFORM/DefaultEvents.asm"
+include "WINUSER/DIALOGFORM/MsgLoopProc.fasm"
 
 .alignmode_default
 

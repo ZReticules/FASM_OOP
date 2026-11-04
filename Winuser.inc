@@ -33,6 +33,22 @@ importlib comctl32,\
 importlib msvcrt,\
 	free
 
+match =x64, __architecture\{
+	importlib user32,\
+		SetWindowPtrA="SetWindowLongPtrA",\
+		GetWindowPtrA="GetWindowLongPtrA",\
+		SetWindowPtrW="SetWindowLongPtrW",\
+		GetWindowPtrW="GetWindowLongPtrW"
+\}
+
+match =x86, __architecture\{
+	importlib user32,\
+		SetWindowPtrA="SetWindowLongA",\
+		GetWindowPtrA="GetWindowLongA",\
+		SetWindowPtrW="SetWindowLongW",\
+		GetWindowPtrW="GetWindowLongW"
+\}
+
 define GA_PARENT	1
 define GA_ROOT		2
 define GA_ROOTOWNER	3

@@ -220,12 +220,12 @@ struc dxw [val] {
 macro dxw [val] {
     match , @struct \{ 
         \local anonymous
-        define field@struct anonymous, dxw, <values> 
+        define field@struct struct@aligner, anonymous, dxw, <values> 
     \}
-    match no, @struct \\\{
+    match no, @struct \{
 		common
-		\local cntr, val_def
-		label . XWORD
+		\local cntr, val_def, ..anon_lab
+		label ..anon_lab XWORD
         cntr = 1
         
         forward
@@ -247,13 +247,13 @@ macro dxw [val] {
 				times cntr dq val_def, 0
 			\\\}
 		\\}
-    \\\} 
+    \} 
 }
 
 struc rxw cntr {
     match , @struct \{ 
     	common
-        define field@struct ., dxw, cntr dup(?)
+        define field@struct struct@aligner, ., dxw, cntr dup(?)
     \}
     match no, @struct \{ 
 		label . XWORD

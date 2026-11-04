@@ -44,3 +44,7 @@ PEB equ fs:0x30
 macro jpcxz arg {
 	jecxz arg
 }
+
+macro lodsptr {
+	lodsd
+}

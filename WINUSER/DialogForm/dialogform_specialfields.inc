@@ -1,3 +1,5 @@
+define DIALOGFORM_SPECIALFIELDS
+
 macro specialfields_define_dialogform name{
 
 	struc event procaddr\{
@@ -29,6 +31,8 @@ macro secialfields_inherit_dialogform parent, name{
 }
 
 macro specialfields_ends_dialogform name{
+	restruc event, hook, notify
+
 	name#.controls_offsets @const irpv cntrl, name#@ControlStack\{ dptr name#.\\#cntrl \}
 	
 	macro Make_events\{

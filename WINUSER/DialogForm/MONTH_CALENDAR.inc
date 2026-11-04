@@ -159,6 +159,39 @@ MCS_NOSELCHANGEONNAV	= 0x0100
 
 struct MONTH_CALENDAR CONTROL
 	const CType equ "SysMonthCal32"
+
+	getBorder 			dm this:inline
+	getCalendarCount 	dm this:inline
+	getCalendarInfo 	dm this:inline
+	getCALID 			dm this:inline
+	getColor 			dm this:inline
+	getCurrentView 		dm this:inline
+	getCurSel 			dm this:inline
+	getFirstDayOfWeek 	dm this:inline
+	getMaxSelCount 		dm this:inline
+	getMaxTodayWidth 	dm this:inline
+	getMinReqRect 		dm this:inline
+	getMonthDelta 		dm this:inline
+	getMonthRange 		dm this:inline
+	getRange 			dm this:inline
+	getSelRange 		dm this:inline
+	getToday 			dm this:inline
+	getUnicodeFormat 	dm this:inline
+	hitTest 			dm this:inline
+	setBorder 			dm this:inline
+	setCALID 			dm this:inline
+	setColor 			dm this:inline
+	setCurrentView 		dm this:inline
+	setCurSel 			dm this:inline
+	setDayState 		dm this:inline
+	setFirstDayOfWeek 	dm this:inline
+	setMaxSelCount 		dm this:inline
+	setMonthDelta 		dm this:inline
+	setRange 			dm this:inline
+	setSelRange 		dm this:inline
+	setToday 			dm this:inline
+	setUnicodeFormat 	dm this:inline
+	sizeRectToMin 		dm this:inline
 ends
 
 macro MONTH_CALENDAR.getBorder this{
