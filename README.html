@@ -1304,6 +1304,11 @@ body .markdown-body
 <li><a href="#taskdialog-template">Шаблон окна задач</a></li>
 <li><a href="#taskdialog-template-consts">Константы шаблона окна задач</a></li>
 <li><a href="#taskdialog-template-macros">Макросы шаблона окна задач</a></li>
+<li><a href="#taskdialog-template-events">События</a></li>
+<li><a href="#taskdialog-template-config">Активация шаблона</a></li>
+<li><a href="#taskdialog-template-create">Создание экземпляра шаблона</a></li>
+<li><a href="#taskdialog-template-methods">Методы диалогового окна задач</a></li>
+<li><a href="#taskdialog-template-example">Полный пример</a></li>
 </ol>
 </li>
 </ol>
@@ -1820,7 +1825,8 @@ body .markdown-body
 <h2 id="6-winapi">6. Оконные приложения(WinAPI)<a name="winapi-forms"/><a class="headerlink" href="#6-winapi" title="Permanent link"></a></h2>
 <p><code>FASM_OOP</code> так же включает в себя инструментарий для разработки оконных приложений под Windows используя WinAPI. На данный момент документированы диалоговые окна задач(TaskDialog), в будущем планируется описание полноценного языка разметки для диалоговых окон.  </p>
 <h3 id="61">6.1. Диалоговые окна задач<a name="taskdialog"/><a class="headerlink" href="#61" title="Permanent link"></a></h3>
-<p>Диалоговое окно задачи - ограниченно конфигурируемое окно, предназначенное для каких-то задач стандартного ввода пользователем - выбрать один вариант из набора, отобразить справку, подтвердить какое-то действие с различными вариациями исхода и т.д. Для него нельзя полноценно задать разметку, только выбрать отдельный набор компонентов, расположение которых окно определяет уже самостоятельно.  </p>
+<p>Диалоговое окно задачи - ограниченно конфигурируемое окно, предназначенное для каких-то задач стандартного ввода пользователем - выбрать один вариант из набора, отобразить справку, подтвердить какое-то действие с различными вариациями исхода и т.д. Для него нельзя полноценно задать разметку, только выбрать отдельный набор компонентов, расположение которых окно определяет уже самостоятельно.<br />
+Официальная документация microsoft находится по <a href="https://learn.microsoft.com/ru-ru/windows/win32/controls/task-dialogs">ссылке</a>.  </p>
 <h4 id="611">6.1.1. Шаблон окна задач<a name="taskdialog-template"/><a class="headerlink" href="#611" title="Permanent link"></a></h4>
 <p>Для создания окна задачи необходимо задать шаблон, по которому будут созданы элементы управления и будут обрабатываться события компонента. Пример такого шаблона:<br />
 <div class="highlight"><pre><span></span><code><span class="nf">struct</span><span class="w"> </span><span class="no">Task2Template</span><span class="w"> </span><span class="no">TASKDIALOG_TEMPLATE</span>
@@ -1857,13 +1863,13 @@ body .markdown-body
 <h4 id="612">6.1.2. Константы шаблона задач<a name="taskdialog-template-consts"/><a class="headerlink" href="#612" title="Permanent link"></a></h4>
 <p>Стандартные константы  </p>
 <ul>
-<li>Флаги(<code>const TFLAGS = val</code>) - идентично оригинальной документации на MSDN  </li>
-<li>Главная иконка(<code>const ICON = val</code>) - одно из значений перечисления TDI  </li>
+<li>Флаги(<code>const TFLAGS = val</code>) - идентично оригинальной документации на MSDN для параметра dwFlags структуры <a href="https://learn.microsoft.com/ru-ru/windows/win32/api/Commctrl/ns-commctrl-taskdialogconfig">TASKDIALOGCONFIG</a>  </li>
+<li>Главная иконка(<code>const ICON = val</code>) - одно из значений перечисления TDI для той же структуры(вместо первого _ будет точка)  </li>
 <li>Иконка примечания снизу(<code>const TICON_FOOTER = val</code>) - аналогично предыдущему  </li>
 <li>Кнопка по умолчанию(<code>const TDEF_PUSH_BUTTON = id</code>) - id кнопки по умолчанию. Либо id заданной пользователем кнопки, либо одну из стандартных(IDOK, IDCANCEL и т.д.)  </li>
 <li>Радио-кнопка по умолчанию(<code>const TDEF_RADIO_BUTTON = id</code>) - id радио-кнопки по умолчанию. Аналогично предыдущему, кроме кнопок по умолчанию - их нет.  </li>
 <li>Ширина окна(<code>const TWIDTH = val</code>) - ширина окна. По умолчанию - 0, что устанавливает ширину автоматически.  </li>
-<li>Стандартные кнопки(<code>const TCOMMON_BUTTONS = val</code>) - задается сочетанием флагов, определяющих стандартные кнопки, которые используются окном. Значением может быть один или несколько флагов из набора <code>TDCBF_*</code>  </li>
+<li>Стандартные кнопки(<code>const TCOMMON_BUTTONS = val</code>) - задается сочетанием флагов, определяющих стандартные кнопки, которые используются окном. Значением может быть один или несколько флагов из набора <code>TDCBF_*</code>. Полностью описано в документации <a href="https://learn.microsoft.com/ru-ru/windows/win32/api/Commctrl/ns-commctrl-taskdialogconfig">TASKDIALOGCONFIG</a> параметра dwCommonButtons.  </li>
 </ul>
 <p>Служебные константы. Предполагается, что данные константы будут задаваться через специализированные макросы текстовыми значениями. Однако, при желании, их можно задать и напрямую - указателем на нуль-терминированную строку широких символов. Обнулив их вы удаляете соответствующий элемент.  </p>
 <ul>
@@ -1893,7 +1899,7 @@ body .markdown-body
 <li>Кнопки: <code>@TPushButton name, "Text"</code> - кнопка, определяемая пользователем. Получить id можно как <code>TemplateStruct.name.id</code>  </li>
 <li>Радиокнопки: <code>@TRadioButton name, "Text"</code> - кнопка, определяемая пользователем. Получить id можно как <code>TemplateStruct.name.id</code>  </li>
 </ul>
-<h4 id="614">6.1.4. События и хуки<a name="taskdialog-template-macros"/><a class="headerlink" href="#614" title="Permanent link"></a></h4>
+<h4 id="614">6.1.4. События<a name="taskdialog-template-events"/><a class="headerlink" href="#614" title="Permanent link"></a></h4>
 <p>Обработка событий осуществляется через колбеки, определить которые можно через макросы tevent и hook внутри шаблона. При переключении шаблонов меняются не только набор элементов управления, но и обработчики событий. События делятся на две главные категории: стандартные события задач и общие события окон. Обработчик события и того, и другого типа обьявляется почти одинаково:  </p>
 <ul>
 <li>Обработчик события окна задачи: <code>TDN.EVENT tevent proc_event_handler</code>  </li>
@@ -1915,7 +1921,8 @@ body .markdown-body
 </code></pre></div></li>
 <li><code>.p_eventData</code> - указатель на данные события - на область памяти сразу после колбека внутри структурыы шаблона. Так можно делать универсальные обработчики, не привязанные к определенному типу шаблона, сохраняя данные между вызовами в специализированной области памяти.<br />
 Интерпретация возвращаемого значения зависит от конкретного вида события.<br />
-Колбек записывается в поле структуры шаблона с именем, идентичным наименованию события. При необходимости его можно подменить в рантайме.  </li>
+Колбек записывается в поле структуры шаблона с именем, идентичным наименованию события. При необходимости его можно подменить в рантайме.<br />
+Полный список событий по <a href="https://learn.microsoft.com/ru-ru/windows/win32/controls/bumper-task-dialogs-reference-notifications">ссылке</a>, в обертке является перечислением, так что необходимо заменять первое _ на точку.</li>
 </ul>
 <h4 id="615">6.1.5. Активация шаблона<a name="taskdialog-template-config"/><a class="headerlink" href="#615" title="Permanent link"></a></h4>
 <p>Для того, чтобы шаблон можно бло использовать, для него после обьявления структуры должен быть создан экземплятор конфигурации. Это делается таким макросом:<br />
@@ -2000,7 +2007,7 @@ body .markdown-body
 </tr>
 </tbody>
 </table>
-<p>Использовать прямую отправку сообщения для навигации крайне нежелательно. Обертка в виде метода использует указаный шаблон, в то время как сообщение потребует от вас вручную заполненного экземпляра структуры конфигурации.  </p>
+<p>Использовать прямую отправку сообщения для навигации крайне нежелательно. Обертка в виде метода использует указаный шаблон, в то время как сообщение потребует от вас вручную заполненного экземпляра структуры конфигурации. Описание сообщений можно посмотреть по <a href="https://learn.microsoft.com/ru-ru/windows/win32/controls/bumper-task-dialogs-reference-messages">ссылке</a>.  </p>
 <h4 id="618">6.1.8. Полный пример<a name="taskdialog-template-example"/><a class="headerlink" href="#618" title="Permanent link"></a></h4>
 <div class="highlight"><pre><span></span><code><span class="nf">define</span><span class="w"> </span><span class="no">PROGRAM_TYPE</span><span class="w"> </span><span class="no">GUI</span><span class="w"> </span><span class="mi">6</span><span class="no">.0</span>
 
