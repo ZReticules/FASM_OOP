@@ -912,4 +912,14 @@ resdata manifest
 endres
 
 end data
-```
+```  
+
+<figure>
+<figcaption>Первая страница</figcaption>  
+	<img src="readme_images/taskdialog/page1.png" alt="Image not found" />
+</figure> 
+
+<figure>
+<figcaption>Вторая страница</figcaption>  
+	<img src="readme_images/taskdialog/page2.png" alt="Image not found" />
+</figure>  
