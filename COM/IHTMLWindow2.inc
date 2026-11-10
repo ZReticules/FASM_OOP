@@ -5,6 +5,10 @@ include "IHTMLFramesCollection2.inc"
 IID_IHTMLWindow2   @const GUID 0x332C4427,0x26CB,0x11D0,<0xB4,0x83,0x00,0xC0,0x4F,0xD9,0x01,0x19>
 CLSID_HTMLWindow   @const GUID 0x25336920,0x03F9,0x11CF,<0x8F,0xD0,0x00,0xAA,0x00,0x68,0x6F,0x13>
 
+if used CLSID_HTMLWindow2
+    CLSID_HTMLWindow2 = CLSID_HTMLWindow
+end if
+
 struct IHTMLWindow2 IHTMLFramesCollection2    
     get_frames            	dm ?:virtual/std ; HRESULT get_frames(this, IHTMLFramesCollection2** ppFrames)
     put_defaultStatus     	dm ?:virtual/std ; HRESULT put_defaultStatus(this, BSTR bstrDefaultStatus)

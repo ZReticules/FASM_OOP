@@ -16,6 +16,10 @@ IID_IServerXMLHTTPRequest	@const GUID 0x2E9196BF,0x13BA,0x4DD4,<0x91,0xCA,0x6C,0
 ; ProgID для 6.0: "Msxml2.ServerXMLHTTP.6.0"
 CLSID_ServerXMLHTTP60		@const GUID 0x88D96A0B,0xF192,0x11D4,<0xA6,0x5F,0x00,0x40,0x96,0x32,0x51,0xE5>
 
+if used CLSID_IServerXMLHTTPRequest
+    CLSID_IServerXMLHTTPRequest = CLSID_ServerXMLHTTP60
+end if
+
 struct IServerXMLHTTPRequest IXMLHTTPRequest
     ; --- Расширения ServerXMLHTTP (добавляются к IXMLHTTPRequest) ---
     setTimeouts         dm ?:virtual/std ; HRESULT setTimeouts(this, LONG resolve, LONG connect, LONG send, LONG receive)
