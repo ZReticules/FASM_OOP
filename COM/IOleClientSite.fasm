@@ -56,14 +56,21 @@
 	ret
 .endp
 
+if used IOleClientSite_s.ShowObject
+
 IOleClientSite_s.ShowObject = IOleClientSite_s.SaveObject
 
-.proc stdcall IOleClientSite_s.OnShowWindow(.pthis, fShow:DWORD)
-; int3
+end if
+
+.proc stdcall IOleClientSite_s.OnShowWindow(.pthis, .fShow:DWORD)
 	mov eax, E_NOTIMPL
 	ret
 .endp
 
+if used IOleClientSite_s.RequestNewObjectLayout
+
 IOleClientSite_s.RequestNewObjectLayout = IOleClientSite_s.SaveObject
+
+end if
 
 .proc_frame_mode_previous

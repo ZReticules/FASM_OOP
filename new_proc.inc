@@ -303,7 +303,9 @@ rept 1 {
 					match =L \\\`_mp2, _mp1 _mp2\\\\\{
 						define _type pointer lit
 						\\\\\local ..bytes
+						; @const_align equ 2
 						..bytes @const cwstr _mp2
+						; restore @const_align
 						define _def ..bytes
 					\\\\\}
 					match =_type | \\\`_mp2, _type | _mp2\\\\\{
@@ -316,7 +318,9 @@ rept 1 {
 						match \\\\\`_mp5, _mp5\\\\\\{
 							define _type _mp1 lit
 							\\\\\\local ..bytes
+							; @const_align equ 2
 							..bytes @const cwstr _mp2
+							; restore @const_align
 							define _def ..bytes
 						\\\\\\}
 					\\\\\}
@@ -412,7 +416,9 @@ rept 1 {
 			match =L \\`_mp2, _mp1 _mp2\\\{
 				define _type pointer lit
 				\\\local ..bytes
+				; @const_align equ 2
 				..bytes @const cwstr _mp2
+				; restore @const_align
 				define _results ..bytes
 			\\\}
 		\\}

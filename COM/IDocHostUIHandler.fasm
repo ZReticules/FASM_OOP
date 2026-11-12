@@ -55,16 +55,28 @@
 	ret
 .endp
 
+if used IDocHostUIHandler_s.UpdateUI
+
 IDocHostUIHandler_s.UpdateUI = IDocHostUIHandler_s.HideUI
+
+end if
 
 .proc stdcall IDocHostUIHandler_s.EnableModeless(.pthis, .fEnable:DWORD)
 	mov eax, E_NOTIMPL
 	ret
 .endp
 
+if used IDocHostUIHandler_s.OnDocWindowActivate
+
 IDocHostUIHandler_s.OnDocWindowActivate = IDocHostUIHandler_s.EnableModeless
 
+end if
+
+if used IDocHostUIHandler_s.OnFrameWindowActivate
+
 IDocHostUIHandler_s.OnFrameWindowActivate = IDocHostUIHandler_s.EnableModeless
+
+end if
 
 .proc stdcall IDocHostUIHandler_s.ResizeBorder(.pthis, .prcBorder:POINTER, .pUIWindow:POINTER, .fFrameWindow:DWORD)
 	mov eax, E_NOTIMPL
@@ -101,8 +113,16 @@ IDocHostUIHandler_s.OnFrameWindowActivate = IDocHostUIHandler_s.EnableModeless
 	ret
 .endp
 
+if used IDocHostUIHandler_s.TranslateUrl
+
 IDocHostUIHandler_s.TranslateUrl = IDocHostUIHandler_s.ResizeBorder
 
+end if
+
+if used IDocHostUIHandler_s.FilterDataObject
+
 IDocHostUIHandler_s.FilterDataObject = IDocHostUIHandler_s.GetDropTarget
+
+end if
 
 .proc_frame_mode_previous

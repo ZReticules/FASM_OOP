@@ -14,18 +14,20 @@ ends
 IID_IUnknown @const GUID 0x00000000,0x0000,0x0000,<0xC0,0x00,0x00,0x00,0x00,0x00,0x00,0x46>
 
 if used IUnknown_s.used
-	struct IUnknown_s IUnknown
-		const @abstract equ 0
-		const @WIN_COM equ 0
-		
-		QueryInterface 	override this
-		AddRef 			override this
-		Release 		override this
 
-	    refCount 	dd 1
-	ends
+struct IUnknown_s IUnknown
+	const @abstract equ 0
+	const @WIN_COM equ 0
+	
+	QueryInterface 	override this
+	AddRef 			override this
+	Release 		override this
 
-	include "IUnknown.fasm"
+    refCount 	dd 1
+ends
+
+include "IUnknown.fasm"
+
 end if
 
 @endm

@@ -75,7 +75,7 @@ macro DIALOGFORM.close this, result=NULL{
 .endp
 
 
-.proc stdcall DIALOGFORM_WM_CLOSE(.lpForm, .lpParam, .exitVal) uses pbx
+.proc stdcall DIALOGFORM_WM_CLOSE(.p_form, .p_param, .exitVal) uses pbx
 	@sarg @arg3
 	virtObj .form DIALOGFORM at pbx from @arg1
     ; $call [CloseThemeData]([.form.hTheme])
@@ -85,7 +85,7 @@ macro DIALOGFORM.close this, result=NULL{
 	ret
 .endp
 
-.proc stdcall DIALOGFORM_WM_CLOSE_NOMODAL(.lpForm, .lpParam, .exitVal) uses pbx
+.proc stdcall DIALOGFORM_WM_CLOSE_NOMODAL(.p_form, .p_param, .exitVal) uses pbx
 	virtObj .form DIALOGFORM at pbx from @arg1
     ; $call [CloseThemeData]([.form.hTheme])
 	$call .form.sData.mapDialog::unmake()
@@ -152,24 +152,28 @@ macro DIALOGFORM.close this, result=NULL{
 
 .proc cdecl DIALOGFORM.dispatchMessages(.pthis) uses pbx
 	virtObj .this DIALOGFORM at pbx from @arg1
+	mov pax, [.this.hWnd]
+	test pax, pax
+		jz .return
+
 	.local .msg:MSG
 	$call [GetMessageA](&.msg, NULL, 0, 0)
 	test eax, eax
-	jnz .noEnd
+	jnz .not_end
 		mov ecx, 1
 		mov pdx, [.this.hWnd]
 		cmp [.msg.hwnd], pdx
 		cmovne eax, ecx
 		jmp .return
-	.noEnd:
+	.not_end:
 	$call [GetActiveWindow]()
-	mov ecx, eax
-	$call [IsDialogMessageA](ecx, &.msg)
+	mov pcx, pax
+	$call [IsDialogMessageA](pcx, &.msg)
 	test eax, eax
 	jnz .return
 		$call [TranslateMessage](&.msg)
 		$call [DispatchMessageA](&.msg)
-		mov eax, 1
+		mov eax, esp
 	.return: ret
 .endp
 
